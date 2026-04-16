@@ -37,12 +37,14 @@
       margin-bottom: 6px;
     }
 
-    #site-header {
+    #site-header,
+    .fade-section {
       opacity: 0;
       transition: opacity 0.6s ease;
     }
 
-    #site-header.visible {
+    #site-header.visible,
+    .fade-section.visible {
       opacity: 1;
     }
 
@@ -140,94 +142,102 @@
   <!-- PERSISTENT SECTION -->
   <hr>
 
-  <h2>Islanders News</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Headline</th>
-        <th>Site</th>
-        <th>Link</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Placeholder headline</td>
-        <td>Lighthouse Hockey</td>
-        <td><a href="#">Read</a></td>
-      </tr>
-      <tr>
-        <td>Placeholder headline</td>
-        <td>NY Post</td>
-        <td><a href="#">Read</a></td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="fade-section">
+    <h2>Islanders News</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Headline</th>
+          <th>Site</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Placeholder headline</td>
+          <td>Lighthouse Hockey</td>
+          <td><a href="#">Read</a></td>
+        </tr>
+        <tr>
+          <td>Placeholder headline</td>
+          <td>NY Post</td>
+          <td><a href="#">Read</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <h2>Forwards</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>GP</th>
-        <th>G</th>
-        <th>A</th>
-        <th>PTS</th>
-        <th>+/-</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Mathew Barzal</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Bo Horvat</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Anders Lee</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Kyle Palmieri</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Brock Nelson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Pierre Engvall</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Casey Cizikas</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Simon Holmstrom</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Jean-Gabriel Pageau</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Cal Clutterbuck</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-    </tbody>
-  </table>
+  <div class="fade-section">
+    <h2>Forwards</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>GP</th>
+          <th>G</th>
+          <th>A</th>
+          <th>PTS</th>
+          <th>+/-</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Mathew Barzal</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Bo Horvat</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Anders Lee</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Kyle Palmieri</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Brock Nelson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Pierre Engvall</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Casey Cizikas</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Simon Holmstrom</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Jean-Gabriel Pageau</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Cal Clutterbuck</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-  <h2>Defensemen</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>GP</th>
-        <th>G</th>
-        <th>A</th>
-        <th>PTS</th>
-        <th>+/-</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Noah Dobson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Alexander Romanov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Adam Pelech</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Ryan Pulock</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Scott Mayfield</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Mike Reilly</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-    </tbody>
-  </table>
+  <div class="fade-section">
+    <h2>Defensemen</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>GP</th>
+          <th>G</th>
+          <th>A</th>
+          <th>PTS</th>
+          <th>+/-</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Noah Dobson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Alexander Romanov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Adam Pelech</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Ryan Pulock</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Scott Mayfield</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Mike Reilly</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-  <h2>Goalies</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>GP</th>
-        <th>W</th>
-        <th>L</th>
-        <th>GAA</th>
-        <th>SV%</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ilya Sorokin</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-      <tr><td>Semyon Varlamov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-    </tbody>
-  </table>
+  <div class="fade-section">
+    <h2>Goalies</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>GP</th>
+          <th>W</th>
+          <th>L</th>
+          <th>GAA</th>
+          <th>SV%</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Ilya Sorokin</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Semyon Varlamov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <p id="footer">Last updated: —</p>
 
@@ -254,10 +264,30 @@
     }
   });
 
-  // Header (title + nav) fades in on first mouseover and stays visible
-  siteHeader.addEventListener('mouseenter', function () {
+  // Header fades in on first scroll
+  window.addEventListener('scroll', function () {
     siteHeader.classList.add('visible');
   }, { once: true });
+
+  // Persistent sections fade in when scrolled into view OR moused over
+  const fadeSections = document.querySelectorAll('.fade-section');
+
+  const observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  fadeSections.forEach(function (section) {
+    observer.observe(section);
+    section.addEventListener('mouseenter', function () {
+      section.classList.add('visible');
+      observer.unobserve(section);
+    }, { once: true });
+  });
 </script>
 
 </body>
