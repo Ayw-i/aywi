@@ -179,8 +179,8 @@ Always rendered below the mood section:
 |-----------------------------------|--------------|
 | assets/sorover.png                | Ready        |
 | assets/only posers fall in love.mp3 | Ready      |
-| Win image(s)                      | Have some — filenames TBD |
-| Loss image(s)                     | Have some — filenames TBD |
+| assets/lee.png                    | Win image (primary)  |
+| assets/pov_sasha_daet_tebe_L.png  | Loss image (primary) |
 | Live game image (if any)          | TBD          |
 | Pre-game image                    | TBD          |
 | Off-season image                  | TBD          |

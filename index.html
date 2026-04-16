@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Are Ya Winning, Isles?</title>
+  <style>
+    body {
+      background-color: #2bae66;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #sound-toggle {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    #main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 60px 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+    }
+
+    nav {
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: underline;
+      margin: 0 8px;
+      font-size: 11pt;
+    }
+
+    #mood-image {
+      max-width: 100%;
+      display: block;
+      margin: 0 auto;
+    }
+
+    #mood-headline {
+      font-size: 72pt;
+      font-weight: bold;
+      margin: 16px 0 30px 0;
+      line-height: 1;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid white;
+      margin: 40px 0;
+    }
+
+    h2 {
+      text-align: left;
+      font-size: 13pt;
+      margin: 30px 0 6px 0;
+      text-transform: uppercase;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      text-align: left;
+    }
+
+    th, td {
+      border: 1px solid white;
+      padding: 4px 8px;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    a {
+      color: white;
+    }
+
+    #footer {
+      font-size: 9pt;
+      margin-top: 50px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+
+<button id="sound-toggle" title="Toggle sound">&#9654;</button>
+
+<audio id="bg-audio" loop>
+  <source src="assets/only%20posers%20fall%20in%20love.mp3" type="audio/mpeg">
+</audio>
+
+<div id="main">
+
+  <h1>Are Ya Winning, Isles?</h1>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="season.html">Season</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="stats.html">Stats</a>
+    <a href="about.html">About</a>
+  </nav>
+
+  <!-- MOOD SECTION -->
+  <div id="mood-section">
+    <img id="mood-image" src="assets/sorover.png" alt="It's Sorover">
+    <div id="mood-headline">IT'S SOROVER</div>
+  </div>
+
+  <!-- PERSISTENT SECTION -->
+  <hr>
+
+  <h2>Islanders News</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Headline</th>
+        <th>Site</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Placeholder headline</td>
+        <td>Lighthouse Hockey</td>
+        <td><a href="#">Read</a></td>
+      </tr>
+      <tr>
+        <td>Placeholder headline</td>
+        <td>NY Post</td>
+        <td><a href="#">Read</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Forwards</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>GP</th>
+        <th>G</th>
+        <th>A</th>
+        <th>PTS</th>
+        <th>+/-</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Mathew Barzal</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Bo Horvat</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Anders Lee</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Kyle Palmieri</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Brock Nelson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Pierre Engvall</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Casey Cizikas</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Simon Holmstrom</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Jean-Gabriel Pageau</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Cal Clutterbuck</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Defensemen</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>GP</th>
+        <th>G</th>
+        <th>A</th>
+        <th>PTS</th>
+        <th>+/-</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Noah Dobson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Alexander Romanov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Adam Pelech</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Ryan Pulock</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Scott Mayfield</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Mike Reilly</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Goalies</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>GP</th>
+        <th>W</th>
+        <th>L</th>
+        <th>GAA</th>
+        <th>SV%</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Ilya Sorokin</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Semyon Varlamov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <p id="footer">Last updated: —</p>
+
+</div>
+
+<script>
+  const audio = document.getElementById('bg-audio');
+  const toggle = document.getElementById('sound-toggle');
+
+  toggle.addEventListener('click', function () {
+    if (audio.paused) {
+      audio.play();
+      toggle.innerHTML = '&#9646;&#9646;';
+    } else {
+      audio.pause();
+      toggle.innerHTML = '&#9654;';
+    }
+  });
+</script>
+
+</body>
+</html>
