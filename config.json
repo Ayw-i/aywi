@@ -26,6 +26,13 @@
     }
   },
 
+  "news": {
+    "maxPerSource": 5,
+    "sources": [
+      { "key": "lighthouse", "name": "Lighthouse Hockey" }
+    ]
+  },
+
   "notes": {
     "nextGameDay": "Replaced at runtime by JS. 'tomorrow' if next game is the next calendar day, otherwise 'on [day of week, e.g. Monday]'.",
     "nextHomeGame": "Replaced at runtime by JS with the date of the next scheduled home game. Format: 'Saturday, April 19th' (full day name, full month name, day with ordinal suffix).",

@@ -168,17 +168,8 @@
           <th>Link</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>Placeholder headline</td>
-          <td>Lighthouse Hockey</td>
-          <td><a href="#">Read</a></td>
-        </tr>
-        <tr>
-          <td>Placeholder headline</td>
-          <td>NY Post</td>
-          <td><a href="#">Read</a></td>
-        </tr>
+      <tbody id="news-tbody">
+        <tr><td colspan="3">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -288,6 +279,97 @@
     }
   }
 
+  const WORKER = 'https://nhl-proxy.aywi.workers.dev';
+
+  // --- News ---
+
+  function parseFeed(xmlText, sourceName) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const articles = [];
+
+    // Detect Atom vs RSS by root element
+    const isAtom = doc.querySelector('feed') !== null;
+
+    const items = isAtom
+      ? Array.from(doc.querySelectorAll('entry'))
+      : Array.from(doc.querySelectorAll('item'));
+
+    items.forEach(function (item) {
+      const headline = item.querySelector('title')
+        ? item.querySelector('title').textContent.trim() : '';
+
+      let url = '';
+      if (isAtom) {
+        const linkEl = item.querySelector('link[rel="alternate"]') || item.querySelector('link');
+        url = linkEl ? (linkEl.getAttribute('href') || linkEl.textContent.trim()) : '';
+      } else {
+        const linkEl = item.querySelector('link');
+        url = linkEl ? linkEl.textContent.trim() : '';
+      }
+
+      const dateStr = isAtom
+        ? (item.querySelector('published') || item.querySelector('updated'))?.textContent
+        : item.querySelector('pubDate')?.textContent;
+
+      articles.push({
+        headline: headline,
+        url: url,
+        site: sourceName,
+        date: dateStr ? new Date(dateStr) : new Date(0),
+      });
+    });
+
+    return articles;
+  }
+
+  async function loadNews() {
+    try {
+      const configRes = await fetch('config.json');
+      const config = await configRes.json();
+      const { sources, maxPerSource } = config.news;
+
+      const allArticles = [];
+
+      await Promise.all(sources.map(async function (source) {
+        try {
+          const res = await fetch(WORKER + '/feeds/' + source.key);
+          const xml = await res.text();
+          const articles = parseFeed(xml, source.name).slice(0, maxPerSource);
+          allArticles.push(...articles);
+        } catch (e) {
+          console.warn('Failed to load feed:', source.key, e);
+        }
+      }));
+
+      // Sort all articles by date, newest first
+      allArticles.sort(function (a, b) { return b.date - a.date; });
+
+      const tbody = document.getElementById('news-tbody');
+      if (allArticles.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">No news available.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      allArticles.forEach(function (article) {
+        const row = document.createElement('tr');
+        row.innerHTML =
+          '<td>' + article.headline + '</td>' +
+          '<td>' + article.site + '</td>' +
+          '<td><a href="' + article.url + '" target="_blank" rel="noopener">Read</a></td>';
+        tbody.appendChild(row);
+      });
+
+    } catch (err) {
+      console.error('Failed to load news:', err);
+      document.getElementById('news-tbody').innerHTML =
+        '<tr><td colspan="3">Could not load news.</td></tr>';
+    }
+  }
+
+  loadNews();
+
   // --- Roster stats ---
 
   function makeSortable(table) {
@@ -380,7 +462,7 @@
 
   async function loadRosterStats() {
     try {
-      const res = await fetch('https://nhl-proxy.aywi.workers.dev/v1/club-stats/NYI/20252026/2');
+      const res = await fetch(WORKER + '/v1/club-stats/NYI/20252026/2');
       const data = await res.json();
 
       const forwards = data.skaters
