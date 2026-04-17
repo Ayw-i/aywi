@@ -165,13 +165,104 @@ Always rendered below the mood section:
 
 ---
 
+## Response Text Logic (Regular Season)
+
+All response strings live in `config.json` and are loaded at runtime so they
+can be edited without touching JS code.
+
+### During a live game (goal differential = NYI minus opponent)
+
+| Situation        | Differential | Text                              |
+|------------------|-------------|-----------------------------------|
+| Leading          | +1          | "Yes."                            |
+| Leading          | +2          | "Yes!"                            |
+| Leading          | +3          | "Yes!!!"                          |
+| Leading          | +4 or more  | "Yes! Yes! Yes!"                  |
+| Tied             | 0           | "Not yet."                        |
+| Trailing         | -1          | "No."                             |
+| Trailing         | -2          | "Nope."                           |
+| Trailing         | -3          | "Nooo."                           |
+| Trailing         | -4 or more  | "Next home game: {nextHomeGame}"  |
+
+### After a game ends (same day, game is final)
+
+| Result                  | Text                          |
+|-------------------------|-------------------------------|
+| Win (any)               | "We won!"                     |
+| Loss — regulation       | "We lost."                    |
+| Loss — OT or SO         | "We won... a loser point!"    |
+
+OT/SO loss detected via NHL API `lossType` field on the completed game.
+
+### Between games (no game today)
+
+| Last result | Text |
+|---|---|
+| Win  | "Yes, and we'll win again {nextGameDay}." |
+| Loss | "No, but we'll win {nextGameDay}."        |
+
+`{nextGameDay}` resolves at runtime:
+- "tomorrow" if the next NYI game is the following calendar day
+- "on [day of week]" otherwise (e.g. "on Monday")
+
+`{nextHomeGame}` resolves at runtime to the date of the next scheduled home game.
+Format: "Saturday, April 19th" — full day name, full month name, day with ordinal suffix (1st/2nd/3rd/4th etc).
+
+Between games, the mood image persists from the last result (lee.png after a win, loss image after a loss).
+
+### Pre-season
+
+Same live/postgame/between-games logic applies during preseason games.
+Record displayed during preseason should reflect preseason record only
+(not mixed with regular season). Other preseason-specific tweaks TBD.
+A persistent banner above the persistent section reads:
+"Days until Isles hockey begins for real: X"
+
+### Off-season
+
+No game logic. Single centered line only:
+"Days until Isles hockey begins (preseason): X"
+Counter calculated from first NYI preseason game in upcoming season schedule.
+No persistent section shown.
+
+---
+
+## Season State Priority Order
+
+```
+1. Playoff game scheduled today (gameType 03)  → Outside In
+2. MoneyPuck NYI = 0%, no playoffs yet         → Sorover
+3. Preseason (gameType 01) active              → Pre-season + counter
+4. Live game in progress                       → Live (scoreboard)
+5. Game today, not started                     → Pre-game
+6. Game today, final                           → Win / Loss / Loser Point
+7. No game today, regular season               → Persist last Win/Loss state
+8. No games in API                             → Off-season (counter only)
+```
+
+### State specs
+
+| State       | Background | Image                        | Text                        | Audio                          | Fades? |
+|-------------|------------|------------------------------|-----------------------------|--------------------------------|--------|
+| Outside In  | #000000    | now_im_on_the_outside.png    | "OUTSIDE IN" (link to playoffs.html) | None              | No     |
+| Sorover     | #2bae66    | sorover.png                  | "IT'S SOROVER"              | only posers fall in love.mp3   | Yes    |
+| Pre-season  | TBD        | TBD                          | Counter + regular layout    | TBD                            | Yes    |
+| Live        | TBD        | (scoreboard layout)          | See response text logic     | TBD                            | Yes    |
+| Pre-game    | TBD        | TBD                          | TBD                         | TBD                            | Yes    |
+| Win         | #000000    | lee.png                      | See response text logic     | TBD                            | Yes    |
+| Loss        | #000000    | pov_sasha_daet_tebe_L.png    | See response text logic     | TBD                            | Yes    |
+| Off-season  | #000000    | None                         | Days until preseason: X     | None                           | Yes    |
+
+---
+
 ## Open Decisions
 
-- Background color and image for live / pregame / offseason states
-- Audio files for win / loss / live states
+- Background color and image for live / pregame / preseason states
+- Audio files for win / loss / live / preseason states
 - Exact stat columns shown in live game player tables
 - Domain name: custom domain vs. Cloudflare Pages subdomain (free)
 - Whether to rotate multiple win/loss images randomly
+- Does off-season state show the persistent section (news/roster) or just the counter? RESOLVED: show news table only, no roster stats during off-season.
 
 ## Assets Checklist
 

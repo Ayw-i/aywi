@@ -1,0 +1,34 @@
+{
+  "responses": {
+    "live": {
+      "leading": {
+        "1": "Yes.",
+        "2": "Yes!",
+        "3": "Yes!!!",
+        "4plus": "Yes! Yes! Yes!"
+      },
+      "tied": "Not yet.",
+      "trailing": {
+        "1": "No.",
+        "2": "Nope.",
+        "3": "Nooo.",
+        "4plus": "Next home game: {nextHomeGame}"
+      }
+    },
+    "postgame": {
+      "win": "We won!",
+      "loss_regulation": "We lost.",
+      "loss_ot_so": "We won... a loser point!"
+    },
+    "between_games": {
+      "last_was_win": "Yes, and we'll win again {nextGameDay}.",
+      "last_was_loss": "No, but we'll win {nextGameDay}."
+    }
+  },
+
+  "notes": {
+    "nextGameDay": "Replaced at runtime by JS. 'tomorrow' if next game is the next calendar day, otherwise 'on [day of week, e.g. Monday]'.",
+    "nextHomeGame": "Replaced at runtime by JS with the date of the next scheduled home game. Format: 'Saturday, April 19th' (full day name, full month name, day with ordinal suffix).",
+    "loss_ot_so": "Triggered when game ends in OT or SO as a loss. Detected via NHL API lossType field."
+  }
+}
