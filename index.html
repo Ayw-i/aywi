@@ -286,11 +286,14 @@
     }
   }
 
-  // Header fades in on first scroll; also kick off section observer
-  window.addEventListener('scroll', function () {
+  // Header fades in on first scroll or mouseover; also kick off section observer
+  function revealHeader() {
     siteHeader.classList.add('visible');
     startObserving();
-  }, { once: true });
+  }
+
+  window.addEventListener('scroll', revealHeader, { once: true });
+  siteHeader.addEventListener('mouseenter', revealHeader, { once: true });
 
   // Mouseover on any section fades it in directly (before or after scroll)
   fadeSections.forEach(function (section) {
