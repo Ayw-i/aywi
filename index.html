@@ -264,14 +264,9 @@
     }
   });
 
-  // Header fades in on first scroll
-  window.addEventListener('scroll', function () {
-    siteHeader.classList.add('visible');
-  }, { once: true });
-
-  // Persistent sections fade in when scrolled into view OR moused over
   const fadeSections = document.querySelectorAll('.fade-section');
 
+  // Observer is created but NOT started until user interacts
   const observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
       if (entry.isIntersecting) {
@@ -281,8 +276,24 @@
     });
   }, { threshold: 0.1 });
 
+  let observing = false;
+  function startObserving() {
+    if (!observing) {
+      observing = true;
+      fadeSections.forEach(function (section) {
+        observer.observe(section);
+      });
+    }
+  }
+
+  // Header fades in on first scroll; also kick off section observer
+  window.addEventListener('scroll', function () {
+    siteHeader.classList.add('visible');
+    startObserving();
+  }, { once: true });
+
+  // Mouseover on any section fades it in directly (before or after scroll)
   fadeSections.forEach(function (section) {
-    observer.observe(section);
     section.addEventListener('mouseenter', function () {
       section.classList.add('visible');
       observer.unobserve(section);
