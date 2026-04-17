@@ -180,17 +180,8 @@
           <th>+/-</th>
         </tr>
       </thead>
-      <tbody>
-        <tr><td>Mathew Barzal</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Bo Horvat</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Anders Lee</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Kyle Palmieri</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Brock Nelson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Pierre Engvall</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Casey Cizikas</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Simon Holmstrom</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Jean-Gabriel Pageau</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Cal Clutterbuck</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tbody id="forwards-tbody">
+        <tr><td colspan="6">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -208,13 +199,8 @@
           <th>+/-</th>
         </tr>
       </thead>
-      <tbody>
-        <tr><td>Noah Dobson</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Alexander Romanov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Adam Pelech</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Ryan Pulock</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Scott Mayfield</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Mike Reilly</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tbody id="defensemen-tbody">
+        <tr><td colspan="6">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -232,9 +218,8 @@
           <th>SV%</th>
         </tr>
       </thead>
-      <tbody>
-        <tr><td>Ilya Sorokin</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Semyon Varlamov</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tbody id="goalies-tbody">
+        <tr><td colspan="6">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -285,6 +270,90 @@
       });
     }
   }
+
+  // --- Roster stats ---
+
+  function formatPlusMinus(val) {
+    if (val > 0) return '+' + val;
+    return String(val);
+  }
+
+  function formatGAA(val) {
+    return val.toFixed(2);
+  }
+
+  function formatSVP(val) {
+    // Hockey convention: .917 not 0.917
+    return '.' + val.toFixed(3).slice(2);
+  }
+
+  function renderSkaterTable(tbodyId, players) {
+    const tbody = document.getElementById(tbodyId);
+    tbody.innerHTML = '';
+    players.forEach(function (p) {
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' + p.firstName.default + ' ' + p.lastName.default + '</td>' +
+        '<td>' + p.gamesPlayed + '</td>' +
+        '<td>' + p.goals + '</td>' +
+        '<td>' + p.assists + '</td>' +
+        '<td>' + p.points + '</td>' +
+        '<td>' + formatPlusMinus(p.plusMinus) + '</td>';
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderGoalieTable(goalies) {
+    const tbody = document.getElementById('goalies-tbody');
+    tbody.innerHTML = '';
+    goalies.forEach(function (g) {
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' + g.firstName.default + ' ' + g.lastName.default + '</td>' +
+        '<td>' + g.gamesPlayed + '</td>' +
+        '<td>' + g.wins + '</td>' +
+        '<td>' + g.losses + '</td>' +
+        '<td>' + formatGAA(g.goalsAgainstAverage) + '</td>' +
+        '<td>' + formatSVP(g.savePercentage) + '</td>';
+      tbody.appendChild(row);
+    });
+  }
+
+  async function loadRosterStats() {
+    try {
+      const res = await fetch('https://nhl-proxy.aywi.workers.dev/v1/club-stats/NYI/20252026/2');
+      const data = await res.json();
+
+      const forwards = data.skaters
+        .filter(function (p) { return ['C', 'L', 'R'].includes(p.positionCode); })
+        .sort(function (a, b) { return b.points - a.points; });
+
+      const defensemen = data.skaters
+        .filter(function (p) { return p.positionCode === 'D'; })
+        .sort(function (a, b) { return b.points - a.points; });
+
+      const goalies = data.goalies
+        .sort(function (a, b) { return b.wins - a.wins; });
+
+      renderSkaterTable('forwards-tbody', forwards);
+      renderSkaterTable('defensemen-tbody', defensemen);
+      renderGoalieTable(goalies);
+
+      document.getElementById('footer').textContent =
+        'Last updated: ' + new Date().toLocaleString();
+
+    } catch (err) {
+      console.error('Failed to load roster stats:', err);
+      ['forwards-tbody', 'defensemen-tbody', 'goalies-tbody'].forEach(function (id) {
+        document.getElementById(id).innerHTML =
+          '<tr><td colspan="6">Could not load data.</td></tr>';
+      });
+    }
+  }
+
+  loadRosterStats();
+
+  // --- Fade logic ---
 
   // Header fades in on first scroll or mouseover; also kick off section observer
   function revealHeader() {

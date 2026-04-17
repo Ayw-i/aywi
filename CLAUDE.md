@@ -7,6 +7,16 @@ via Cloudflare Pages.
 
 ---
 
+## Cloudflare Worker — NHL API Proxy
+
+All NHL API calls go through this Worker (avoids CORS):
+https://nhl-proxy.aywi.workers.dev/v1/...
+
+Example: https://nhl-proxy.aywi.workers.dev/v1/club-stats/NYI/20252026/2
+Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
+
+---
+
 ## Tech Stack
 
 - Plain HTML5, CSS3, Vanilla JavaScript only
@@ -162,6 +172,16 @@ Always rendered below the mood section:
 - Automated news via RSS proxy (Cloudflare Worker)
 - Automated playoff odds via MoneyPuck JSON feed (priority — Phase 3)
 - Top/bottom player metric: revisit TOI default, consider in-game points
+- GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
+- Color-code skater/goalie stats by league ranking:
+    Gold = 1st in league
+    Silver = 2nd in league
+    Bright green = top 5
+    Regular green = top 10
+    (below that TBD — possibly red for bottom rankings)
+  Applies to: GAA, SV%, +/-, GSAx (goalies); +/- (skaters)
+  Requires fetching league-wide stats for all players to determine rank
+  Research: NHL API skater/goalie stats leaders endpoints
 
 ---
 
