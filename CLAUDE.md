@@ -173,6 +173,7 @@ Always rendered below the mood section:
 - Automated playoff odds via MoneyPuck JSON feed (priority — Phase 3)
 - Top/bottom player metric: revisit TOI default, consider in-game points
 - GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
+- Before public release: add Worker-level caching (Cloudflare Cache API) so all visitors share one cached NHL API response instead of each triggering a fresh fetch
 - Color-code skater/goalie stats by league ranking:
     Gold = 1st in league
     Silver = 2nd in league
