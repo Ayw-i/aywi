@@ -388,37 +388,224 @@
     }
   }
 
-  // --- State detection ---
+  // --- Config cache ---
 
-  async function detectAndRenderState() {
-    try {
-      const [standingsRes, scheduleRes] = await Promise.all([
-        fetch(WORKER + '/v1/standings/now'),
-        fetch(WORKER + '/v1/score/now'),
-      ]);
-      const standings = await standingsRes.json();
-      const schedule  = await scheduleRes.json();
+  let appConfig = null;
+  async function getConfig() {
+    if (!appConfig) {
+      const res = await fetch('config.json');
+      appConfig = await res.json();
+    }
+    return appConfig;
+  }
 
-      // 1. Any playoff game today → Outside In
-      const hasPlayoffGames = schedule.games.some(function (g) {
-        return g.gameType === 3;
-      });
-      if (hasPlayoffGames) {
-        renderMoodState('outside_in');
-        return;
+  // --- Date formatting ---
+
+  function ordinalSuffix(d) {
+    if (d >= 11 && d <= 13) return 'th';
+    return ['th','st','nd','rd'][d % 10] || 'th';
+  }
+
+  function formatOrdinalDate(dateStr) {
+    const months = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const d = new Date(dateStr + 'T12:00:00');
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' +
+           d.getDate() + ordinalSuffix(d.getDate());
+  }
+
+  function formatNextGameDay(dateStr) {
+    const game     = new Date(dateStr + 'T12:00:00');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (game.toDateString() === tomorrow.toDateString()) return 'tomorrow';
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    return 'on ' + days[game.getDay()];
+  }
+
+  // --- NYI game helpers ---
+
+  function isNYIGame(game) {
+    return game.awayTeam.abbrev === 'NYI' || game.homeTeam.abbrev === 'NYI';
+  }
+
+  function nyiDiff(game) {
+    const nyiScore = game.awayTeam.abbrev === 'NYI'
+      ? game.awayTeam.score : game.homeTeam.score;
+    const oppScore = game.awayTeam.abbrev === 'NYI'
+      ? game.homeTeam.score : game.awayTeam.score;
+    return nyiScore - oppScore;
+  }
+
+  function nyiWon(game) { return nyiDiff(game) > 0; }
+
+  function wasOTorSO(game) {
+    return game.gameOutcome &&
+      (game.gameOutcome.lastPeriodType === 'OT' ||
+       game.gameOutcome.lastPeriodType === 'SO');
+  }
+
+  // --- Response text from config ---
+
+  function getResponseText(config, situation, params) {
+    const r = config.responses;
+    params = params || {};
+    switch (situation) {
+      case 'live_leading': {
+        const d = params.diff;
+        return d >= 4 ? r.live.leading['4plus'] : r.live.leading[String(d)];
       }
-
-      // 2. NYI eliminated → Sorover
-      const nyi = standings.standings.find(function (t) {
-        return t.teamAbbrev.default === 'NYI';
-      });
-      if (nyi && nyi.clinchIndicator === 'e') {
-        renderMoodState('sorover');
-        return;
+      case 'live_tied':
+        return r.live.tied;
+      case 'live_trailing': {
+        const d = Math.abs(params.diff);
+        if (d >= 4) return r.live.trailing['4plus']
+          .replace('{nextHomeGame}', params.nextHomeGame || '—');
+        return r.live.trailing[String(d)];
       }
+      case 'postgame_win':      return r.postgame.win;
+      case 'postgame_loss_reg': return r.postgame.loss_regulation;
+      case 'postgame_loss_ot':  return r.postgame.loss_ot_so;
+      case 'between_win':
+        return r.between_games.last_was_win
+          .replace('{nextGameDay}', params.nextGameDay || 'soon');
+      case 'between_loss':
+        return r.between_games.last_was_loss
+          .replace('{nextGameDay}', params.nextGameDay || 'soon');
+      default: return '';
+    }
+  }
 
-      // 3. Regular season states (Phase 4 — placeholder for now)
+  // --- State application (pure — works with real or mock data) ---
+
+  function applyState(data) {
+    const { standings, todayGames, monthGames, config } = data;
+
+    // 1. Playoff game today → Outside In
+    if (todayGames.some(function (g) { return g.gameType === 3; })) {
+      renderMoodState('outside_in');
+      return;
+    }
+
+    // 2. NYI eliminated → Sorover
+    const nyi = standings.standings.find(function (t) {
+      return t.teamAbbrev.default === 'NYI';
+    });
+    if (nyi && nyi.clinchIndicator === 'e') {
       renderMoodState('sorover');
+      return;
+    }
+
+    // 3. Regular season — find NYI game today
+    const nyiGame = todayGames.find(function (g) {
+      return g.gameType === 2 && isNYIGame(g);
+    });
+
+    if (!nyiGame) {
+      // Between games — find last result and next game from month schedule
+      const completed = monthGames.filter(function (g) {
+        return isNYIGame(g) && (g.gameState === 'OFF' || g.gameState === 'FINAL');
+      });
+      const upcoming = monthGames.filter(function (g) {
+        return isNYIGame(g) && (g.gameState === 'FUT' || g.gameState === 'PRE');
+      });
+
+      const lastGame = completed[completed.length - 1] || null;
+      const nextGame = upcoming[0] || null;
+      const nextGameDay = nextGame ? formatNextGameDay(nextGame.gameDate) : 'soon';
+
+      if (!lastGame) { renderMoodState('sorover'); return; }
+
+      if (nyiWon(lastGame)) {
+        renderMoodState('win', {
+          headline: getResponseText(config, 'between_win', { nextGameDay: nextGameDay }),
+        });
+      } else {
+        renderMoodState('loss', {
+          headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }),
+        });
+      }
+      return;
+    }
+
+    const state = nyiGame.gameState;
+
+    // 4. Pre-game
+    if (state === 'FUT' || state === 'PRE') {
+      renderMoodState('pregame', { headline: 'Game today.' });
+      return;
+    }
+
+    // 5. Live
+    if (state === 'LIVE' || state === 'CRIT') {
+      const diff = nyiDiff(nyiGame);
+      let situation;
+      if (diff > 0)      situation = 'live_leading';
+      else if (diff < 0) situation = 'live_trailing';
+      else               situation = 'live_tied';
+
+      // Next home game for "down 4+" text
+      const nextHome = (monthGames || []).find(function (g) {
+        return isNYIGame(g) && g.homeTeam.abbrev === 'NYI' &&
+               (g.gameState === 'FUT' || g.gameState === 'PRE');
+      });
+      const nextHomeGame = nextHome ? formatOrdinalDate(nextHome.gameDate) : '—';
+
+      const headline = getResponseText(config, situation, {
+        diff: diff,
+        nextHomeGame: nextHomeGame,
+      });
+
+      const img = diff >= 0 ? 'assets/lee.png' : 'assets/pov_sasha_daet_tebe_L.png';
+      renderMoodState('live', { headline: headline, image: img });
+      return;
+    }
+
+    // 6. Final
+    if (state === 'OFF' || state === 'FINAL') {
+      if (nyiWon(nyiGame)) {
+        renderMoodState('win', {
+          headline: getResponseText(config, 'postgame_win'),
+        });
+      } else if (wasOTorSO(nyiGame)) {
+        renderMoodState('loss', {
+          headline: getResponseText(config, 'postgame_loss_ot'),
+        });
+      } else {
+        renderMoodState('loss', {
+          headline: getResponseText(config, 'postgame_loss_reg'),
+        });
+      }
+    }
+  }
+
+  // --- State detection (fetches real data or uses mock) ---
+
+  async function detectAndRenderState(mockData) {
+    try {
+      const config = await getConfig();
+
+      let standings, todayGames, monthGames;
+
+      if (mockData) {
+        standings  = mockData.standings;
+        todayGames = mockData.todayGames;
+        monthGames = mockData.monthGames || [];
+      } else {
+        const [standingsRes, scheduleRes, monthRes] = await Promise.all([
+          fetch(WORKER + '/v1/standings/now'),
+          fetch(WORKER + '/v1/score/now'),
+          fetch(WORKER + '/v1/club-schedule/NYI/month/now'),
+        ]);
+        standings  = await standingsRes.json();
+        const schedule = await scheduleRes.json();
+        todayGames = schedule.games;
+        const month = await monthRes.json();
+        monthGames = month.games || [];
+      }
+
+      applyState({ standings, todayGames, monthGames, config });
 
     } catch (err) {
       console.error('State detection failed:', err);
