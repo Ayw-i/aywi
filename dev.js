@@ -46,6 +46,11 @@ const DEV_MOCK_SCENARIOS = {
     todayGames: [],
     monthGames: [],
   },
+  'Mock: Clinched': {
+    standings: mockStandings('x'),
+    todayGames: [],
+    monthGames: [],
+  },
   'Mock: Outside In': {
     standings: mockStandings(null),
     todayGames: [{ gameType: 3, gameState: 'LIVE', awayTeam: { abbrev: 'BOS' }, homeTeam: { abbrev: 'TBL' } }],
@@ -143,7 +148,7 @@ const DEV_MOCK_SCENARIOS = {
 };
 
 const DEV_MOCK_GROUPS = [
-  { label: 'Season',    states: ['Mock: Sorover', 'Mock: Outside In'] },
+  { label: 'Season',    states: ['Mock: Sorover', 'Mock: Clinched', 'Mock: Outside In'] },
   { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
   { label: 'Between',   states: ['Mock: Between (last W)', 'Mock: Between (last L)'] },
   { label: 'Pre-Game',  states: ['Mock: Pre-game'] },

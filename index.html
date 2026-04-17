@@ -72,6 +72,12 @@
       line-height: 1;
     }
 
+    #game-headline {
+      font-size: 11pt;
+      margin: 12px 0;
+      text-align: left;
+    }
+
     hr {
       border: none;
       border-top: 1px solid white;
@@ -151,6 +157,12 @@
   <div id="mood-section">
     <img id="mood-image" src="" alt="" style="display:none;">
     <div id="mood-headline"></div>
+  </div>
+
+  <!-- GAME SECTION — shown in Sorover/Clinched states; empty otherwise -->
+  <div id="game-section" class="fade-section">
+    <hr>
+    <p id="game-headline"></p>
   </div>
 
   <!-- PERSISTENT SECTION -->
@@ -256,6 +268,8 @@
   });
 
   const fadeSections = document.querySelectorAll('.fade-section');
+  const gameSection = document.getElementById('game-section');
+  const gameHeadline = document.getElementById('game-headline');
 
   // Observer is created but NOT started until user interacts
   const observer = new IntersectionObserver(function (entries) {
@@ -277,6 +291,21 @@
     }
   }
 
+  function showGameSection(text) {
+    gameHeadline.textContent = text;
+    gameSection.classList.remove('visible');
+    // Only re-observe if the user has already interacted — otherwise
+    // startObserving() will pick it up on first scroll/mouseover.
+    if (observing) {
+      observer.observe(gameSection);
+    }
+  }
+
+  function clearGameSection() {
+    gameHeadline.textContent = '';
+    gameSection.classList.remove('visible');
+  }
+
   const WORKER = 'https://nhl-proxy.aywi.workers.dev';
 
   // --- State definitions ---
@@ -290,6 +319,14 @@
       headline: "IT'S SOROVER",
       headlineLink: null,
       audioSrc: 'assets/only%20posers%20fall%20in%20love.mp3',
+      fades: true,
+    },
+    clinched: {
+      background: '#000000',
+      image: 'assets/roblox engvall.png',
+      headline: 'Clinched.',
+      headlineLink: null,
+      audioSrc: null,
       fades: true,
     },
     outside_in: {
@@ -479,25 +516,12 @@
 
   // --- State application (pure — works with real or mock data) ---
 
-  function applyState(data) {
-    const { standings, todayGames, monthGames, config } = data;
+  // Returns the current game state as { stateName, overrides } for regular-season logic.
+  // Used both for direct rendering (regular season) and for the game section text
+  // (Sorover/Clinched states). Returns null if no game info is available.
+  function getRegularSeasonState(data) {
+    const { todayGames, monthGames, config } = data;
 
-    // 1. Playoff game today → Outside In
-    if (todayGames.some(function (g) { return g.gameType === 3; })) {
-      renderMoodState('outside_in');
-      return;
-    }
-
-    // 2. NYI eliminated → Sorover
-    const nyi = standings.standings.find(function (t) {
-      return t.teamAbbrev.default === 'NYI';
-    });
-    if (nyi && nyi.clinchIndicator === 'e') {
-      renderMoodState('sorover');
-      return;
-    }
-
-    // 3. Regular season — find NYI game today
     const nyiGame = todayGames.find(function (g) {
       return g.gameType === 2 && isNYIGame(g);
     });
@@ -510,74 +534,85 @@
       const upcoming = monthGames.filter(function (g) {
         return isNYIGame(g) && (g.gameState === 'FUT' || g.gameState === 'PRE');
       });
-
       const lastGame = completed[completed.length - 1] || null;
       const nextGame = upcoming[0] || null;
+      if (!lastGame) return null;
       const nextGameDay = nextGame ? formatNextGameDay(nextGame.gameDate) : 'soon';
 
-      if (!lastGame) { renderMoodState('sorover'); return; }
-
       if (nyiWon(lastGame)) {
-        renderMoodState('win', {
-          headline: getResponseText(config, 'between_win', { nextGameDay: nextGameDay }),
-        });
+        return { stateName: 'win', overrides: { headline: getResponseText(config, 'between_win', { nextGameDay: nextGameDay }) } };
       } else {
-        renderMoodState('loss', {
-          headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }),
-        });
+        return { stateName: 'loss', overrides: { headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }) } };
       }
-      return;
     }
 
     const state = nyiGame.gameState;
 
-    // 4. Pre-game
     if (state === 'FUT' || state === 'PRE') {
-      renderMoodState('pregame', { headline: 'Game today.' });
-      return;
+      return { stateName: 'pregame', overrides: { headline: 'Game today.' } };
     }
 
-    // 5. Live
     if (state === 'LIVE' || state === 'CRIT') {
       const diff = nyiDiff(nyiGame);
-      let situation;
-      if (diff > 0)      situation = 'live_leading';
-      else if (diff < 0) situation = 'live_trailing';
-      else               situation = 'live_tied';
-
-      // Next home game for "down 4+" text
+      const situation = diff > 0 ? 'live_leading' : (diff < 0 ? 'live_trailing' : 'live_tied');
       const nextHome = (monthGames || []).find(function (g) {
         return isNYIGame(g) && g.homeTeam.abbrev === 'NYI' &&
                (g.gameState === 'FUT' || g.gameState === 'PRE');
       });
       const nextHomeGame = nextHome ? formatOrdinalDate(nextHome.gameDate) : '—';
+      const headline = getResponseText(config, situation, { diff: diff, nextHomeGame: nextHomeGame });
+      const image = diff >= 0 ? 'assets/lee.png' : 'assets/pov_sasha_daet_tebe_L.png';
+      return { stateName: 'live', overrides: { headline: headline, image: image } };
+    }
 
-      const headline = getResponseText(config, situation, {
-        diff: diff,
-        nextHomeGame: nextHomeGame,
-      });
+    if (state === 'OFF' || state === 'FINAL') {
+      if (nyiWon(nyiGame)) {
+        return { stateName: 'win', overrides: { headline: getResponseText(config, 'postgame_win') } };
+      } else if (wasOTorSO(nyiGame)) {
+        return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_ot') } };
+      } else {
+        return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_reg') } };
+      }
+    }
 
-      const img = diff >= 0 ? 'assets/lee.png' : 'assets/pov_sasha_daet_tebe_L.png';
-      renderMoodState('live', { headline: headline, image: img });
+    return null;
+  }
+
+  function applyState(data) {
+    const { standings, todayGames } = data;
+
+    // 1. Playoff game today → Outside In
+    if (todayGames.some(function (g) { return g.gameType === 3; })) {
+      renderMoodState('outside_in');
+      clearGameSection(); // Outside In has no game section
       return;
     }
 
-    // 6. Final
-    if (state === 'OFF' || state === 'FINAL') {
-      if (nyiWon(nyiGame)) {
-        renderMoodState('win', {
-          headline: getResponseText(config, 'postgame_win'),
-        });
-      } else if (wasOTorSO(nyiGame)) {
-        renderMoodState('loss', {
-          headline: getResponseText(config, 'postgame_loss_ot'),
-        });
+    // 2. Check season-level clinch status
+    const nyi = standings.standings.find(function (t) {
+      return t.teamAbbrev.default === 'NYI';
+    });
+    const clinch = nyi ? nyi.clinchIndicator : null;
+
+    // Sorover (eliminated) or Clinched: fixed header + game section for game stats (Phase 4+)
+    if (clinch === 'e' || clinch === 'x' || clinch === 'y' || clinch === 'z') {
+      if (clinch === 'e') {
+        renderMoodState('sorover');
       } else {
-        renderMoodState('loss', {
-          headline: getResponseText(config, 'postgame_loss_reg'),
-        });
+        renderMoodState('clinched');
       }
+      showGameSection('Previous game:');
+      return;
     }
+
+    // 3. Regular season — mood section IS the game state
+    showGameSection('Previous game:');
+    var gameInfo = getRegularSeasonState(data);
+    if (!gameInfo) {
+      renderMoodState('sorover');
+      return;
+    }
+    renderMoodState(gameInfo.stateName, gameInfo.overrides);
   }
 
   // --- State detection (fetches real data or uses mock) ---
