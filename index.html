@@ -6,7 +6,7 @@
   <title>Are Ya Winning, Isles?</title>
   <style>
     body {
-      background-color: #2bae66;
+      background-color: #000000;
       color: white;
       font-family: Helvetica, Arial, sans-serif;
       margin: 0;
@@ -132,9 +132,7 @@
 
 <button id="sound-toggle" title="Toggle sound">&#9654;</button>
 
-<audio id="bg-audio" autoplay loop>
-  <source src="assets/only%20posers%20fall%20in%20love.mp3" type="audio/mpeg">
-</audio>
+<audio id="bg-audio" loop></audio>
 
 <div id="main">
 
@@ -149,10 +147,10 @@
     </nav>
   </div>
 
-  <!-- MOOD SECTION -->
+  <!-- MOOD SECTION — populated by detectAndRenderState() -->
   <div id="mood-section">
-    <img id="mood-image" src="assets/sorover.png" alt="It's Sorover">
-    <div id="mood-headline">IT'S SOROVER</div>
+    <img id="mood-image" src="" alt="" style="display:none;">
+    <div id="mood-headline"></div>
   </div>
 
   <!-- PERSISTENT SECTION -->
@@ -280,6 +278,155 @@
   }
 
   const WORKER = 'https://nhl-proxy.aywi.workers.dev';
+
+  // --- State definitions ---
+  // Each state drives background, image, headline, audio, and fade behaviour.
+  // Win/loss/live/pregame headlines are dynamic and set by detectAndRenderState().
+
+  const STATES = {
+    sorover: {
+      background: '#2bae66',
+      image: 'assets/sorover.png',
+      headline: "IT'S SOROVER",
+      headlineLink: null,
+      audioSrc: 'assets/only%20posers%20fall%20in%20love.mp3',
+      fades: true,
+    },
+    outside_in: {
+      background: '#000000',
+      image: 'assets/now_im_on_the_outside.png',
+      headline: 'OUTSIDE IN',
+      headlineLink: 'playoffs.html',
+      audioSrc: null,
+      fades: false,
+    },
+    win: {
+      background: '#000000',
+      image: 'assets/lee.png',
+      headline: '',
+      headlineLink: null,
+      audioSrc: null,
+      fades: true,
+    },
+    loss: {
+      background: '#000000',
+      image: 'assets/pov_sasha_daet_tebe_L.png',
+      headline: '',
+      headlineLink: null,
+      audioSrc: null,
+      fades: true,
+    },
+    live: {
+      background: '#000000',
+      image: null,
+      headline: '',
+      headlineLink: null,
+      audioSrc: null,
+      fades: true,
+    },
+    pregame: {
+      background: '#000000',
+      image: null,
+      headline: '',
+      headlineLink: null,
+      audioSrc: null,
+      fades: true,
+    },
+    offseason: {
+      background: '#000000',
+      image: null,
+      headline: '',
+      headlineLink: null,
+      audioSrc: null,
+      fades: true,
+    },
+  };
+
+  // Render a named state onto the page.
+  // Pass optional overrides: { headline, headlineLink, image } for dynamic states.
+  function renderMoodState(stateName, overrides) {
+    const base = STATES[stateName];
+    if (!base) return;
+    const state = Object.assign({}, base, overrides || {});
+
+    document.body.style.backgroundColor = state.background;
+
+    const img = document.getElementById('mood-image');
+    if (state.image) {
+      img.src = state.image;
+      img.style.display = 'block';
+    } else {
+      img.style.display = 'none';
+    }
+
+    const headline = document.getElementById('mood-headline');
+    if (state.headlineLink) {
+      headline.innerHTML =
+        '<a href="' + state.headlineLink + '" style="color:white;text-decoration:underline;">' +
+        state.headline + '</a>';
+    } else {
+      headline.textContent = state.headline;
+    }
+
+    const audio = document.getElementById('bg-audio');
+    const toggle = document.getElementById('sound-toggle');
+    audio.pause();
+    if (state.audioSrc) {
+      audio.src = state.audioSrc;
+      toggle.style.display = 'block';
+      audio.play().catch(function () {});
+    } else {
+      audio.src = '';
+      toggle.style.display = 'none';
+    }
+
+    if (!state.fades) {
+      document.getElementById('site-header').classList.add('visible');
+      document.querySelectorAll('.fade-section').forEach(function (el) {
+        el.classList.add('visible');
+      });
+    }
+  }
+
+  // --- State detection ---
+
+  async function detectAndRenderState() {
+    try {
+      const [standingsRes, scheduleRes] = await Promise.all([
+        fetch(WORKER + '/v1/standings/now'),
+        fetch(WORKER + '/v1/score/now'),
+      ]);
+      const standings = await standingsRes.json();
+      const schedule  = await scheduleRes.json();
+
+      // 1. Any playoff game today → Outside In
+      const hasPlayoffGames = schedule.games.some(function (g) {
+        return g.gameType === 3;
+      });
+      if (hasPlayoffGames) {
+        renderMoodState('outside_in');
+        return;
+      }
+
+      // 2. NYI eliminated → Sorover
+      const nyi = standings.standings.find(function (t) {
+        return t.teamAbbrev.default === 'NYI';
+      });
+      if (nyi && nyi.clinchIndicator === 'e') {
+        renderMoodState('sorover');
+        return;
+      }
+
+      // 3. Regular season states (Phase 4 — placeholder for now)
+      renderMoodState('sorover');
+
+    } catch (err) {
+      console.error('State detection failed:', err);
+      renderMoodState('sorover');
+    }
+  }
+
+  detectAndRenderState();
 
   // --- News ---
 

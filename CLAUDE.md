@@ -79,7 +79,9 @@ The bottom persistent section is always shown regardless of state.
 | offseason  | TBD        | TBD            | TBD              | TBD                              |
 
 ### Elimination trigger
-State = "eliminated" when MoneyPuck playoff probability = 0.00 for NYI.
+State = "eliminated" when NHL API standings show clinchIndicator = "e" for NYI.
+Source: https://api-web.nhle.com/v1/standings/now → standings[] → teamAbbrev.default === "NYI"
+MoneyPuck is NOT needed — the official API provides elimination status directly.
 
 ---
 
@@ -170,7 +172,7 @@ Always rendered below the mood section:
 - Historical game log page
 - Sound effects on state change
 - Automated news via RSS proxy (Cloudflare Worker)
-- Automated playoff odds via MoneyPuck JSON feed (priority — Phase 3)
+- MoneyPuck NOT needed — elimination detected via NHL API clinchIndicator field
 - Top/bottom player metric: revisit TOI default, consider in-game points
 - GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
 - Before public release: add Worker-level caching (Cloudflare Cache API) so all visitors share one cached NHL API response instead of each triggering a fresh fetch

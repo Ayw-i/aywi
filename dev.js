@@ -138,44 +138,15 @@ const DEV_GROUPS = [
   { label: 'Live',         states: ['Live +1', 'Live +2', 'Live +3', 'Live +4', 'Live tied', 'Live -1', 'Live -2', 'Live -3', 'Live -4'] },
 ];
 
-// Render a state onto the page
+// Render a state using the shared renderMoodState() from index.html,
+// then make everything visible immediately (dev panel bypasses fades).
 function devSetState(name) {
   const state = DEV_STATES[name];
   if (!state) return;
 
-  // Background
-  document.body.style.backgroundColor = state.background;
+  renderMoodState(name, state);
 
-  // Image
-  const img = document.getElementById('mood-image');
-  if (state.image) {
-    img.src = state.image;
-    img.style.display = 'block';
-  } else {
-    img.style.display = 'none';
-  }
-
-  // Headline
-  const headline = document.getElementById('mood-headline');
-  if (state.headlineLink) {
-    headline.innerHTML = '<a href="' + state.headlineLink + '" style="color:white;text-decoration:underline;">' + state.headline + '</a>';
-  } else {
-    headline.textContent = state.headline;
-  }
-
-  // Audio
-  const audio = document.getElementById('bg-audio');
-  const toggle = document.getElementById('sound-toggle');
-  audio.pause();
-  if (state.audioSrc) {
-    audio.src = state.audioSrc;
-    toggle.style.display = 'block';
-  } else {
-    audio.src = '';
-    toggle.style.display = 'none';
-  }
-
-  // Make everything visible immediately (bypass fade logic)
+  // Always show everything immediately in dev mode
   document.getElementById('site-header').classList.add('visible');
   document.querySelectorAll('.fade-section').forEach(function (el) {
     el.classList.add('visible');
