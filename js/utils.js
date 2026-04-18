@@ -31,5 +31,6 @@ function formatGAA(val) {
 }
 
 function formatSVP(val) {
+  if (val >= 1) return '1.000';
   return '.' + val.toFixed(3).slice(2);
 }
