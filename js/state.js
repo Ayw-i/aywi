@@ -1,5 +1,7 @@
 const WORKER = 'https://nhl-proxy.aywi.workers.dev';
 
+var _liveRefreshTimer = null;
+
 const STATES = {
   sorover: {
     background: '#2bae66',
@@ -74,6 +76,10 @@ function renderMoodState(stateName, overrides) {
   const state = Object.assign({}, base, overrides || {});
 
   document.body.style.backgroundColor = state.background;
+
+  // Clear live scoreboard — renderLiveGame repopulates it if needed
+  var liveBoard = document.getElementById('live-scoreboard');
+  if (liveBoard) liveBoard.innerHTML = '';
 
   const img = document.getElementById('mood-image');
   if (state.image) {
@@ -238,7 +244,7 @@ function getRegularSeasonState(data) {
     });
     const nextHomeGame = nextHome ? formatOrdinalDate(nextHome.gameDate) : '—';
     const headline     = getResponseText(config, situation, { diff: diff, nextHomeGame: nextHomeGame });
-    return { stateName: 'live', overrides: { headline: headline } };
+    return { stateName: 'live', overrides: { headline: headline }, gameObj: nyiGame };
   }
 
   if (state === 'OFF' || state === 'FINAL') {
@@ -262,7 +268,7 @@ function applyState(data) {
   if (todayGames.some(function (g) { return g.gameType === 3; })) {
     renderMoodState('outside_in');
     clearGameSection();
-    return;
+    return 'outside_in';
   }
 
   const nyi   = standings.standings.find(function (t) {
@@ -273,21 +279,33 @@ function applyState(data) {
   if (clinch === 'e' || clinch === 'x' || clinch === 'y' || clinch === 'z') {
     renderMoodState(clinch === 'e' ? 'sorover' : 'clinched');
     showGameSection('Previous game:');
-    return;
+    return clinch === 'e' ? 'sorover' : 'clinched';
   }
 
   clearGameSection();
   var gameInfo = getRegularSeasonState(data);
   if (!gameInfo) {
     renderMoodState('sorover');
-    return;
+    return 'sorover';
   }
+
   renderMoodState(gameInfo.stateName, gameInfo.overrides);
+
+  if (gameInfo.stateName === 'live' && typeof renderLiveGame === 'function') {
+    renderLiveGame(gameInfo.gameObj || null);
+  }
+
+  return gameInfo.stateName;
 }
 
 // --- State detection (real API or mock data) ---
 
 async function detectAndRenderState(mockData) {
+  if (_liveRefreshTimer) {
+    clearInterval(_liveRefreshTimer);
+    _liveRefreshTimer = null;
+  }
+
   try {
     const config = await getConfig();
 
@@ -310,7 +328,11 @@ async function detectAndRenderState(mockData) {
       monthGames      = month.games || [];
     }
 
-    applyState({ standings, todayGames, monthGames, config });
+    const renderedState = applyState({ standings, todayGames, monthGames, config });
+
+    if (renderedState === 'live' && !mockData) {
+      _liveRefreshTimer = setInterval(detectAndRenderState, 30000);
+    }
 
   } catch (err) {
     console.error('State detection failed:', err);
