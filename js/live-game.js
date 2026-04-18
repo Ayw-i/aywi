@@ -165,15 +165,30 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
   var awayPenalties = penalties.filter(function (p) { return (p.details || {}).eventOwnerTeamId !== homeTeamId; });
   if (penalties.length === 0) return '';
 
+  var TONE_TOOLTIP =
+    '<span style="position:relative;display:inline-block;">' +
+      '<span style="text-decoration:underline dotted;cursor:help;"' +
+        ' onmouseenter="this.nextElementSibling.style.display=\'block\'"' +
+        ' onmouseleave="this.nextElementSibling.style.display=\'none\'">setting of the tone</span>' +
+      '<span style="display:none;position:absolute;bottom:120%;left:0;z-index:999;' +
+        'background:#000;border:1px solid #fff;padding:4px;">' +
+        '<img src="assets/shoresy-set-the-tone.gif" style="max-width:180px;display:block;">' +
+      '</span>' +
+    '</span>';
+
   function penaltyRow(p) {
     var d          = p.details || {};
-    var period     = (p.periodDescriptor || {}).number || '?';
+    var periodNum  = (p.periodDescriptor || {}).number;
     var time       = p.timeInPeriod || '?';
     var player     = d.committedByPlayerId ? (rosterMap[d.committedByPlayerId] || '?') : 'Bench';
-    var infraction = d.descKey ? d.descKey.replace(/-/g, ' ') : '?';
     var duration   = d.duration ? d.duration + '\'' : '';
+    var isFighting = d.descKey && d.descKey.indexOf('fighting') !== -1;
+    var isFirstMin = periodNum === 1 && parseTOISecs(time) < 60;
+    var infraction = (isFighting && isFirstMin)
+      ? 'illegal ' + TONE_TOOLTIP
+      : (d.descKey ? d.descKey.replace(/-/g, ' ') : '?');
     return '<tr>' +
-      '<td>' + liveGamePeriodLabel(period) + ' ' + time + '</td>' +
+      '<td>' + liveGamePeriodLabel(periodNum || '?') + ' ' + time + '</td>' +
       '<td>' + player + '</td>' +
       '<td>' + infraction + '</td>' +
       '<td>' + duration + '</td>' +
