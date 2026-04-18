@@ -159,7 +159,7 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
     '</tr></table>';
 }
 
-function buildLivePenalties(plays, rosterMap) {
+function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
   var penalties = plays.filter(function (p) { return p.typeDescKey === 'penalty'; });
   if (penalties.length === 0) return '';
 
@@ -167,11 +167,13 @@ function buildLivePenalties(plays, rosterMap) {
     var d          = p.details || {};
     var period     = (p.periodDescriptor || {}).number || '?';
     var time       = p.timeInPeriod || '?';
-    var player     = rosterMap[d.committedByPlayerId] || '?';
+    var player     = d.committedByPlayerId ? (rosterMap[d.committedByPlayerId] || '?') : 'Bench';
     var infraction = d.descKey ? d.descKey.replace(/-/g, ' ') : '?';
     var duration   = d.duration ? d.duration + '\'' : '';
+    var team       = d.eventOwnerTeamId === homeTeamId ? homeAbbrev : awayAbbrev;
     return '<tr>' +
       '<td>' + liveGamePeriodLabel(period) + ' ' + time + '</td>' +
+      '<td>' + team + '</td>' +
       '<td>' + player + '</td>' +
       '<td>' + infraction + '</td>' +
       '<td>' + duration + '</td>' +
@@ -181,23 +183,22 @@ function buildLivePenalties(plays, rosterMap) {
   return '<div style="margin-top:12px;">' +
     '<table width="100%" style="font-size:9pt;">' +
     '<thead>' +
-      '<tr><th colspan="4" style="font-size:9pt;opacity:0.7;font-weight:normal;">PENALTIES</th></tr>' +
-      '<tr><th>Time</th><th>Player</th><th>Infraction</th><th>Dur.</th></tr>' +
+      '<tr><th colspan="5" style="font-size:9pt;opacity:0.7;font-weight:normal;">PENALTIES</th></tr>' +
+      '<tr><th>Time</th><th>Team</th><th>Player</th><th>Infraction</th><th>Dur.</th></tr>' +
     '</thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table></div>';
 }
 
-function buildLiveGoalies(homeGoalies, awayGoalies, homeAbbrev, awayAbbrev) {
+function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev) {
   function goalieRows(goalies) {
-    if (!goalies || goalies.length === 0) {
+    var played = (goalies || []).filter(function (g) { return parseTOISecs(g.toi) > 0; });
+    if (played.length === 0) {
       return '<tr><td colspan="5" style="opacity:0.5;font-size:9pt;">No data</td></tr>';
     }
-    var sorted = goalies.slice().sort(function (a, b) {
-      return parseTOISecs(b.toi) - parseTOISecs(a.toi);
-    });
-    return sorted.map(function (g, i) {
-      var pulled   = sorted.length > 1 && i === sorted.length - 1;
+    played.sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
+    return played.map(function (g, i) {
+      var pulled   = played.length > 1 && i === played.length - 1;
       var name     = (g.name && g.name.default) || 'Unknown';
       var sa       = g.shotsAgainst != null ? g.shotsAgainst : '&mdash;';
       var sv       = g.saves        != null ? g.saves        : '&mdash;';
@@ -231,16 +232,22 @@ function buildLiveGoalies(homeGoalies, awayGoalies, homeAbbrev, awayAbbrev) {
   return '<h3 style="margin-top:20px;margin-bottom:4px;">GOALIES</h3>' +
     '<table width="100%" style="border:none;">' +
     '<tr>' +
-    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(homeGoalies, homeAbbrev) + '</td>' +
-    '<td width="50%" valign="top" style="border:none;padding-left:4px;">' + goalieTable(awayGoalies, awayAbbrev) + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(leftGoalies,  leftAbbrev)  + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + goalieTable(rightGoalies, rightAbbrev) + '</td>' +
     '</tr></table>';
 }
 
-function buildLiveSkaters(homeStats, awayStats, homeAbbrev, awayAbbrev) {
+function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev) {
+  function playerBestScore(p) {
+    // Points take priority; TOI breaks ties (scaled to stay below 1 point of weight)
+    var points  = (p.goals || 0) + (p.assists || 0);
+    var toiSecs = parseTOISecs(p.toi);
+    return points * 10000 + toiSecs;
+  }
+
   function getPlayers(stats) {
     return ((stats.forwards || []).concat(stats.defense || []))
-      .filter(function (p) { return parseTOISecs(p.toi) > 0; })
-      .sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
+      .filter(function (p) { return parseTOISecs(p.toi) > 0; });
   }
 
   function skaterRow(p) {
@@ -253,8 +260,10 @@ function buildLiveSkaters(homeStats, awayStats, homeAbbrev, awayAbbrev) {
 
   function skaterPanel(players, label) {
     if (!players.length) return '';
-    var top    = players.slice(0, 3);
-    var bottom = players.length >= 6 ? players.slice(-3).reverse() : [];
+    var byBest = players.slice().sort(function (a, b) { return playerBestScore(b) - playerBestScore(a); });
+    var byTOI  = players.slice().sort(function (a, b) { return parseTOISecs(a.toi) - parseTOISecs(b.toi); });
+    var top    = byBest.slice(0, 3);
+    var bottom = players.length >= 6 ? byTOI.slice(0, 3) : [];
     var thead  = '<tr>' +
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
@@ -278,8 +287,8 @@ function buildLiveSkaters(homeStats, awayStats, homeAbbrev, awayAbbrev) {
   return '<h3 style="margin-top:20px;margin-bottom:4px;">SKATERS</h3>' +
     '<table width="100%" style="border:none;">' +
     '<tr>' +
-    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + skaterPanel(getPlayers(homeStats), homeAbbrev) + '</td>' +
-    '<td width="50%" valign="top" style="border:none;padding-left:4px;">' + skaterPanel(getPlayers(awayStats), awayAbbrev) + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + skaterPanel(getPlayers(leftStats),  leftAbbrev)  + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + skaterPanel(getPlayers(rightStats), rightAbbrev) + '</td>' +
     '</tr></table>';
 }
 
@@ -294,11 +303,12 @@ function buildScoreboardHTML(boxscore, playByPlay) {
   var rosterMap = buildRosterMap((playByPlay || {}).rosterSpots);
   var plays     = (playByPlay || {}).plays || [];
 
+  // Away is always left column, home is always right column — consistent with header.
   return buildLiveHeader(boxscore) +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
-    buildLivePenalties(plays, rosterMap) +
-    buildLiveGoalies(homeStats.goalies, awayStats.goalies, home.abbrev, away.abbrev) +
-    buildLiveSkaters(homeStats, awayStats, home.abbrev, away.abbrev);
+    buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
+    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev) +
+    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev);
 }
 
 async function fetchAndRenderScoreboard(gameId) {
