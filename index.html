@@ -340,6 +340,7 @@
     win: {
       background: '#000000',
       image: 'assets/lee.png',
+      imageSize: '30%',
       headline: '',
       headlineLink: null,
       audioSrc: null,
@@ -391,6 +392,7 @@
     const img = document.getElementById('mood-image');
     if (state.image) {
       img.src = state.image;
+      img.style.maxWidth = state.imageSize || '50%';
       img.style.display = 'block';
     } else {
       img.style.display = 'none';
@@ -404,6 +406,7 @@
     } else {
       headline.textContent = state.headline;
     }
+    headline.style.fontSize = state.headline.length > 25 ? '28pt' : '';
 
     const audio = document.getElementById('bg-audio');
     const toggle = document.getElementById('sound-toggle');
@@ -540,9 +543,9 @@
       const nextGameDay = nextGame ? formatNextGameDay(nextGame.gameDate) : 'soon';
 
       if (nyiWon(lastGame)) {
-        return { stateName: 'win', overrides: { headline: getResponseText(config, 'between_win', { nextGameDay: nextGameDay }) } };
+        return { stateName: 'win', overrides: { headline: getResponseText(config, 'between_win', { nextGameDay: nextGameDay }), image: null } };
       } else {
-        return { stateName: 'loss', overrides: { headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }) } };
+        return { stateName: 'loss', overrides: { headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }), image: null } };
       }
     }
 
@@ -561,8 +564,7 @@
       });
       const nextHomeGame = nextHome ? formatOrdinalDate(nextHome.gameDate) : '—';
       const headline = getResponseText(config, situation, { diff: diff, nextHomeGame: nextHomeGame });
-      const image = diff >= 0 ? 'assets/lee.png' : 'assets/pov_sasha_daet_tebe_L.png';
-      return { stateName: 'live', overrides: { headline: headline, image: image } };
+      return { stateName: 'live', overrides: { headline: headline } };
     }
 
     if (state === 'OFF' || state === 'FINAL') {
