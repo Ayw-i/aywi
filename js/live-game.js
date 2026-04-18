@@ -160,34 +160,45 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
 }
 
 function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
-  var penalties = plays.filter(function (p) { return p.typeDescKey === 'penalty'; });
+  var penalties    = plays.filter(function (p) { return p.typeDescKey === 'penalty'; });
+  var homePenalties = penalties.filter(function (p) { return (p.details || {}).eventOwnerTeamId === homeTeamId; });
+  var awayPenalties = penalties.filter(function (p) { return (p.details || {}).eventOwnerTeamId !== homeTeamId; });
   if (penalties.length === 0) return '';
 
-  var rows = penalties.map(function (p) {
+  function penaltyRow(p) {
     var d          = p.details || {};
     var period     = (p.periodDescriptor || {}).number || '?';
     var time       = p.timeInPeriod || '?';
     var player     = d.committedByPlayerId ? (rosterMap[d.committedByPlayerId] || '?') : 'Bench';
     var infraction = d.descKey ? d.descKey.replace(/-/g, ' ') : '?';
     var duration   = d.duration ? d.duration + '\'' : '';
-    var team       = d.eventOwnerTeamId === homeTeamId ? homeAbbrev : awayAbbrev;
     return '<tr>' +
       '<td>' + liveGamePeriodLabel(period) + ' ' + time + '</td>' +
-      '<td>' + team + '</td>' +
       '<td>' + player + '</td>' +
       '<td>' + infraction + '</td>' +
       '<td>' + duration + '</td>' +
       '</tr>';
-  }).join('');
+  }
 
-  return '<div style="margin-top:12px;">' +
-    '<table width="100%" style="font-size:9pt;">' +
-    '<thead>' +
-      '<tr><th colspan="5" style="font-size:9pt;opacity:0.7;font-weight:normal;">PENALTIES</th></tr>' +
-      '<tr><th>Time</th><th>Team</th><th>Player</th><th>Infraction</th><th>Dur.</th></tr>' +
-    '</thead>' +
-    '<tbody>' + rows + '</tbody>' +
-    '</table></div>';
+  function penaltyTable(pens, label) {
+    var rows = pens.length
+      ? pens.map(penaltyRow).join('')
+      : '<tr><td colspan="4" style="opacity:0.5;">None</td></tr>';
+    return '<table width="100%" style="font-size:9pt;">' +
+      '<thead>' +
+        '<tr><th colspan="4">' + label + '</th></tr>' +
+        '<tr><th>Time</th><th>Player</th><th>Infraction</th><th>Dur.</th></tr>' +
+      '</thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>';
+  }
+
+  return '<div style="margin-top:12px;font-size:9pt;opacity:0.85;">' +
+    '<table width="100%" style="border:none;">' +
+    '<tr>' +
+    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + penaltyTable(awayPenalties, awayAbbrev + ' Penalties') + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + penaltyTable(homePenalties, homeAbbrev + ' Penalties') + '</td>' +
+    '</tr></table></div>';
 }
 
 function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev) {
