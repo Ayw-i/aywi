@@ -42,23 +42,30 @@ function buildRosterMap(rosterSpots) {
 function getSituationLabel(play, homeTeamId) {
   var code = play.situationCode || '1551';
   // Format: {awayGoalie}{awaySkaters}{homeSkaters}{homeGoalie}
-  var awayGoalie  = code[0] === '1';
-  var awaySkaters = parseInt(code[1]) || 5;
-  var homeSkaters = parseInt(code[2]) || 5;
-  var homeGoalie  = code[3] === '1';
+  var awayGoalieIn = code[0] === '1';
+  var awaySkaters  = parseInt(code[1]) || 5;
+  var homeSkaters  = parseInt(code[2]) || 5;
+  var homeGoalieIn = code[3] === '1';
   var d = play.details || {};
   var scoringHome = d.eventOwnerTeamId === homeTeamId;
 
-  if (scoringHome  && !awayGoalie)  return 'EN';
-  if (!scoringHome && !homeGoalie)  return 'EN';
+  var scoringGoalieIn = scoringHome ? homeGoalieIn : awayGoalieIn;
+  var defendGoalieIn  = scoringHome ? awayGoalieIn : homeGoalieIn;
+  var scoringSkaters  = scoringHome ? homeSkaters  : awaySkaters;
+  var defendSkaters   = scoringHome ? awaySkaters  : homeSkaters;
 
-  if (scoringHome) {
-    if (homeSkaters > awaySkaters) return 'PPG';
-    if (homeSkaters < awaySkaters) return 'SHG';
-  } else {
-    if (awaySkaters > homeSkaters) return 'PPG';
-    if (awaySkaters < homeSkaters) return 'SHG';
+  // EN: scored into the defending team's empty net
+  if (!defendGoalieIn) return 'EN';
+
+  // Scoring team pulled their own goalie (extra attacker — 6v5, 6v4, etc.)
+  if (!scoringGoalieIn) {
+    if (scoringSkaters > defendSkaters) return 'PPG (EA)';
+    if (scoringSkaters < defendSkaters) return 'SHG (EA)';
+    return 'EA';
   }
+
+  if (scoringSkaters > defendSkaters) return 'PPG';
+  if (scoringSkaters < defendSkaters) return 'SHG';
   return '5v5';
 }
 
@@ -242,30 +249,70 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
     '</tr></table></div>';
 }
 
-function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev) {
-  function goalieRows(goalies) {
+function hadShutoutUntilGoaliePull(plays, goalieTeamId, homeTeamId) {
+  var goalsAgainst = plays.filter(function (p) {
+    if (p.typeDescKey !== 'goal') return false;
+    return (p.details || {}).eventOwnerTeamId !== goalieTeamId;
+  });
+  if (goalsAgainst.length === 0) return false;
+  // Sanity check: goalie pulls only happen in P3+ (never seen before that)
+  var firstPeriod = parseInt((goalsAgainst[0].periodDescriptor || {}).number) || 0;
+  if (firstPeriod < 3) return false;
+  return goalsAgainst.every(function (g) {
+    var code = g.situationCode || '1551';
+    var scoringHome  = (g.details || {}).eventOwnerTeamId === homeTeamId;
+    // Scoring team had their own goalie pulled (extra attacker)
+    var scoringGoalieIn = scoringHome ? (code[3] === '1') : (code[0] === '1');
+    return !scoringGoalieIn;
+  });
+}
+
+function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, leftPullShutout, rightPullShutout, isFinal, wentToOT) {
+  var MEDAL = '&#127941;'; // 🏅 sports medal
+  var WALL  = '&#129521;'; // 🧱 brick wall
+
+  function goalieRows(goalies, pullShutout) {
     var played = (goalies || []).filter(function (g) { return parseTOISecs(g.toi) > 0; });
     if (played.length === 0) {
       return '<tr><td colspan="5" style="opacity:0.5;font-size:9pt;">No data</td></tr>';
     }
     played.sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
     return played.map(function (g, i) {
-      var pulled   = played.length > 1 && i === played.length - 1;
-      var rawName  = (g.name && g.name.default) || 'Unknown';
-      var name     = rawName.indexOf('Sorokin') !== -1
+      var toiSecs = parseTOISecs(g.toi);
+      var ga      = g.goalsAgainst != null ? g.goalsAgainst : null;
+      var pulled  = played.length > 1 && i === played.length - 1;
+      var rawName = (g.name && g.name.default) || 'Unknown';
+      var name    = rawName.indexOf('Sorokin') !== -1
         ? '<a href="sorokin.html">' + rawName + '</a>'
         : rawName;
-      var sa       = g.shotsAgainst != null ? g.shotsAgainst : '&mdash;';
-      var sv       = g.saves        != null ? g.saves        : '&mdash;';
-      var svp      = g.savePctg     != null ? formatSVP(g.savePctg) : '&mdash;';
-      var toi      = g.toi || '&mdash;';
-      var shutout  = g.goalsAgainst === 0 && parseTOISecs(g.toi) >= 2400;
-      var rowStyle = pulled  ? ' style="color:#ff4444;"'
-                   : shutout ? ' style="background-color:#7a6000;color:#FFD700;"'
+      var sa  = g.shotsAgainst != null ? g.shotsAgainst : '&mdash;';
+      var sv  = g.saves        != null ? g.saves        : '&mdash;';
+      var svp = g.savePctg     != null ? formatSVP(g.savePctg) : '&mdash;';
+      var toi = g.toi || '&mdash;';
+      var tag = pulled ? ' (pulled)' : '';
+
+      // Badge: only for primary goalie (not the pulled backup), min 40 min TOI
+      // Badge stored as [emoji_entity, text] to render emoji non-italic, text italic
+      var badgeParts = null;
+      if (!pulled && ga === 0 && toiSecs >= 2400) {
+        if (isFinal)       badgeParts = [WALL,  'Shutout.'];
+        else if (wentToOT) badgeParts = [MEDAL, 'Regulation shutout.'];
+      }
+      if (!badgeParts && !pulled && i === 0 && pullShutout && toiSecs >= 2400) {
+        badgeParts = [MEDAL, 'Shutout until goalie pull.'];
+      }
+
+      var shutoutRow = !pulled && ga === 0 && toiSecs >= 2400;
+      var rowStyle = pulled     ? ' style="color:#ff4444;"'
+                   : shutoutRow ? ' style="background-color:#7a6000;color:#FFD700;"'
                    : '';
-      var tag      = pulled ? ' (pulled)' : '';
+      var badgeHtml = badgeParts
+        ? '<br><span style="font-size:10pt;color:gray;">' + badgeParts[0] +
+          '<span style="font-style:italic;"> ' + badgeParts[1] + '</span></span>'
+        : '';
+
       return '<tr' + rowStyle + '>' +
-        '<td>' + name + tag + '</td>' +
+        '<td>' + name + tag + badgeHtml + '</td>' +
         '<td>' + sa + '</td><td>' + sv + '</td>' +
         '<td>' + svp + '</td><td>' + toi + '</td>' +
         '</tr>';
@@ -280,18 +327,18 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev) {
     '<th style="font-size:8pt;">TOI</th>' +
     '</tr>';
 
-  function goalieTable(goalies, label) {
+  function goalieTable(goalies, label, pullShutout) {
     return '<table width="100%">' +
       '<thead><tr><th colspan="5">' + label + '</th></tr>' + thead + '</thead>' +
-      '<tbody>' + goalieRows(goalies) + '</tbody>' +
+      '<tbody>' + goalieRows(goalies, pullShutout) + '</tbody>' +
       '</table>';
   }
 
   return '<h3 style="margin-top:20px;margin-bottom:4px;">GOALIES</h3>' +
     '<table width="100%" style="border:none;">' +
     '<tr>' +
-    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(leftGoalies,  leftAbbrev)  + '</td>' +
-    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + goalieTable(rightGoalies, rightAbbrev) + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(leftGoalies,  leftAbbrev,  leftPullShutout)  + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + goalieTable(rightGoalies, rightAbbrev, rightPullShutout) + '</td>' +
     '</tr></table>';
 }
 
@@ -671,11 +718,15 @@ function buildScoreboardHTML(boxscore, playByPlay) {
   var homeShutoutImg = (away.abbrev === 'NYI' && awayGoalieSorokin)
     ? randomShatautImg() : 'assets/saros-no-goals.png';
 
+  var awayPullShutout = hadShutoutUntilGoaliePull(plays, away.id, home.id);
+  var homePullShutout = hadShutoutUntilGoaliePull(plays, home.id, home.id);
+  var wentToOT = ((boxscore.periodDescriptor || {}).number || 0) > 3;
+
   // Away is always left column, home is always right column — consistent with header.
   return buildLiveHeader(boxscore) +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
-    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev) +
+    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev);
 }
 
