@@ -202,7 +202,11 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
     var d          = p.details || {};
     var periodNum  = (p.periodDescriptor || {}).number;
     var time       = p.timeInPeriod || '?';
-    var player     = d.committedByPlayerId ? (rosterMap[d.committedByPlayerId] || '?') : 'Bench';
+    var player     = d.committedByPlayerId
+      ? (rosterMap[d.committedByPlayerId] || '?')
+      : d.servedByPlayerId
+        ? 'Bench (served by ' + (rosterMap[d.servedByPlayerId] || '?') + ')'
+        : 'Bench';
     var duration   = d.duration ? d.duration + '\'' : '';
     var isFighting = d.descKey && d.descKey.indexOf('fighting') !== -1;
     var isFirstMin = periodNum === 1 && parseTOISecs(time) < 60;
@@ -255,7 +259,10 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev) {
       var sv       = g.saves        != null ? g.saves        : '&mdash;';
       var svp      = g.savePctg     != null ? formatSVP(g.savePctg) : '&mdash;';
       var toi      = g.toi || '&mdash;';
-      var rowStyle = pulled ? ' style="color:#ff4444;"' : '';
+      var shutout  = g.goalsAgainst === 0 && parseTOISecs(g.toi) >= 2400;
+      var rowStyle = pulled  ? ' style="color:#ff4444;"'
+                   : shutout ? ' style="background-color:#7a6000;color:#FFD700;"'
+                   : '';
       var tag      = pulled ? ' (pulled)' : '';
       return '<tr' + rowStyle + '>' +
         '<td>' + name + tag + '</td>' +
