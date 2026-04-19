@@ -4,6 +4,15 @@ Running log of API quirks, known issues, and things to revisit later.
 
 ---
 
+## Live Game — Goalie Shutout Highlight Field Name
+
+The shutout gold highlight uses `g.goalsAgainst === 0` from the boxscore
+playerByGameStats data. The exact NHL API field name needs to be verified
+against a live game — if it's named differently (e.g. `goalsAllowed`) the
+highlight will silently never trigger.
+
+---
+
 ## Playoffs Page — Goal Line Format
 
 The current format groups goals by period (period header centered, then
