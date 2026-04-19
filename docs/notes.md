@@ -4,6 +4,14 @@ Running log of API quirks, known issues, and things to revisit later.
 
 ---
 
+## Playoffs Page — Goal Line Format
+
+The current format groups goals by period (period header centered, then
+two columns for each team's goals). Something about it still feels off —
+revisit the layout, typography, or information density at a later date.
+
+---
+
 ## NHL API — Live Feed Duplicate Plays
 
 During live games, the NHL play-by-play API sometimes temporarily inserts duplicate
