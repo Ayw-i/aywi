@@ -350,6 +350,303 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev) {
     '</tr></table>';
 }
 
+// --- Situation overlays ---
+
+function buildPKOverlay(diff, doublePK, nextHomeGame) {
+  var image = doublePK
+    ? { type: 'double', src: 'assets/yapper200.gif' }
+    : { type: 'single', src: 'assets/yapper100.gif' };
+
+  var suffix = doublePK
+    ? 'and we\'re killing off two bullshit penalties in this rigged league &mdash; ' +
+      '<a href="https://www.cnib.ca/en">click here to donate money to Bettman</a>'
+    : 'we\'re killing a bullshit penalty.';
+
+  if (diff <= -4) {
+    var footnote = doublePK
+      ? '(Also, we\'re killing off two bullshit penalties in this rigged league)'
+      : '(Also, we\'re killing a bullshit penalty.)';
+    return { headline: 'Next home game: ' + (nextHomeGame || '&mdash;'), image: image, subHeadline: footnote };
+  }
+
+  var prefix;
+  if      (diff >= 4) prefix = 'Yes! Yes! Yes! But ';
+  else if (diff === 3) prefix = 'Yes!!! But ';
+  else if (diff === 2) prefix = 'Yes! But ';
+  else if (diff === 1) prefix = 'Yes. But ';
+  else if (diff === 0) prefix = 'Not yet, and ';
+  else if (diff === -1) prefix = 'No, and ';
+  else if (diff === -2) prefix = 'Nope, and ';
+  else                  prefix = 'Nooo, and ';
+
+  return { headline: prefix + suffix, image: image, subHeadline: null };
+}
+
+function buildPPOverlay(diff, doublePP) {
+  if (doublePP) {
+    return {
+      headline: "We're 5-on-3 so we've GOT to score here, right? Right?",
+      image: { type: 'single', src: 'assets/barzal-the-muse.png' },
+      subHeadline: null,
+    };
+  }
+
+  var headline;
+  if (diff >= 4)       headline = "Yes! Yes! Yes! And we're on the power play!";
+  else if (diff === 3) headline = "Yes!!! And we're on the power play!";
+  else if (diff === 2) headline = "Yes! And we're on the power play!";
+  else if (diff === 1) headline = "Yes. And we're on the power play!";
+  else if (diff === 0) headline = "Not yet, but we're on the power play.";
+  else if (diff === -1) headline = "No, but we're on the power play.";
+  else if (diff === -2) headline = "Nope, but we're on the power play.";
+  else if (diff === -3) headline = "Nooo, but we're on the power play.";
+  else                  headline = "No, but we're on the power play.";
+
+  return {
+    headline: headline,
+    image: { type: 'grid', src: 'assets/barzal-the-muse.png' },
+    subHeadline: 'We are on the New York Islanders Power Play (...can we decline?)',
+  };
+}
+
+function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
+  var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
+  if (isFinal) return null;
+
+  var code = boxscore.situation && boxscore.situation.situationCode;
+  if (!code || code.length < 4) return null;
+
+  var awaySkaters = parseInt(code[1]) || 5;
+  var homeSkaters = parseInt(code[2]) || 5;
+  var nyiSkaters  = nyiIsHome ? homeSkaters : awaySkaters;
+  var oppSkaters  = nyiIsHome ? awaySkaters : homeSkaters;
+
+  if (nyiSkaters === 5 && oppSkaters === 5) return null;
+
+  var home = boxscore.homeTeam || {};
+  var away = boxscore.awayTeam || {};
+  var nyiScore = nyiIsHome ? (home.score || 0) : (away.score || 0);
+  var oppScore = nyiIsHome ? (away.score || 0) : (home.score || 0);
+  var diff = nyiScore - oppScore;
+
+  if (oppSkaters > nyiSkaters) return buildPKOverlay(diff, nyiSkaters <= 3, nextHomeGame);
+  if (nyiSkaters > oppSkaters) return buildPPOverlay(diff, oppSkaters <= 3);
+
+  return null;
+}
+
+function applyMoodOverlay(overlay) {
+  if (!overlay) return;
+
+  var headlineEl = document.getElementById('mood-headline');
+  if (headlineEl) {
+    headlineEl.innerHTML = overlay.headline;
+    headlineEl.style.fontSize = overlay.headline.replace(/<[^>]+>/g, '').length > 25 ? '28pt' : '';
+  }
+
+  var imgEl      = document.getElementById('mood-image');
+  var moodSection = document.getElementById('mood-section');
+
+  var old = document.getElementById('situation-img');
+  if (old) old.parentNode.removeChild(old);
+
+  if (overlay.image && imgEl && moodSection) {
+    if (overlay.image.type === 'single') {
+      imgEl.src = overlay.image.src;
+      imgEl.style.maxWidth = '50%';
+      imgEl.style.display  = 'block';
+    } else {
+      imgEl.style.display = 'none';
+      var container = document.createElement('div');
+      container.id = 'situation-img';
+      container.style.textAlign = 'center';
+      container.style.marginBottom = '16px';
+      if (overlay.image.type === 'double') {
+        container.innerHTML =
+          '<img src="' + overlay.image.src + '" style="max-width:40%;display:inline-block;margin:0 4px;">' +
+          '<img src="' + overlay.image.src + '" style="max-width:40%;display:inline-block;margin:0 4px;">';
+      } else {
+        var gridHtml = '';
+        for (var i = 0; i < 9; i++) {
+          gridHtml += '<img src="' + overlay.image.src + '" style="width:30%;display:inline-block;margin:1%;">';
+        }
+        container.innerHTML = gridHtml;
+      }
+      moodSection.insertBefore(container, imgEl.nextSibling);
+    }
+  }
+
+  var subEl = document.getElementById('mood-sub');
+  if (subEl) {
+    if (overlay.subHeadline) {
+      subEl.innerHTML = overlay.subHeadline;
+      subEl.style.display = 'block';
+    } else {
+      subEl.innerHTML = '';
+      subEl.style.display = 'none';
+    }
+  }
+}
+
+// --- Goal transition ---
+
+var _lastSeenGoalEventId  = -1;
+var _currentGameId        = null;
+var _scoreboardInitialized = false;
+var _goalTransitionActive = false;
+var _shortKingAltTimer    = null;
+var SHORT_KING_IMGS = [
+  'assets/short-king/pager34-1.png',
+  'assets/short-king/pager34-2.jpg',
+];
+
+function randomShortKingImg() {
+  return SHORT_KING_IMGS[Math.floor(Math.random() * SHORT_KING_IMGS.length)];
+}
+
+function formatShotType(raw) {
+  if (!raw) return null;
+  return raw.replace(/-/g, ' ');
+}
+
+function getGoalSituationType(play, nyiIsHome, homeTeamId) {
+  var d = play.details || {};
+  var nyiScored = nyiIsHome
+    ? d.eventOwnerTeamId === homeTeamId
+    : d.eventOwnerTeamId !== homeTeamId;
+  if (!nyiScored) return null;
+
+  var code        = play.situationCode || '1551';
+  var awaySkaters = parseInt(code[1]) || 5;
+  var homeSkaters = parseInt(code[2]) || 5;
+  var nyiSkaters  = nyiIsHome ? homeSkaters : awaySkaters;
+  var oppSkaters  = nyiIsHome ? awaySkaters : homeSkaters;
+
+  if (oppSkaters < nyiSkaters) return 'ppg';
+  if (nyiSkaters < oppSkaters) return nyiSkaters <= 3 ? 'double_shg' : 'shg';
+  return 'goal';
+}
+
+function showGoalTransition(play, rosterMap, nyiIsHome, homeTeamId, onComplete) {
+  var sit = getGoalSituationType(play, nyiIsHome, homeTeamId);
+  if (!sit) return;
+
+  var d        = play.details || {};
+  var fullName = rosterMap[d.scoringPlayerId] || null;
+  var lastName = fullName ? fullName.split(' ').pop() : null;
+  var shotType = formatShotType(d.shotType);
+  var subText  = lastName ? lastName + (shotType ? ' with the ' + shotType + '!' : '!') : null;
+
+  if (_shortKingAltTimer) { clearInterval(_shortKingAltTimer); _shortKingAltTimer = null; }
+  _goalTransitionActive = true;
+
+  var old = document.getElementById('situation-img');
+  if (old) old.parentNode.removeChild(old);
+  var moodImg    = document.getElementById('mood-image');
+  var moodSub    = document.getElementById('mood-sub');
+  var headlineEl = document.getElementById('mood-headline');
+  var moodSection = document.getElementById('mood-section');
+
+  headlineEl.style.fontSize = '';
+
+  var bigText;
+  if (sit === 'goal' || sit === 'ppg') {
+    bigText = sit === 'ppg' ? 'POWER PLAY GOAL!' : 'GOAL!';
+    var textPt = Math.min(72, Math.floor(500 / (bigText.length * 0.6)));
+    if (moodImg) moodImg.style.display = 'none';
+    headlineEl.innerHTML =
+      '<table style="margin:0 auto;border:none;font-size:inherit;text-align:center;"><tr>' +
+      '<td style="border:none;vertical-align:middle;padding:0 12px;width:80px;">' +
+        '<img src="assets/red-blue-siren-siren.gif" style="width:80px;display:block;">' +
+      '</td>' +
+      '<td style="border:none;vertical-align:middle;text-align:center;font-size:' + textPt + 'pt;">' + bigText + '</td>' +
+      '<td style="border:none;vertical-align:middle;padding:0 12px;width:80px;">' +
+        '<img src="assets/red-blue-siren-siren.gif" style="width:80px;display:block;">' +
+      '</td>' +
+      '</tr></table>';
+  } else {
+    bigText = sit === 'double_shg' ? 'DOUBLE SHORTIE!!!' : 'SHORTIE!';
+    headlineEl.textContent = bigText;
+
+    if (sit === 'double_shg') {
+      if (moodImg) moodImg.style.display = 'none';
+      var container = document.createElement('div');
+      container.id = 'situation-img';
+      container.style.textAlign = 'center';
+      container.style.marginBottom = '16px';
+      var img1 = document.createElement('img');
+      var img2 = document.createElement('img');
+      img1.style.cssText = 'width:40%;display:inline-block;margin:0 4px;';
+      img2.style.cssText = 'width:40%;display:inline-block;margin:0 4px;';
+      img1.src = randomShortKingImg();
+      img2.src = randomShortKingImg();
+      container.appendChild(img1);
+      container.appendChild(img2);
+      if (moodSection && moodImg) moodSection.insertBefore(container, moodImg.nextSibling);
+      _shortKingAltTimer = setInterval(function () {
+        img1.src = randomShortKingImg();
+        img2.src = randomShortKingImg();
+      }, 1000);
+    } else {
+      if (moodImg) {
+        moodImg.src = randomShortKingImg();
+        moodImg.style.width   = '40%';
+        moodImg.style.display = 'block';
+      }
+      _shortKingAltTimer = setInterval(function () {
+        if (moodImg) moodImg.src = randomShortKingImg();
+      }, 1000);
+    }
+  }
+
+  if (moodSub) {
+    if (subText) {
+      moodSub.textContent = subText;
+      moodSub.style.fontSize = '13pt';
+      moodSub.style.fontStyle = 'italic';
+      moodSub.style.display = 'block';
+    } else {
+      moodSub.innerHTML = '';
+      moodSub.style.display = 'none';
+    }
+  }
+
+  setTimeout(function () {
+    _goalTransitionActive = false;
+    if (_shortKingAltTimer) { clearInterval(_shortKingAltTimer); _shortKingAltTimer = null; }
+    (onComplete || detectAndRenderState)();
+  }, 5000);
+}
+
+function checkForNewNYIGoals(plays, rosterMap, nyiIsHome, homeTeamId) {
+  var goals = plays.filter(function (p) { return p.typeDescKey === 'goal'; });
+  var maxId = goals.length
+    ? Math.max.apply(null, goals.map(function (g) { return g.eventId || 0; }))
+    : 0;
+
+  if (!_scoreboardInitialized) {
+    _lastSeenGoalEventId   = maxId;
+    _scoreboardInitialized = true;
+    return false;
+  }
+
+  if (maxId <= _lastSeenGoalEventId) return false;
+
+  var newGoals = goals.filter(function (g) { return (g.eventId || 0) > _lastSeenGoalEventId; });
+  _lastSeenGoalEventId = maxId;
+
+  var nyiGoals = newGoals.filter(function (g) {
+    var d = g.details || {};
+    return nyiIsHome
+      ? d.eventOwnerTeamId === homeTeamId
+      : d.eventOwnerTeamId !== homeTeamId;
+  });
+
+  if (!nyiGoals.length) return false;
+  showGoalTransition(nyiGoals[nyiGoals.length - 1], rosterMap, nyiIsHome, homeTeamId);
+  return true;
+}
+
 // --- Main entry point ---
 
 function buildScoreboardHTML(boxscore, playByPlay) {
@@ -382,7 +679,7 @@ function buildScoreboardHTML(boxscore, playByPlay) {
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev);
 }
 
-async function fetchAndRenderScoreboard(gameId) {
+async function fetchAndRenderScoreboard(gameId, context) {
   var container = document.getElementById('live-scoreboard');
   if (!container) return;
   container.innerHTML = '<p style="opacity:0.5;font-size:10pt;">Loading game data...</p>';
@@ -394,19 +691,37 @@ async function fetchAndRenderScoreboard(gameId) {
     ]);
     var boxscore   = await results[0].json();
     var playByPlay = await results[1].json();
+    var rosterMap  = buildRosterMap((playByPlay || {}).rosterSpots);
+    var plays      = (playByPlay || {}).plays || [];
     container.innerHTML = buildScoreboardHTML(boxscore, playByPlay);
+
+    var home         = boxscore.homeTeam || {};
+    var nyiIsHome    = home.abbrev === 'NYI';
+    var nextHomeGame = context && context.nextHomeGame || '—';
+
+    if (_currentGameId !== gameId) {
+      _currentGameId         = gameId;
+      _scoreboardInitialized = false;
+      _lastSeenGoalEventId   = -1;
+    }
+
+    var goalTriggered = checkForNewNYIGoals(plays, rosterMap, nyiIsHome, home.id);
+    if (!goalTriggered) {
+      var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame);
+      applyMoodOverlay(overlay);
+    }
   } catch (err) {
     console.error('Scoreboard fetch failed:', err);
     container.innerHTML = '<p style="opacity:0.5;font-size:10pt;">Could not load game data.</p>';
   }
 }
 
-function renderLiveGame(game) {
+function renderLiveGame(game, context) {
   var gameId    = game && game.id;
   var container = document.getElementById('live-scoreboard');
   if (!gameId) {
     if (container) container.innerHTML = '';
     return;
   }
-  fetchAndRenderScoreboard(gameId);
+  fetchAndRenderScoreboard(gameId, context);
 }

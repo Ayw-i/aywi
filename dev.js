@@ -157,11 +157,56 @@ const DEV_MOCK_GROUPS = [
                                   'Mock: Live -3', 'Mock: Live -4'] },
 ];
 
+var _devLastMockName = null;
+var _devLastGameId   = null;
+
+// Goal transition dev triggers — bypass API, call showGoalTransition directly
+// situationCode format: awayGoalie|awaySkaters|homeSkaters|homeGoalie
+// NYI = home (teamId 2) in all these mocks
+const DEV_GOAL_SITUATIONS = {
+  'Goal: 5v5':         { code: '1551', label: '5v5 — GOAL!'            },
+  'Goal: PP':          { code: '1451', label: '5v4 — POWER PLAY GOAL!' },
+  'Goal: Shortie':     { code: '1541', label: '4v5 — SHORTIE!'         },
+  'Goal: Dbl Shortie': { code: '1531', label: '3v5 — DOUBLE SHORTIE!!!' },
+};
+
+function devTriggerGoalTransition(key) {
+  const sit = DEV_GOAL_SITUATIONS[key];
+  if (!sit || typeof showGoalTransition === 'undefined') return;
+
+  // Reset any active transition so the guard doesn't block us
+  if (typeof _goalTransitionActive !== 'undefined') _goalTransitionActive = false;
+  if (typeof _shortKingAltTimer  !== 'undefined' && _shortKingAltTimer) {
+    clearInterval(_shortKingAltTimer);
+    _shortKingAltTimer = null;
+  }
+
+  // Fake play event — NYI (home, teamId 2) scored
+  const fakePlay = {
+    eventId: 99999,
+    situationCode: sit.code,
+    details: {
+      eventOwnerTeamId: 2,
+      scoringPlayerId: 8478483,
+      shotType: 'backhand',
+    },
+  };
+  const fakeRosterMap = { 8478483: 'Anders Lee' };
+
+  function devRestore() {
+    if (_devLastMockName) devSetMockState(_devLastMockName);
+    if (_devLastGameId)   fetchAndRenderScoreboard(_devLastGameId, { nextHomeGame: '—' });
+  }
+  showGoalTransition(fakePlay, fakeRosterMap, true /* nyiIsHome */, 2 /* homeTeamId */, devRestore);
+  highlightActiveBtn(key);
+}
+
 function devSetMockState(name) {
   const mockData = DEV_MOCK_SCENARIOS[name];
   if (!mockData) return;
 
   // Call the real detection function with mock data — exercises the full pipeline
+  _devLastMockName = name;
   detectAndRenderState(mockData);
 
   // Always show everything immediately in dev mode
@@ -206,28 +251,61 @@ function buildDevPanel() {
     document.getElementById('dev-chevron').textContent = isOpen ? '▶' : '▼';
   });
 
-  DEV_MOCK_GROUPS.forEach(function (group) {
+  function addBtn(body, label, onClick) {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.dataset.state = label;
+    btn.className = 'dev-btn';
+    btn.style.cssText = [
+      'display:block', 'width:100%', 'text-align:left',
+      'background:none', 'border:none', 'color:#ccc', 'cursor:pointer',
+      'padding:2px 0', 'font-size:10px', 'font-family:Helvetica,Arial,sans-serif',
+    ].join(';');
+    btn.addEventListener('mouseenter', function () { btn.style.color = 'white'; });
+    btn.addEventListener('mouseleave', function () { btn.style.color = '#ccc'; });
+    btn.addEventListener('click', onClick);
+    body.appendChild(btn);
+  }
+
+  function addGroupLabel(body, text) {
     const label = document.createElement('div');
-    label.textContent = group.label;
+    label.textContent = text;
     label.style.cssText = 'color:#888;margin:8px 0 3px 0;text-transform:uppercase;font-size:9px;letter-spacing:1px;';
     body.appendChild(label);
+  }
 
+  DEV_MOCK_GROUPS.forEach(function (group) {
+    addGroupLabel(body, group.label);
     group.states.forEach(function (name) {
-      const btn = document.createElement('button');
-      btn.textContent = name.replace('Mock: ', '');
-      btn.dataset.state = name;
-      btn.className = 'dev-btn';
-      btn.style.cssText = [
-        'display:block', 'width:100%', 'text-align:left',
-        'background:none', 'border:none', 'color:#ccc', 'cursor:pointer',
-        'padding:2px 0', 'font-size:10px', 'font-family:Helvetica,Arial,sans-serif',
-      ].join(';');
-      btn.addEventListener('mouseenter', function () { btn.style.color = 'white'; });
-      btn.addEventListener('mouseleave', function () { btn.style.color = '#ccc'; });
-      btn.addEventListener('click', function () { devSetMockState(name); });
-      body.appendChild(btn);
+      addBtn(body, name.replace('Mock: ', ''), function () { devSetMockState(name); });
     });
   });
+
+  addGroupLabel(body, 'Goal Transition');
+  Object.keys(DEV_GOAL_SITUATIONS).forEach(function (key) {
+    addBtn(body, DEV_GOAL_SITUATIONS[key].label, function () { devTriggerGoalTransition(key); });
+  });
+
+  addGroupLabel(body, 'Load Game');
+  const gameIdRow = document.createElement('div');
+  gameIdRow.style.cssText = 'display:flex;gap:4px;margin-top:2px;';
+  const gameIdInput = document.createElement('input');
+  gameIdInput.type = 'text';
+  gameIdInput.placeholder = 'Game ID';
+  gameIdInput.style.cssText = 'flex:1;background:#111;border:1px solid #555;color:#ccc;font-size:10px;padding:2px 4px;';
+  const gameIdBtn = document.createElement('button');
+  gameIdBtn.textContent = 'Load';
+  gameIdBtn.style.cssText = 'background:#333;border:1px solid #555;color:#ccc;font-size:10px;cursor:pointer;padding:2px 6px;';
+  gameIdBtn.addEventListener('click', function () {
+    const id = gameIdInput.value.trim();
+    if (!id) return;
+    _devLastGameId = id;
+    fetchAndRenderScoreboard(id, { nextHomeGame: '—' });
+  });
+  gameIdInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') gameIdBtn.click(); });
+  gameIdRow.appendChild(gameIdInput);
+  gameIdRow.appendChild(gameIdBtn);
+  body.appendChild(gameIdRow);
 
   panel.appendChild(header);
   panel.appendChild(body);

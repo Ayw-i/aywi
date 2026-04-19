@@ -134,6 +134,20 @@ Image: TBD
 
 Both teams penalized simultaneously. Modifier TBD.
 
+### 4v3 (Regulation — rare)
+
+Possible in regulation: a 4v4 situation where one team takes an additional penalty.
+They drop to 3 skaters (the NHL floor); the other team stays at 4.
+Current code will mislabel this as `doublePK`/`doublePP` (which expects 3v5/5v3).
+Known gap — spec and flavor text TBD.
+
+### 3v3 (Regulation — very rare)
+
+Possible: a 4v3 situation where the 4-skater team takes another penalty — both sides
+are now at the 3-skater floor. Very rare, not meaningfully different from OT 3v3 in feel.
+Current code returns `null` (no overlay) since neither side has more skaters than the other.
+Known gap — spec TBD; probably just treat like 4v4 (coincidentals flavor).
+
 ### Overtime — Regular Season (3v3)
 
 Special "overtime" mood state. Full spec TBD.
@@ -152,11 +166,27 @@ Replaces entire page content — no mood section, no persistent section.
 
 ### Goal Scored Transition
 
-When the API poll detects a new goal (score changed since last poll):
-- Display Geocities siren gif
-- Show "GOAL!" in large text + scorer name if available from play-by-play
-- Duration: ~5 seconds, then return to normal live state
-- Only trigger for NYI goals (opponent goals can be handled separately or skipped)
+Detected via event ID tracking: on each poll, compare play-by-play goal events
+against `_lastSeenGoalEventId`. New NYI goals trigger a 5-second overlay, then
+return to normal live state. Opponent goals are ignored for now.
+
+Detection is skipped on the first scoreboard load (sets baseline, no transition).
+`_goalTransitionActive` flag blocks `detectAndRenderState` during the 5 seconds.
+
+Four cases based on situation code at time of goal:
+
+| Situation | Headline | Image |
+|---|---|---|
+| 5v5 (or EN) | GOAL! | `red-blue-siren-siren.gif` flanking each side of text |
+| 5v4 or 5v3 (PP) | POWER PLAY GOAL! | same siren layout |
+| 4v5 (SHG) | SHORTIE! | random image from `assets/short-king/`, alternates every 1s |
+| 3v5 (double SHG) | DOUBLE SHORTIE!!! | two random short-king images side by side, alternating every 1s |
+
+Sub-headline (small text): "[Lastname] with the [shotType]!" if both are available.
+Shot type from `play.details.shotType` (e.g. "backhand", "wrist-shot" → "wrist shot").
+Assists are unreliable at goal-time — not shown.
+
+Short-king images: `assets/short-king/pager34-1.png`, `assets/short-king/pager34-2.jpg`
 
 ### Empty Net
 

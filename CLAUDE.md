@@ -141,6 +141,7 @@ Always rendered below the mood section (except off-season: news only, no roster)
 - Automated news via RSS proxy (Cloudflare Worker)
 - GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
 - Before public release: add Worker-level caching (Cloudflare Cache API)
+- Live event feed: rolling log of last 5–8 play-by-play events (shots, saves, blocks, hits) below the scoreboard during live state. Data already fetched via play-by-play endpoint. Consider tightening refresh interval (10s?) for this feature.
 - Color-code skater/goalie stats by league ranking (gold/silver/green/red)
   Requires fetching league-wide stats leaders endpoints
 - Barzal spin gif for power play state (replace barzal-the-muse.png placeholder)

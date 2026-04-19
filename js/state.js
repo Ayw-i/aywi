@@ -81,6 +81,12 @@ function renderMoodState(stateName, overrides) {
   var liveBoard = document.getElementById('live-scoreboard');
   if (liveBoard) liveBoard.innerHTML = '';
 
+  // Clear any situation overlay from a prior live state
+  var sitImg = document.getElementById('situation-img');
+  if (sitImg) sitImg.parentNode.removeChild(sitImg);
+  var moodSub = document.getElementById('mood-sub');
+  if (moodSub) { moodSub.innerHTML = ''; moodSub.style.display = 'none'; }
+
   const img = document.getElementById('mood-image');
   if (state.image) {
     img.src = state.image;
@@ -244,7 +250,7 @@ function getRegularSeasonState(data) {
     });
     const nextHomeGame = nextHome ? formatOrdinalDate(nextHome.gameDate) : '—';
     const headline     = getResponseText(config, situation, { diff: diff, nextHomeGame: nextHomeGame });
-    return { stateName: 'live', overrides: { headline: headline }, gameObj: nyiGame };
+    return { stateName: 'live', overrides: { headline: headline }, gameObj: nyiGame, nextHomeGame: nextHomeGame };
   }
 
   if (state === 'OFF' || state === 'FINAL') {
@@ -292,7 +298,7 @@ function applyState(data) {
   renderMoodState(gameInfo.stateName, gameInfo.overrides);
 
   if (gameInfo.stateName === 'live' && typeof renderLiveGame === 'function') {
-    renderLiveGame(gameInfo.gameObj || null);
+    renderLiveGame(gameInfo.gameObj || null, { nextHomeGame: gameInfo.nextHomeGame || '—', config: data.config });
   }
 
   return gameInfo.stateName;
@@ -301,6 +307,8 @@ function applyState(data) {
 // --- State detection (real API or mock data) ---
 
 async function detectAndRenderState(mockData) {
+  if (typeof _goalTransitionActive !== 'undefined' && _goalTransitionActive) return;
+
   if (_liveRefreshTimer) {
     clearInterval(_liveRefreshTimer);
     _liveRefreshTimer = null;
