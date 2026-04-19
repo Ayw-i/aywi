@@ -13,6 +13,19 @@ highlight will silently never trigger.
 
 ---
 
+## Playoffs Page — Bracket Seed Order (Left vs Right)
+
+Currently the higher seed is displayed on the left in head-to-head matchups.
+This may be backwards: in hockey, the home team is conventionally shown on the
+right (score displays, TV graphics, etc.), and the higher seed is the home team
+for more games in the 2-2-1-1-1 format (games 1, 2, 5, 7). If that convention
+holds for brackets too, higher seed should be on the right.
+
+Not changing this without verifying — no strong consensus on left/right bracket
+conventions in general, and it's possible this doesn't matter. Revisit.
+
+---
+
 ## Playoffs Page — Goal Line Format
 
 The current format groups goals by period (period header centered, then
