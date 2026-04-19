@@ -61,6 +61,19 @@ function getSituationLabel(play, homeTeamId) {
   return '5v5';
 }
 
+function randomShatautImg() {
+  var n = Math.floor(Math.random() * 8) + 1;
+  return 'assets/king-of-shutouts/shataut' + n + '.jpg';
+}
+
+function isPrimaryGoalieSorokin(goalies) {
+  var played = (goalies || []).filter(function (g) { return parseTOISecs(g.toi) > 0; });
+  if (!played.length) return false;
+  played.sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
+  var name = (played[0].name && played[0].name.default) || '';
+  return name.indexOf('Sorokin') !== -1;
+}
+
 // --- Section builders ---
 
 function buildLiveHeader(boxscore) {
@@ -111,7 +124,7 @@ function buildLiveHeader(boxscore) {
     '</table>';
 }
 
-function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
+function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev, isFinal, awayShutoutImg, homeShutoutImg) {
   var goals     = plays.filter(function (p) { return p.typeDescKey === 'goal'; });
   var homeGoals = goals.filter(function (g) { return (g.details || {}).eventOwnerTeamId === homeTeamId; });
   var awayGoals = goals.filter(function (g) { return (g.details || {}).eventOwnerTeamId !== homeTeamId; });
@@ -133,10 +146,17 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
       '</tr>';
   }
 
-  function goalTable(goals, label) {
-    var rows = goals.length
-      ? goals.map(goalRow).join('')
-      : '<tr><td colspan="4" style="opacity:0.5;font-size:9pt;padding:4px 8px;">No goals</td></tr>';
+  function goalTable(goals, label, shutoutImg) {
+    var rows;
+    if (goals.length === 0 && isFinal && shutoutImg) {
+      rows = '<tr><td colspan="4" style="text-align:center;padding:6px 0;">' +
+        '<img src="' + shutoutImg + '" style="max-width:100%;max-height:80px;display:block;margin:0 auto;">' +
+        '</td></tr>';
+    } else if (goals.length === 0) {
+      rows = '<tr><td colspan="4" style="opacity:0.5;font-size:9pt;padding:4px 8px;">No goals</td></tr>';
+    } else {
+      rows = goals.map(goalRow).join('');
+    }
     return '<table width="100%">' +
       '<thead>' +
         '<tr><th colspan="4">' + label + '</th></tr>' +
@@ -154,8 +174,8 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev) {
   return '<h3 style="margin-top:20px;margin-bottom:4px;">GOALS</h3>' +
     '<table width="100%" style="border:none;">' +
     '<tr>' +
-    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalTable(awayGoals, awayAbbrev) + '</td>' +
-    '<td width="50%" valign="top" style="border:none;padding-left:4px;">' + goalTable(homeGoals, homeAbbrev) + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalTable(awayGoals, awayAbbrev, awayShutoutImg) + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-left:4px;">' + goalTable(homeGoals, homeAbbrev, homeShutoutImg) + '</td>' +
     '</tr></table>';
 }
 
@@ -329,9 +349,22 @@ function buildScoreboardHTML(boxscore, playByPlay) {
   var rosterMap = buildRosterMap((playByPlay || {}).rosterSpots);
   var plays     = (playByPlay || {}).plays || [];
 
+  var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
+
+  // Shutout easter eggs: saros-no-goals.png by default;
+  // king-of-shutouts if NYI shut out opponent and Sorokin was their goalie.
+  var homeGoalieSorokin = isPrimaryGoalieSorokin(homeStats.goalies);
+  var awayGoalieSorokin = isPrimaryGoalieSorokin(awayStats.goalies);
+  // awayShutoutImg: used when away scored 0 (home goalie got the shutout)
+  var awayShutoutImg = (home.abbrev === 'NYI' && homeGoalieSorokin)
+    ? randomShatautImg() : 'assets/saros-no-goals.png';
+  // homeShutoutImg: used when home scored 0 (away goalie got the shutout)
+  var homeShutoutImg = (away.abbrev === 'NYI' && awayGoalieSorokin)
+    ? randomShatautImg() : 'assets/saros-no-goals.png';
+
   // Away is always left column, home is always right column — consistent with header.
   return buildLiveHeader(boxscore) +
-    buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
+    buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev);
