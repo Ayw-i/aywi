@@ -62,8 +62,9 @@ function getSituationLabel(play, homeTeamId) {
 }
 
 function randomShatautImg() {
-  var n = Math.floor(Math.random() * 8) + 1;
-  return 'assets/king-of-shutouts/shataut' + n + '.jpg';
+  var list = appConfig && appConfig.kingOfShutoutsImages;
+  if (!list || !list.length) return 'assets/saros-no-goals.png';
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 function isPrimaryGoalieSorokin(goalies) {

@@ -32,6 +32,24 @@ export default {
       });
     }
 
+    // --- Polymarket proxy: /polymarket/... ---
+    if (url.pathname.startsWith('/polymarket/')) {
+      const pmPath = url.pathname.slice('/polymarket'.length);
+      const pmUrl  = 'https://gamma-api.polymarket.com' + pmPath + url.search;
+      const pmResponse = await fetch(pmUrl, {
+        headers: { 'User-Agent': 'aywi-proxy/1.0' },
+      });
+      const body = await pmResponse.text();
+      return new Response(body, {
+        status: pmResponse.status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=300',
+        },
+      });
+    }
+
     // --- News feed proxy: /feeds/{key} ---
     if (url.pathname.startsWith('/feeds/')) {
       const key = url.pathname.slice(7);

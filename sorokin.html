@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ilya Sorokin — Are Ya Winning, Isles?</title>
+  <style>
+    body {
+      background-color: #000000;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 60px 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+    }
+
+    h2 {
+      text-align: left;
+      font-size: 18pt;
+      margin: 30px 0 6px 0;
+      text-transform: uppercase;
+    }
+
+    nav {
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: underline;
+      margin: 0 8px;
+      font-size: 11pt;
+    }
+
+    a {
+      color: white;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid white;
+      margin: 40px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      text-align: left;
+    }
+
+    th, td {
+      border: 1px solid white;
+      padding: 4px 8px;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    #vezina-odds {
+      font-size: 48pt;
+      font-weight: bold;
+      margin: 16px 0 10px 0;
+      line-height: 1;
+    }
+
+    #vezina-odds a {
+      text-decoration: underline;
+    }
+
+    #vezina-tables {
+      margin-top: 30px;
+    }
+
+    #footer {
+      font-size: 9pt;
+      margin-top: 50px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+
+<div id="main">
+
+  <h1>Are Ya Winning, Isles?</h1>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="season.html">Season</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="stats.html">Stats</a>
+    <a href="about.html">About</a>
+  </nav>
+
+  <h2 style="text-align:center;">
+    <span style="position:relative;display:inline-block;">
+      <span style="cursor:default;"
+        onmouseenter="this.nextElementSibling.style.display='block'"
+        onmouseleave="this.nextElementSibling.style.display='none'">IL-YA SO-RO-KIN!</span>
+      <span style="display:none;position:absolute;bottom:120%;left:50%;transform:translateX(-50%);
+        background:#000;border:1px solid #fff;padding:6px 12px;font-size:20pt;
+        white-space:nowrap;z-index:999;">👏👏 👏👏 👏 </span>
+    </span>
+  </h2>
+
+  <div id="vezina-odds">Loading...</div>
+
+  <div id="vezina-image"></div>
+
+  <hr>
+
+  <div id="vezina-tables">Loading...</div>
+
+  <p id="footer">Last updated: —</p>
+
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/state.js"></script>
+<script src="js/sorokin.js"></script>
+
+</body>
+</html>

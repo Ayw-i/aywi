@@ -139,7 +139,7 @@ function clearGameSection() {
 
 // --- Config cache ---
 
-let appConfig = null;
+var appConfig = null;
 async function getConfig() {
   if (!appConfig) {
     const res = await fetch('config.json');

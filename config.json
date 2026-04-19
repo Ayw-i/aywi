@@ -33,6 +33,30 @@
     ]
   },
 
+  "kingOfShutoutsImages": [
+    "assets/king-of-shutouts/happy-king.jpg",
+    "assets/king-of-shutouts/heavy-is-the-head.jpg",
+    "assets/king-of-shutouts/sort-of-happy.jpg",
+    "assets/king-of-shutouts/brooding-happy.jpg",
+    "assets/king-of-shutouts/frog-boy.jpg",
+    "assets/king-of-shutouts/hellebyuck-eyes.jpg",
+    "assets/king-of-shutouts/uhuhh.jpg",
+    "assets/king-of-shutouts/shataut8.jpg"
+  ],
+
+  "polymarketVezinaSlug": "nhl-2025-26-vezina-trophy",
+
+  "vezinaMoodImages": [
+    { "threshold": 0.85, "image": "assets/king-of-shutouts/happy-king.jpg" },
+    { "threshold": 0.75, "image": "assets/king-of-shutouts/heavy-is-the-head.jpg" },
+    { "threshold": 0.60, "image": "assets/king-of-shutouts/sort-of-happy.jpg" },
+    { "threshold": 0.50, "image": "assets/king-of-shutouts/brooding-happy.jpg" },
+    { "threshold": 0.35, "image": "assets/king-of-shutouts/frog-boy.jpg" },
+    { "threshold": 0.15, "image": "assets/king-of-shutouts/hellebyuck-eyes.jpg" },
+    { "threshold": 0.05, "image": "assets/king-of-shutouts/uhuhh.jpg" },
+    { "threshold": 0,    "image": "assets/king-of-shutouts/shataut8.jpg" }
+  ],
+
   "notes": {
     "nextGameDay": "Replaced at runtime by JS. 'tomorrow' if next game is the next calendar day, otherwise 'on [day of week, e.g. Monday]'.",
     "nextHomeGame": "Replaced at runtime by JS with the date of the next scheduled home game. Format: 'Saturday, April 19th' (full day name, full month name, day with ordinal suffix).",
