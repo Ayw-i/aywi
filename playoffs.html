@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stats — Are Ya Winning, Isles?</title>
+  <title>Playoffs — Are Ya Winning, Isles?</title>
   <style>
     body {
       background-color: #000000;
@@ -17,16 +17,22 @@
       max-width: 800px;
       margin: 0 auto;
       padding: 40px 20px 60px 20px;
+      text-align: center;
     }
 
     h1 {
       font-size: 18pt;
       margin-bottom: 6px;
-      text-align: center;
+    }
+
+    h2 {
+      text-align: left;
+      font-size: 18pt;
+      margin: 30px 0 12px 0;
+      text-transform: uppercase;
     }
 
     nav {
-      text-align: center;
       margin-bottom: 30px;
     }
 
@@ -37,14 +43,35 @@
       font-size: 11pt;
     }
 
-    h2 {
-      font-size: 13pt;
-      margin: 30px 0 6px 0;
-      text-transform: uppercase;
+    a {
+      color: white;
     }
 
-    p {
+    hr {
+      border: none;
+      border-top: 1px solid white;
+      margin: 40px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
       font-size: 10pt;
+      text-align: left;
+    }
+
+    th, td {
+      border: 1px solid white;
+      padding: 4px 8px;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    #footer {
+      font-size: 9pt;
+      margin-top: 50px;
       opacity: 0.6;
     }
   </style>
@@ -54,7 +81,6 @@
 <div id="main">
 
   <h1>Are Ya Winning, Isles?</h1>
-
   <nav>
     <a href="index.html">Home</a>
     <a href="season.html">Season</a>
@@ -64,10 +90,21 @@
     <a href="about.html">About</a>
   </nav>
 
-  <h2>Stats</h2>
-  <p>Coming soon.</p>
+  <h2>Today's Games</h2>
+  <div id="today-games">Loading...</div>
+
+  <hr>
+
+  <h2>Bracket</h2>
+  <div id="bracket">Loading...</div>
+
+  <p id="footer">Last updated: —</p>
 
 </div>
+
+<script src="js/utils.js"></script>
+<script src="js/state.js"></script>
+<script src="js/playoffs.js"></script>
 
 </body>
 </html>
