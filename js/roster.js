@@ -57,8 +57,12 @@ function renderGoalieTable(goalies) {
   tbody.innerHTML = '';
   goalies.forEach(function (g) {
     const row = document.createElement('tr');
+    var goalieName = g.firstName.default + ' ' + g.lastName.default;
+    if (g.lastName.default === 'Sorokin') {
+      goalieName = '<a href="sorokin.html">' + goalieName + '</a>';
+    }
     row.innerHTML =
-      '<td>' + g.firstName.default + ' ' + g.lastName.default + '</td>' +
+      '<td>' + goalieName + '</td>' +
       '<td>' + g.gamesPlayed + '</td>' +
       '<td>' + g.wins + '</td>' +
       '<td>' + g.losses + '</td>' +

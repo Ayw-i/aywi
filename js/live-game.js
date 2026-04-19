@@ -246,7 +246,10 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev) {
     played.sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
     return played.map(function (g, i) {
       var pulled   = played.length > 1 && i === played.length - 1;
-      var name     = (g.name && g.name.default) || 'Unknown';
+      var rawName  = (g.name && g.name.default) || 'Unknown';
+      var name     = rawName.indexOf('Sorokin') !== -1
+        ? '<a href="sorokin.html">' + rawName + '</a>'
+        : rawName;
       var sa       = g.shotsAgainst != null ? g.shotsAgainst : '&mdash;';
       var sv       = g.saves        != null ? g.saves        : '&mdash;';
       var svp      = g.savePctg     != null ? formatSVP(g.savePctg) : '&mdash;';
