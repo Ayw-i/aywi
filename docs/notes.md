@@ -35,5 +35,12 @@ have moved throughout a given season.
   - Inline `<canvas>` drawn with the 2D API (vanilla JS, no deps).
 - Season selector if we want multi-year support.
 
-**Recommended starting point:** daily cron Worker that appends to a JSON file in
-the repo via the GitHub API, then a hand-drawn SVG or canvas graph on the page.
+**Recommended approach:** Cloudflare Worker cron trigger + KV storage.
+- Add a cron trigger to the existing Worker (runs once daily).
+- Cron handler fetches Sorokin's Polymarket odds and writes `{ date, probability }`
+  to Cloudflare KV — free tier is more than sufficient for one entry per day.
+- Add a `/sorokin-odds-history` route to the Worker that reads all KV entries
+  and returns them as JSON.
+- sorokin.html fetches that route and draws the graph (hand-rolled canvas or SVG,
+  no library needed).
+- No git noise, no GitHub Actions, everything stays in Cloudflare.
