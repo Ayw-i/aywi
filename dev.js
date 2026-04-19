@@ -281,6 +281,18 @@ function buildDevPanel() {
     });
   });
 
+  addGroupLabel(body, 'Situation Overlay');
+  var SIT_OVERLAYS = [
+    { label: 'PK +1',       fn: function () { applyMoodOverlay(buildPKOverlay( 1, false, 'Apr 23')); } },
+    { label: 'PK -1',       fn: function () { applyMoodOverlay(buildPKOverlay(-1, false, 'Apr 23')); } },
+    { label: 'PK -4+',      fn: function () { applyMoodOverlay(buildPKOverlay(-4, false, 'Apr 23')); } },
+    { label: 'Double PK',   fn: function () { applyMoodOverlay(buildPKOverlay( 1, true,  'Apr 23')); } },
+    { label: 'PP +1',       fn: function () { applyMoodOverlay(buildPPOverlay( 1, false)); } },
+    { label: 'PP -1',       fn: function () { applyMoodOverlay(buildPPOverlay(-1, false)); } },
+    { label: 'PP 5v3',      fn: function () { applyMoodOverlay(buildPPOverlay( 1, true )); } },
+  ];
+  SIT_OVERLAYS.forEach(function (s) { addBtn(body, s.label, s.fn); });
+
   addGroupLabel(body, 'Goal Transition');
   Object.keys(DEV_GOAL_SITUATIONS).forEach(function (key) {
     addBtn(body, DEV_GOAL_SITUATIONS[key].label, function () { devTriggerGoalTransition(key); });
