@@ -43,21 +43,27 @@ function playoffsBuildRosterMap(rosterSpots) {
 function playoffsGetSituationLabel(play, homeTeamId) {
   var code = play.situationCode || '1551';
   // Format: {awayGoalie}{awaySkaters}{homeSkaters}{homeGoalie}
-  var awayGoalie  = code[0] === '1';
-  var awaySkaters = parseInt(code[1]) || 5;
-  var homeSkaters = parseInt(code[2]) || 5;
-  var homeGoalie  = code[3] === '1';
-  var scoringHome = (play.details || {}).eventOwnerTeamId === homeTeamId;
+  var awayGoalieIn = code[0] === '1';
+  var awaySkaters  = parseInt(code[1]) || 5;
+  var homeSkaters  = parseInt(code[2]) || 5;
+  var homeGoalieIn = code[3] === '1';
+  var scoringHome  = (play.details || {}).eventOwnerTeamId === homeTeamId;
 
-  if (scoringHome  && !awayGoalie) return 'EN';
-  if (!scoringHome && !homeGoalie) return 'EN';
-  if (scoringHome) {
-    if (homeSkaters > awaySkaters) return 'PPG';
-    if (homeSkaters < awaySkaters) return 'SHG';
-  } else {
-    if (awaySkaters > homeSkaters) return 'PPG';
-    if (awaySkaters < homeSkaters) return 'SHG';
+  var scoringGoalieIn = scoringHome ? homeGoalieIn : awayGoalieIn;
+  var defendGoalieIn  = scoringHome ? awayGoalieIn : homeGoalieIn;
+  var scoringSkaters  = scoringHome ? homeSkaters  : awaySkaters;
+  var defendSkaters   = scoringHome ? awaySkaters  : homeSkaters;
+
+  if (!defendGoalieIn) return 'EN';
+
+  if (!scoringGoalieIn) {
+    if (scoringSkaters > defendSkaters) return 'PPG (EA)';
+    if (scoringSkaters < defendSkaters) return 'SHG (EA)';
+    return 'EA';
   }
+
+  if (scoringSkaters > defendSkaters) return 'PPG';
+  if (scoringSkaters < defendSkaters) return 'SHG';
   return '5v5';
 }
 
