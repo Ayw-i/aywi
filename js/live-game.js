@@ -41,10 +41,11 @@ function buildRosterMap(rosterSpots) {
 
 function getSituationLabel(play, homeTeamId) {
   var code = play.situationCode || '1551';
-  var homeGoalie  = code[0] === '1';
-  var homeSkaters = parseInt(code[1]) || 5;
-  var awaySkaters = parseInt(code[2]) || 5;
-  var awayGoalie  = code[3] === '1';
+  // Format: {awayGoalie}{awaySkaters}{homeSkaters}{homeGoalie}
+  var awayGoalie  = code[0] === '1';
+  var awaySkaters = parseInt(code[1]) || 5;
+  var homeSkaters = parseInt(code[2]) || 5;
+  var homeGoalie  = code[3] === '1';
   var d = play.details || {};
   var scoringHome = d.eventOwnerTeamId === homeTeamId;
 
