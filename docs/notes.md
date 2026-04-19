@@ -44,3 +44,48 @@ have moved throughout a given season.
 - sorokin.html fetches that route and draws the graph (hand-rolled canvas or SVG,
   no library needed).
 - No git noise, no GitHub Actions, everything stays in Cloudflare.
+
+---
+
+## Player Bio Hover (Settings Feature)
+
+### Concept
+A gear icon (fixed position, like the sound toggle) opens a small per-page dropdown
+of settings. On game pages (live or final scoreboard), one setting is "Enable player
+bios" — hovering a player name shows a small popup with:
+- Draft info: e.g. "Drafted 2015, 3rd round, 77th overall"
+- Career-best season (skaters): e.g. "Best year: 2022 — 12G, 22A, 34P"
+- Career-best season (defensemen): points or +/- (TBD — +/- is flawed, points may
+  be more meaningful)
+- Career-best season (goalies): best SV% or GAA season
+
+Data source: NHL API `/v1/player/{playerId}/landing` — returns `draftDetails` and
+`seasonTotals` (full career year by year). Career best is computed by finding the
+peak season in the relevant stat.
+
+### Loading strategy
+Fetch all *displayed* players (goal scorers, penalty takers, best/worst skaters,
+goalies — roughly 15-20 players) in parallel via `Promise.all` when the setting is
+toggled on. Cache results in a JS object (`playerId → bioData`) so toggling off and
+on doesn't re-fetch. Show a small "loading bios..." indicator while fetching.
+
+Don't fetch all 40-50 roster players — only those visible in the scoreboard.
+
+### Persistent caching across visitors (Cloudflare KV)
+Player bio data barely changes mid-season (draft info never changes; career bests
+only change if the player has a better season). Re-fetching live every time is
+wasteful.
+
+**Recommended approach:** Add a KV-backed cache layer to the Worker.
+- Worker checks KV for `player:{id}` before hitting the NHL API.
+- On a miss: fetch from NHL API, store result in KV (TTL: end of season or ~7 days),
+  return to browser.
+- First request per player is normal speed; every subsequent request (from any
+  visitor) is served from KV instantly.
+- No repo noise, no GitHub Actions, benefits all visitors from the first fetch onward.
+
+Alternatives considered:
+- `localStorage`: per-device only, not shared across visitors. Fine as a secondary
+  layer but not a substitute.
+- JSON file in repo + GitHub Action: transparent but creates daily commits and
+  requires Action setup.
