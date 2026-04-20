@@ -535,6 +535,147 @@ function applyMoodOverlay(overlay) {
   }
 }
 
+// --- Shootout board ---
+
+function parseShootoutAttempts(plays, homeTeamId) {
+  var soPlays = plays.filter(function (p) {
+    return (p.periodDescriptor || {}).periodType === 'SO';
+  });
+  var away = [], home = [];
+  soPlays.forEach(function (p) {
+    var t = p.typeDescKey;
+    var d = p.details || {};
+    var isGoal   = t === 'goal';
+    var isSaved  = t === 'shot-on-goal';
+    var isMissed = t === 'missed-shot';
+    if (!isGoal && !isSaved && !isMissed) return;
+    var isHome   = d.eventOwnerTeamId === homeTeamId;
+    var playerId = isGoal
+      ? (d.scoringPlayerId  || d.shootingPlayerId)
+      : (d.shootingPlayerId || d.scoringPlayerId);
+    var attempt = { playerId: playerId, scored: isGoal };
+    if (isHome) home.push(attempt); else away.push(attempt);
+  });
+  return { away: away, home: home };
+}
+
+function getShootoutNeedsText(g1, a1, g2, a2, abbrev1, abbrev2) {
+  // abbrev1/g1/a1 = away (shoots first each round), abbrev2/g2/a2 = home
+  var isSuddenDeath = Math.min(a1, a2) >= 3;
+
+  if (a1 === a2) {
+    // Away's turn
+    if (!isSuddenDeath) {
+      var t2Rem = 3 - a2;
+      if (g1 + 1 > g2 + t2Rem) return abbrev1 + ' wins with a goal.';
+    }
+    // In sudden death away scoring doesn't clinch — home still shoots
+    return null;
+  }
+
+  if (a1 === a2 + 1) {
+    // Home's turn
+    if (!isSuddenDeath) {
+      var t1Rem = 3 - a1;
+      if (g2 + 1 > g1 + t1Rem) return abbrev2 + ' wins with a goal.';
+      if (g1 > g2 + Math.max(0, 2 - a2)) return abbrev2 + ' needs a goal to continue.';
+    } else {
+      return g1 > g2
+        ? abbrev2 + ' needs a goal to continue.'
+        : abbrev2 + ' wins with a goal.';
+    }
+  }
+
+  return null;
+}
+
+function buildShootoutBoard(boxscore, playByPlay) {
+  var home      = boxscore.homeTeam || {};
+  var away      = boxscore.awayTeam || {};
+  var gameStats = boxscore.playerByGameStats || {};
+  var homeStats = gameStats.homeTeam || {};
+  var awayStats = gameStats.awayTeam || {};
+  var rosterMap = buildRosterMap((playByPlay || {}).rosterSpots);
+  var plays     = (playByPlay || {}).plays || [];
+
+  var parsed       = parseShootoutAttempts(plays, home.id);
+  var awayAttempts = parsed.away;
+  var homeAttempts = parsed.home;
+  var a1 = awayAttempts.length;
+  var a2 = homeAttempts.length;
+  var g1 = awayAttempts.filter(function (a) { return a.scored; }).length;
+  var g2 = homeAttempts.filter(function (a) { return a.scored; }).length;
+
+  function primaryGoalieLastName(goalies) {
+    var played = (goalies || []).filter(function (g) { return parseTOISecs(g.toi) > 0; });
+    if (!played.length) return null;
+    played.sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
+    var name = (played[0].name && played[0].name.default) || '';
+    return name.split(' ').pop() || null;
+  }
+  var awayGoalie = primaryGoalieLastName(awayStats.goalies);
+  var homeGoalie = primaryGoalieLastName(homeStats.goalies);
+
+  var needsText = getShootoutNeedsText(g1, a1, g2, a2, away.abbrev || 'AWAY', home.abbrev || 'HOME');
+
+  var ATTEMPT_STYLE = 'border:1px solid rgba(255,255,255,0.3);padding:6px 10px;text-align:center;';
+  var HEADER_STYLE  = 'border:none;background:none;padding:10px 8px;text-align:center;';
+  var ROUND_STYLE   = 'font-size:9pt;opacity:0.5;border:none;padding:2px 8px;text-align:center;';
+
+  function attemptCell(attempt) {
+    if (!attempt) {
+      return '<td style="' + ATTEMPT_STYLE + 'color:#555;">&mdash;</td>';
+    }
+    var name     = rosterMap[attempt.playerId] || '?';
+    var lastName = name.split(' ').pop();
+    var symbol   = attempt.scored
+      ? '<span style="font-size:28pt;color:#44ff44;">&#10003;</span>'
+      : '<span style="font-size:28pt;color:#ff4444;">&#10007;</span>';
+    return '<td style="' + ATTEMPT_STYLE + '">' +
+      '<div style="font-size:9pt;color:#aaa;font-style:italic;">' + lastName + '</div>' +
+      symbol +
+      '</td>';
+  }
+
+  function teamHeaderTh(abbrev, goalieLastName) {
+    return '<th style="' + HEADER_STYLE + '">' +
+      '<img src="' + getNHLLogoURL(abbrev || '') + '" width="56" alt="' + (abbrev || '') + '" ' +
+      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 4px;">' +
+      '<div style="font-size:11pt;">' + (abbrev || '') + '</div>' +
+      (goalieLastName
+        ? '<div style="font-size:9pt;color:#888;font-style:italic;font-weight:normal;">' + goalieLastName + ' in net</div>'
+        : '') +
+      '</th>';
+  }
+
+  // Always show at least 3 rows (best-of-3 format)
+  var numRows = Math.max(a1, a2, 3);
+  var rows = '';
+  for (var i = 0; i < numRows; i++) {
+    rows += '<tr>' +
+      '<td style="' + ROUND_STYLE + '">' + (i + 1) + '</td>' +
+      attemptCell(i < a1 ? awayAttempts[i] : null) +
+      attemptCell(i < a2 ? homeAttempts[i] : null) +
+      '</tr>';
+  }
+
+  return '<div style="text-align:center;margin-bottom:16px;">' +
+      '<div style="font-size:36pt;font-weight:bold;letter-spacing:2px;">SHOOTOUT</div>' +
+      '<div style="font-size:22pt;font-weight:bold;margin:6px 0;">' + g1 + ' &ndash; ' + g2 + '</div>' +
+    '</div>' +
+    (needsText
+      ? '<div style="text-align:center;font-size:12pt;font-style:italic;color:#ffdd44;margin:6px 0 16px 0;">' + needsText + '</div>'
+      : '') +
+    '<table width="100%" style="border-collapse:collapse;">' +
+      '<thead><tr>' +
+        '<th style="border:none;background:none;width:28px;"></th>' +
+        teamHeaderTh(away.abbrev, awayGoalie) +
+        teamHeaderTh(home.abbrev, homeGoalie) +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>';
+}
+
 // --- Goal transition ---
 
 var _lastSeenGoalEventId  = -1;
@@ -542,6 +683,7 @@ var _currentGameId        = null;
 var _scoreboardInitialized = false;
 var _goalTransitionActive = false;
 var _shortKingAltTimer    = null;
+var _inShootoutMode       = false;
 var SHORT_KING_IMGS = [
   'assets/short-king/pager34-1.png',
   'assets/short-king/pager34-2.jpg',
@@ -742,13 +884,38 @@ async function fetchAndRenderScoreboard(gameId, context) {
     ]);
     var boxscore   = await results[0].json();
     var playByPlay = await results[1].json();
+
+    var home      = boxscore.homeTeam || {};
+    var isFinal   = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
+    var pd        = boxscore.periodDescriptor || {};
+    var isShootout = pd.periodType === 'SO' && !isFinal;
+
+    if (isShootout) {
+      if (!_inShootoutMode) {
+        _inShootoutMode = true;
+        document.querySelectorAll('.fade-section').forEach(function (el) { el.style.display = 'none'; });
+        var moodImg = document.getElementById('mood-image');
+        if (moodImg) moodImg.style.display = 'none';
+        var moodSub = document.getElementById('mood-sub');
+        if (moodSub) moodSub.style.display = 'none';
+        var moodHL = document.getElementById('mood-headline');
+        if (moodHL) { moodHL.innerHTML = ''; moodHL.style.fontSize = ''; }
+      }
+      container.innerHTML = buildShootoutBoard(boxscore, playByPlay);
+      return;
+    }
+
+    if (_inShootoutMode) {
+      _inShootoutMode = false;
+      document.querySelectorAll('.fade-section').forEach(function (el) { el.style.display = ''; });
+    }
+
     var rosterMap  = buildRosterMap((playByPlay || {}).rosterSpots);
     var plays      = (playByPlay || {}).plays || [];
     container.innerHTML = buildScoreboardHTML(boxscore, playByPlay);
 
-    var home         = boxscore.homeTeam || {};
     var nyiIsHome    = home.abbrev === 'NYI';
-    var nextHomeGame = context && context.nextHomeGame || '—';
+    var nextHomeGame = (context && context.nextHomeGame) || '—';
 
     if (_currentGameId !== gameId) {
       _currentGameId         = gameId;

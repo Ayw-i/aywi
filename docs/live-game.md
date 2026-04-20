@@ -1,4 +1,4 @@
-# Live Game Layout
+1# Live Game Layout
 
 Used in two contexts:
 - **Live state**: full scoreboard shown below the mood headline, auto-refreshes every 30s

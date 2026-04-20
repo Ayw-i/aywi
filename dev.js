@@ -201,9 +201,115 @@ function devTriggerGoalTransition(key) {
   highlightActiveBtn(key);
 }
 
+// Shootout dev triggers — bypass API, call buildShootoutBoard directly
+// NYI (home, id=2) vs CAR (away, id=12) in all mocks
+
+function devMakeSOPlay(typeDescKey, teamId, playerId) {
+  var isGoal = typeDescKey === 'goal';
+  return {
+    typeDescKey: typeDescKey,
+    periodDescriptor: { periodType: 'SO' },
+    details: {
+      eventOwnerTeamId: teamId,
+      scoringPlayerId:  isGoal ? playerId : undefined,
+      shootingPlayerId: isGoal ? undefined : playerId,
+    },
+  };
+}
+
+const DEV_SO_BASE_BOXSCORE = {
+  gameState: 'LIVE',
+  homeTeam: { id: 2,  abbrev: 'NYI', score: 2 },
+  awayTeam: { id: 12, abbrev: 'CAR', score: 2 },
+  periodDescriptor: { periodType: 'SO', number: 5 },
+  playerByGameStats: {
+    homeTeam: { goalies: [{ name: { default: 'Ilya Sorokin' },       toi: '65:00', goalsAgainst: 2, saves: 30, shotsAgainst: 32, savePctg: 0.938 }] },
+    awayTeam: { goalies: [{ name: { default: 'Frederik Andersen' }, toi: '65:00', goalsAgainst: 2, saves: 28, shotsAgainst: 30, savePctg: 0.933 }] },
+  },
+};
+
+const DEV_SO_ROSTER = {
+  rosterSpots: [
+    { playerId: 101, firstName: { default: 'Mathew' },   lastName: { default: 'Barzal'     } },
+    { playerId: 102, firstName: { default: 'Anders' },   lastName: { default: 'Lee'         } },
+    { playerId: 103, firstName: { default: 'Brock' },    lastName: { default: 'Nelson'      } },
+    { playerId: 201, firstName: { default: 'Sebastian'}, lastName: { default: 'Aho'         } },
+    { playerId: 202, firstName: { default: 'Andrei' },   lastName: { default: 'Svechnikov'  } },
+    { playerId: 203, firstName: { default: 'Jordan' },   lastName: { default: 'Martinook'   } },
+  ],
+};
+
+const DEV_SHOOTOUT_SCENARIOS = {
+  'SO: Start': {
+    plays: [],
+  },
+  'SO: R2 (no msg)': {
+    plays: [
+      devMakeSOPlay('shot-on-goal', 12, 201),  // CAR R1 miss
+      devMakeSOPlay('missed-shot',   2, 101),  // NYI R1 miss
+      devMakeSOPlay('goal',         12, 202),  // CAR R2 scores — NYI R2 pending
+    ],
+  },
+  'SO: R3 NYI needs goal': {
+    plays: [
+      devMakeSOPlay('goal',         12, 201),  // CAR R1 scores
+      devMakeSOPlay('missed-shot',   2, 101),  // NYI R1 miss
+      devMakeSOPlay('shot-on-goal', 12, 202),  // CAR R2 miss
+      devMakeSOPlay('missed-shot',   2, 102),  // NYI R2 miss
+      devMakeSOPlay('shot-on-goal', 12, 203),  // CAR R3 miss — NYI must score to continue
+    ],
+  },
+  'SO: R3 NYI wins w/ goal': {
+    plays: [
+      devMakeSOPlay('shot-on-goal', 12, 201),  // CAR R1 miss
+      devMakeSOPlay('goal',          2, 101),  // NYI R1 scores
+      devMakeSOPlay('goal',         12, 202),  // CAR R2 scores
+      devMakeSOPlay('missed-shot',   2, 102),  // NYI R2 miss
+      devMakeSOPlay('shot-on-goal', 12, 203),  // CAR R3 miss — NYI scores to win
+    ],
+  },
+  'SO: SD, NYI needs goal': {
+    plays: [
+      devMakeSOPlay('goal',          12, 201),  // CAR R1 scores
+      devMakeSOPlay('missed-shot',    2, 101),  // NYI R1 miss
+      devMakeSOPlay('shot-on-goal',  12, 202),  // CAR R2 miss
+      devMakeSOPlay('goal',           2, 102),  // NYI R2 scores
+      devMakeSOPlay('shot-on-goal',  12, 203),  // CAR R3 miss
+      devMakeSOPlay('missed-shot',    2, 103),  // NYI R3 miss — tied, sudden death
+      devMakeSOPlay('goal',          12, 201),  // CAR R4 scores — NYI must respond
+    ],
+  },
+};
+
+function devTriggerShootout(key) {
+  var scenario = DEV_SHOOTOUT_SCENARIOS[key];
+  if (!scenario || typeof buildShootoutBoard === 'undefined') return;
+
+  if (typeof _inShootoutMode !== 'undefined') _inShootoutMode = true;
+  document.querySelectorAll('.fade-section').forEach(function (el) { el.style.display = 'none'; });
+  var moodImg = document.getElementById('mood-image');
+  if (moodImg) moodImg.style.display = 'none';
+  var moodSub = document.getElementById('mood-sub');
+  if (moodSub) moodSub.style.display = 'none';
+  var moodHL = document.getElementById('mood-headline');
+  if (moodHL) { moodHL.innerHTML = ''; moodHL.style.fontSize = ''; }
+
+  var mockPbP = Object.assign({}, DEV_SO_ROSTER, { plays: scenario.plays });
+  var container = document.getElementById('live-scoreboard');
+  if (container) container.innerHTML = buildShootoutBoard(DEV_SO_BASE_BOXSCORE, mockPbP);
+
+  highlightActiveBtn(key);
+}
+
 function devSetMockState(name) {
   const mockData = DEV_MOCK_SCENARIOS[name];
   if (!mockData) return;
+
+  // Exit shootout mode if active
+  if (typeof _inShootoutMode !== 'undefined' && _inShootoutMode) {
+    _inShootoutMode = false;
+    document.querySelectorAll('.fade-section').forEach(function (el) { el.style.display = ''; });
+  }
 
   // Call the real detection function with mock data — exercises the full pipeline
   _devLastMockName = name;
@@ -296,6 +402,11 @@ function buildDevPanel() {
   addGroupLabel(body, 'Goal Transition');
   Object.keys(DEV_GOAL_SITUATIONS).forEach(function (key) {
     addBtn(body, DEV_GOAL_SITUATIONS[key].label, function () { devTriggerGoalTransition(key); });
+  });
+
+  addGroupLabel(body, 'Shootout');
+  Object.keys(DEV_SHOOTOUT_SCENARIOS).forEach(function (key) {
+    addBtn(body, key, function () { devTriggerShootout(key); });
   });
 
   addGroupLabel(body, 'Load Game');
