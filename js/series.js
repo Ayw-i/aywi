@@ -182,22 +182,60 @@ function renderBar(games, groupBy) {
 
 // --- Division + total rendering ---
 
-function renderDivisionSection(div, byOpp, groupBy, padToRows) {
+function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padToRows) {
+  const isMetro = div.name === 'METROPOLITAN';
+
+  // Build the ordered list of entries, inserting NYI when sorting by standing
+  let entries = div.teams.map(function (abbrev) {
+    const st  = teamStandings[abbrev];
+    return { abbrev, seq: st ? st.divisionSequence : 999, isSelf: false };
+  });
+
+  if (sortBy === 'standing' && isMetro) {
+    const nyiSt = teamStandings['NYI'];
+    entries.push({ abbrev: 'NYI', seq: nyiSt ? nyiSt.divisionSequence : 999, isSelf: true });
+  }
+
+  if (sortBy === 'standing') {
+    entries.sort((a, b) => a.seq - b.seq);
+  }
+
   let rows = '';
-  div.teams.forEach(function (abbrev) {
+  entries.forEach(function (entry) {
+    const { abbrev, isSelf } = entry;
+    const st   = teamStandings[abbrev];
+    const name = isSelf ? 'NY Islanders' : (TEAM_NAMES[abbrev] || abbrev);
+
+    const seasonRecord = st
+      ? '<br><span style="color:#555;font-size:8pt;">' + st.wins + '&#8209;' + st.losses + '&#8209;' + st.otLosses + '</span>'
+      : '';
+
+    if (isSelf) {
+      rows += '<tr>' +
+        '<td style="width:130px;text-align:right;padding-right:10px;font-size:10pt;vertical-align:middle;white-space:nowrap;color:#aaa;">' +
+          name + seasonRecord +
+        '</td>' +
+        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:44px;padding-bottom:3px;">—</td>' +
+      '</tr>';
+      return;
+    }
+
     const games  = byOpp[abbrev] || [];
-    const wins   = games.filter(g => g.result === 'W').length;
-    const losses = games.filter(g => g.result === 'L').length;
-    const name   = TEAM_NAMES[abbrev] || abbrev;
+    const w      = games.filter(g => g.result === 'W').length;
+    const l      = games.filter(g => g.result === 'L' && g.type === 'REG').length;
+    const otl    = games.filter(g => g.result === 'L' && (g.type === 'OT' || g.type === 'SO')).length;
+
     rows += '<tr>' +
       '<td style="width:130px;text-align:right;padding-right:10px;font-size:10pt;vertical-align:middle;white-space:nowrap;">' +
-        name + ' <span style="color:#888;font-size:9pt;">(' + wins + '&#8209;' + losses + ')</span>' +
+        name + ' <span style="color:#888;font-size:9pt;">(' + w + '&#8209;' + l + '&#8209;' + otl + ')</span>' +
+        seasonRecord +
       '</td>' +
       '<td style="vertical-align:middle;padding-bottom:3px;">' + renderBar(games, groupBy) + '</td>' +
     '</tr>';
   });
 
-  const pad = (padToRows || 0) - div.teams.length;
+  const effectiveCount = entries.length;
+  const pad = (padToRows || 0) - effectiveCount;
   for (let i = 0; i < pad; i++) {
     rows += '<tr><td colspan="2" style="height:40px;"></td></tr>';
   }
@@ -311,26 +349,43 @@ function hideSeriesTooltip() {
 
 async function loadSeriesData() {
   try {
-    const res      = await fetch(WORKER + '/v1/club-schedule-season/NYI/20252026');
-    const data     = await res.json();
-    const byOpp    = processGames(data.games || []);
-    const groupBy  = () => document.querySelector('input[name="groupby"]:checked').value;
+    const [schedRes, standRes] = await Promise.all([
+      fetch(WORKER + '/v1/club-schedule-season/NYI/20252026'),
+      fetch(WORKER + '/v1/standings/now')
+    ]);
+    const schedData = await schedRes.json();
+    const standData = await standRes.json();
+
+    const byOpp = processGames(schedData.games || []);
+
+    const teamStandings = {};
+    (standData.standings || []).forEach(function (t) {
+      teamStandings[t.teamAbbrev.default] = {
+        wins:              t.wins,
+        losses:            t.losses,
+        otLosses:          t.otLosses,
+        divisionSequence:  t.divisionSequence
+      };
+    });
+
+    const groupBy = () => document.querySelector('input[name="groupby"]:checked').value;
+    const sortBy  = () => document.querySelector('input[name="sortby"]:checked').value;
 
     document.getElementById('legend').innerHTML = renderLegend();
 
     function refresh() {
       document.getElementById('total-bar').innerHTML = renderTotalBar(byOpp);
       document.getElementById('col-left').innerHTML  =
-        renderDivisionSection(DIVISIONS[0], byOpp, groupBy(), DIVISIONS[2].teams.length) +
-        renderDivisionSection(DIVISIONS[1], byOpp, groupBy());
+        renderDivisionSection(DIVISIONS[0], byOpp, groupBy(), teamStandings, sortBy(), DIVISIONS[2].teams.length) +
+        renderDivisionSection(DIVISIONS[1], byOpp, groupBy(), teamStandings, sortBy());
       document.getElementById('col-right').innerHTML =
-        renderDivisionSection(DIVISIONS[2], byOpp, groupBy()) +
-        renderDivisionSection(DIVISIONS[3], byOpp, groupBy());
+        renderDivisionSection(DIVISIONS[2], byOpp, groupBy(), teamStandings, sortBy()) +
+        renderDivisionSection(DIVISIONS[3], byOpp, groupBy(), teamStandings, sortBy());
     }
 
     refresh();
 
-    document.querySelectorAll('input[name="groupby"]').forEach(function (radio) {
+    document.querySelectorAll('input[name="groupby"], input[name="sortby"]').forEach(function (radio) {
       radio.addEventListener('change', refresh);
     });
 
