@@ -215,7 +215,7 @@ function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padTo
         '<td style="width:130px;text-align:right;padding-right:10px;font-size:10pt;vertical-align:middle;white-space:nowrap;color:#aaa;">' +
           name + seasonRecord +
         '</td>' +
-        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:44px;padding-bottom:3px;">—</td>' +
+        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:' + (groupBy === 'result' ? 44 : 22) + 'px;padding-bottom:3px;">—</td>' +
       '</tr>';
       return;
     }
@@ -243,6 +243,46 @@ function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padTo
   return '<p style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin:18px 0 4px 0;">' +
     div.name + '</p>' +
     '<table style="border-collapse:collapse;">' + rows + '</table>';
+}
+
+function renderRecordSummary(byOpp) {
+  let rw = 0, otw = 0, sow = 0, rl = 0, otl = 0, sol = 0;
+  Object.values(byOpp).forEach(function (games) {
+    games.forEach(function (g) {
+      if (g.result === 'W') {
+        if (g.type === 'REG') rw++;
+        else if (g.type === 'OT') otw++;
+        else if (g.type === 'SO') sow++;
+      } else if (g.result === 'L') {
+        if (g.type === 'REG') rl++;
+        else if (g.type === 'OT') otl++;
+        else if (g.type === 'SO') sol++;
+      }
+    });
+  });
+
+  const totalW  = rw + otw + sow;
+  const totalLP = otl + sol;
+  const overall = totalW + '\u2013' + rl + '\u2013' + totalLP;
+
+  function cell(label, big, sub) {
+    return '<td style="padding:8px 20px;text-align:center;border:1px solid #444;">' +
+      '<div style="font-size:8pt;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;">' + label + '</div>' +
+      '<div style="font-size:18pt;font-weight:bold;line-height:1;">' + big + '</div>' +
+      (sub ? '<div style="font-size:8pt;color:#666;margin-top:5px;">' + sub + '</div>' : '') +
+    '</td>';
+  }
+
+  return '<table style="border-collapse:collapse;margin:0 auto 20px;border:1px solid #444;">' +
+    '<tr><td colspan="3" style="text-align:center;padding:6px 20px;font-size:13pt;font-weight:bold;border-bottom:1px solid #444;letter-spacing:1px;">' +
+      overall +
+    '</td></tr>' +
+    '<tr>' +
+      cell('Wins',          totalW, 'RW\u00a0' + rw + '\u00a0\u00b7\u00a0OTW\u00a0' + otw + '\u00a0\u00b7\u00a0SOW\u00a0' + sow) +
+      cell('Reg. Losses',   rl,     '\u00a0') +
+      cell('Loser Points',  totalLP, 'OTL\u00a0' + otl + '\u00a0\u00b7\u00a0SOL\u00a0' + sol) +
+    '</tr>' +
+  '</table>';
 }
 
 function renderTotalBar(byOpp) {
@@ -371,6 +411,7 @@ async function loadSeriesData() {
     const groupBy = () => document.querySelector('input[name="groupby"]:checked').value;
     const sortBy  = () => document.querySelector('input[name="sortby"]:checked').value;
 
+    document.getElementById('record-summary').innerHTML = renderRecordSummary(byOpp);
     document.getElementById('legend').innerHTML = renderLegend();
 
     function refresh() {
