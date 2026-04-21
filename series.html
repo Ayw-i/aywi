@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Season Series — Are Ya Winning, Isles?</title>
+  <style>
+    body {
+      background-color: #000000;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 20px 60px 20px;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 13pt;
+      text-align: center;
+      text-transform: uppercase;
+      margin: 20px 0 4px 0;
+    }
+
+    nav {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: underline;
+      margin: 0 8px;
+      font-size: 11pt;
+    }
+
+    p.subtitle {
+      text-align: center;
+      font-size: 10pt;
+      color: #888;
+      margin: 0 0 16px 0;
+    }
+
+    #groupby-row {
+      text-align: center;
+      font-size: 10pt;
+      margin-bottom: 10px;
+    }
+
+    #groupby-row label {
+      cursor: pointer;
+      margin: 0 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="main">
+
+  <h1>Are Ya Winning, Isles?</h1>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="season.html">Season</a>
+    <a href="series.html">Series</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="playoffs.html">Playoffs</a>
+    <a href="stats.html">Stats</a>
+    <a href="about.html">About</a>
+  </nav>
+
+  <h2>NYI Season Series Progress</h2>
+  <p class="subtitle">2025&#8209;26 Regular Season</p>
+
+  <div id="legend"></div>
+
+  <div id="groupby-row">
+    Group by:
+    <label><input type="radio" name="groupby" value="result" checked> Result</label>
+    <label><input type="radio" name="groupby" value="chrono"> Chronological</label>
+  </div>
+
+  <div id="total-bar"></div>
+
+  <table width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td id="col-left"  valign="top" style="width:50%;padding-right:20px;"></td>
+      <td id="col-right" valign="top" style="width:50%;"></td>
+    </tr>
+  </table>
+
+</div>
+
+<div id="series-tt" style="display:none;position:fixed;background:#111;border:1px solid #555;padding:8px 12px;z-index:999;pointer-events:none;font-family:Helvetica,Arial,sans-serif;font-size:10pt;color:#fff;">
+  <div id="series-tt-match" style="font-weight:bold;"></div>
+  <div id="series-tt-date"  style="font-size:9pt;color:#aaa;margin-top:2px;"></div>
+  <div id="series-tt-score" style="margin-top:4px;"></div>
+</div>
+
+<script src="js/series.js"></script>
+
+</body>
+</html>
