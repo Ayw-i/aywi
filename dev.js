@@ -396,6 +396,12 @@ function buildDevPanel() {
     { label: 'PP +1',       fn: function () { applyMoodOverlay(buildPPOverlay( 1, false)); } },
     { label: 'PP -1',       fn: function () { applyMoodOverlay(buildPPOverlay(-1, false)); } },
     { label: 'PP 5v3',      fn: function () { applyMoodOverlay(buildPPOverlay( 1, true )); } },
+    { label: 'OT 3v3',      fn: function () { applyMoodOverlay(buildOTOverlay(3, 3)); } },
+    { label: 'OT 4v3 (PP)', fn: function () { applyMoodOverlay(buildOTOverlay(4, 3)); } },
+    { label: 'OT 5v3 (PP)', fn: function () { applyMoodOverlay(buildOTOverlay(5, 3)); } },
+    { label: 'OT 4v4',      fn: function () { applyMoodOverlay(buildOTOverlay(4, 4)); } },
+    { label: 'OT 3v4 (PK)', fn: function () { applyMoodOverlay(buildOTOverlay(3, 4)); } },
+    { label: 'OT 3v5 (PK)', fn: function () { applyMoodOverlay(buildOTOverlay(3, 5)); } },
   ];
   SIT_OVERLAYS.forEach(function (s) { addBtn(body, s.label, s.fn); });
 

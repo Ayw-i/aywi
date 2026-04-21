@@ -456,6 +456,28 @@ function buildPPOverlay(diff, doublePP) {
   };
 }
 
+function buildOTOverlay(nyiSkaters, oppSkaters) {
+  var sub;
+  if (nyiSkaters === oppSkaters) {
+    sub = nyiSkaters === 4
+      ? '(...with a few extra guys on the field)'
+      : null; // standard 3v3
+  } else if (nyiSkaters > oppSkaters) {
+    sub = nyiSkaters >= 5
+      ? '(double relish!)'
+      : '(with a little extra relish on the side!)';
+  } else {
+    sub = oppSkaters >= 5
+      ? '(hard mode against perpetually rigged league)'
+      : '(against an uncalled too-many-men)';
+  }
+  return {
+    headline: 'OVERTIME.',
+    image: { type: 'single', src: 'assets/ot-utput.gif' },
+    subHeadline: sub ? '<span style="font-size:14pt;">' + sub + '</span>' : null,
+  };
+}
+
 function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
   var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
   if (isFinal) return null;
@@ -467,6 +489,9 @@ function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
   var homeSkaters = parseInt(code[2]) || 5;
   var nyiSkaters  = nyiIsHome ? homeSkaters : awaySkaters;
   var oppSkaters  = nyiIsHome ? awaySkaters : homeSkaters;
+
+  var pd = boxscore.periodDescriptor || {};
+  if (pd.periodType === 'OT') return buildOTOverlay(nyiSkaters, oppSkaters);
 
   if (nyiSkaters === 5 && oppSkaters === 5) return null;
 
