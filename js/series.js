@@ -132,7 +132,7 @@ function renderGameCell(g) {
     ' data-nyi="'      + nyi                       + '"' +
     ' data-oppscore="' + osc                       + '"' +
     ' data-date="'     + g.date                    + '"' +
-    ' style="background:' + bg + ';width:26px;height:30px;cursor:pointer;"' +
+    ' style="background:' + bg + ';width:26px;height:15px;cursor:pointer;"' +
     ' onmouseover="showSeriesTooltip(this,event)"' +
     ' onmousemove="moveSeriesTooltip(event)"' +
     ' onmouseout="hideSeriesTooltip()"' +
@@ -182,7 +182,7 @@ function renderBar(games, groupBy) {
 
 // --- Division + total rendering ---
 
-function renderDivisionSection(div, byOpp, groupBy) {
+function renderDivisionSection(div, byOpp, groupBy, padToRows) {
   let rows = '';
   div.teams.forEach(function (abbrev) {
     const games  = byOpp[abbrev] || [];
@@ -196,6 +196,11 @@ function renderDivisionSection(div, byOpp, groupBy) {
       '<td style="vertical-align:middle;padding-bottom:3px;">' + renderBar(games, groupBy) + '</td>' +
     '</tr>';
   });
+
+  const pad = (padToRows || 0) - div.teams.length;
+  for (let i = 0; i < pad; i++) {
+    rows += '<tr><td colspan="2" style="height:40px;"></td></tr>';
+  }
 
   return '<p style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin:18px 0 4px 0;">' +
     div.name + '</p>' +
@@ -316,7 +321,7 @@ async function loadSeriesData() {
     function refresh() {
       document.getElementById('total-bar').innerHTML = renderTotalBar(byOpp);
       document.getElementById('col-left').innerHTML  =
-        renderDivisionSection(DIVISIONS[0], byOpp, groupBy()) +
+        renderDivisionSection(DIVISIONS[0], byOpp, groupBy(), DIVISIONS[2].teams.length) +
         renderDivisionSection(DIVISIONS[1], byOpp, groupBy());
       document.getElementById('col-right').innerHTML =
         renderDivisionSection(DIVISIONS[2], byOpp, groupBy()) +
