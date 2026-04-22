@@ -456,6 +456,16 @@ function buildPPOverlay(diff, doublePP) {
   };
 }
 
+function buildPlayoffOTOverlay() {
+  return {
+    headline: 'OVERTIME.<br>PLAYOFF.<br>ISLANDERS.<br>HOCKEY.',
+    fontSize: '56pt',
+    background: '#0a0f2c',
+    image: { type: 'single', src: 'assets/jon_bois.jpg' },
+    subHeadline: null,
+  };
+}
+
 function buildOTOverlay(nyiSkaters, oppSkaters) {
   var sub;
   if (nyiSkaters === oppSkaters) {
@@ -491,7 +501,11 @@ function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
   var oppSkaters  = nyiIsHome ? awaySkaters : homeSkaters;
 
   var pd = boxscore.periodDescriptor || {};
-  if (pd.periodType === 'OT') return buildOTOverlay(nyiSkaters, oppSkaters);
+  if (pd.periodType === 'OT') {
+    return boxscore.gameType === 3
+      ? buildPlayoffOTOverlay()
+      : buildOTOverlay(nyiSkaters, oppSkaters);
+  }
 
   if (nyiSkaters === 5 && oppSkaters === 5) return null;
 
@@ -510,10 +524,13 @@ function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
 function applyMoodOverlay(overlay) {
   if (!overlay) return;
 
+  if (overlay.background) document.body.style.backgroundColor = overlay.background;
+
   var headlineEl = document.getElementById('mood-headline');
   if (headlineEl) {
     headlineEl.innerHTML = overlay.headline;
-    headlineEl.style.fontSize = overlay.headline.replace(/<[^>]+>/g, '').length > 25 ? '28pt' : '';
+    headlineEl.style.fontSize = overlay.fontSize
+      || (overlay.headline.replace(/<[^>]+>/g, '').length > 25 ? '28pt' : '');
   }
 
   var imgEl      = document.getElementById('mood-image');
