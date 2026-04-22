@@ -456,7 +456,18 @@ function buildPPOverlay(diff, doublePP) {
   };
 }
 
-function buildPlayoffOTOverlay() {
+function buildPlayoffOTOverlay(gameNumber) {
+  if (gameNumber === 6) {
+    return {
+      aboveImage: 'ANTHONY BEAUVILLIER IF YOU CAN HEAR US',
+      aboveFontSize: '40pt',
+      image: { type: 'pair', left: 'assets/beauv-mugshot.jpg', right: 'assets/please-save-me.jpg' },
+      headline: 'PLEASE ANTHONY BEAUVILLIER PLEASE SAVE US PLEASE SAVE US ANTHONY BEAUVILLIER PLEASE I\'M ASKING YOU PLEASE SAVE US',
+      fontSize: '28pt',
+      background: '#0a0f2c',
+      subHeadline: null,
+    };
+  }
   return {
     headline: 'OVERTIME.<br>PLAYOFF.<br>ISLANDERS.<br>HOCKEY.',
     fontSize: '56pt',
@@ -503,7 +514,7 @@ function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
   var pd = boxscore.periodDescriptor || {};
   if (pd.periodType === 'OT') {
     return boxscore.gameType === 3
-      ? buildPlayoffOTOverlay()
+      ? buildPlayoffOTOverlay((boxscore.seriesStatus || {}).gameNumberOfSeries)
       : buildOTOverlay(nyiSkaters, oppSkaters);
   }
 
@@ -538,6 +549,8 @@ function applyMoodOverlay(overlay) {
 
   var old = document.getElementById('situation-img');
   if (old) old.parentNode.removeChild(old);
+  var oldAbove = document.getElementById('situation-above');
+  if (oldAbove) oldAbove.parentNode.removeChild(oldAbove);
 
   if (overlay.image && imgEl && moodSection) {
     if (overlay.image.type === 'single') {
@@ -554,6 +567,10 @@ function applyMoodOverlay(overlay) {
         container.innerHTML =
           '<img src="' + overlay.image.src + '" style="max-width:40%;display:inline-block;margin:0 4px;">' +
           '<img src="' + overlay.image.src + '" style="max-width:40%;display:inline-block;margin:0 4px;">';
+      } else if (overlay.image.type === 'pair') {
+        container.innerHTML =
+          '<img src="' + overlay.image.left  + '" style="max-width:40%;display:inline-block;margin:0 4px;">' +
+          '<img src="' + overlay.image.right + '" style="max-width:40%;display:inline-block;margin:0 4px;">';
       } else {
         var gridHtml = '';
         for (var i = 0; i < 9; i++) {
@@ -561,7 +578,20 @@ function applyMoodOverlay(overlay) {
         }
         container.innerHTML = gridHtml;
       }
-      moodSection.insertBefore(container, imgEl.nextSibling);
+
+      if (overlay.aboveImage) {
+        var aboveDiv = document.createElement('div');
+        aboveDiv.id = 'situation-above';
+        aboveDiv.style.textAlign = 'center';
+        aboveDiv.style.fontWeight = 'bold';
+        aboveDiv.style.fontSize = overlay.aboveFontSize || '28pt';
+        aboveDiv.style.marginBottom = '8px';
+        aboveDiv.innerHTML = overlay.aboveImage;
+        moodSection.insertBefore(aboveDiv, imgEl.nextSibling);
+      }
+
+      var afterEl = document.getElementById('situation-above') || imgEl;
+      moodSection.insertBefore(container, afterEl.nextSibling);
     }
   }
 

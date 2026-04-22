@@ -84,6 +84,8 @@ function renderMoodState(stateName, overrides) {
   // Clear any situation overlay from a prior live state
   var sitImg = document.getElementById('situation-img');
   if (sitImg) sitImg.parentNode.removeChild(sitImg);
+  var sitAbove = document.getElementById('situation-above');
+  if (sitAbove) sitAbove.parentNode.removeChild(sitAbove);
   var moodSub = document.getElementById('mood-sub');
   if (moodSub) { moodSub.innerHTML = ''; moodSub.style.display = 'none'; }
 

@@ -154,7 +154,23 @@ Special "overtime" mood state. Full spec TBD.
 
 ### Overtime — Playoffs (5v5)
 
-Spec TBD. Distinguish from regular season OT.
+Current: single overlay for all playoff OT — "OVERTIME.\nPLAYOFF.\nISLANDERS.\nHOCKEY."
+
+**TODO:** Game-aware variants for both regulation and overtime:
+- Regulation (gameType === 3, periodType === 'REG'): Game 1 through Game 7 each get a distinct mood/headline.
+- Overtime (gameType === 3, periodType === 'OT'): Game 1 through Game 7 each get a distinct mood/headline.
+  Game 7 playoff OT in particular warrants its own unhinged treatment.
+
+Game number is available from the series data (e.g. `/v1/series/{season}/{seriesLetter}` or boxscore).
+Most game variants: spec, images, and text TBD — revisit when Isles are actually in the playoffs.
+
+#### Game 6 Playoff OT — Beauvillier Prayer
+
+Header (above image): "ANTHONY BEAUVILLIER IF YOU CAN HEAR US"
+Image: two images side by side — `assets/beauv-mugshot.jpg` (left) and `assets/please-save-me.jpg` (right)
+Header (below image): "PLEASE ANTHONY BEAUVILLIER PLEASE SAVE US PLEASE SAVE US ANTHONY BEAUVILLIER PLEASE I'M ASKING YOU PLEASE SAVE US"
+
+Background and font size: TBD (probably dark navy like the generic playoff OT overlay).
 
 ### Shootout
 
