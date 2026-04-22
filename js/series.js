@@ -9,15 +9,15 @@ const SCHEMES = {
   E: {
     homeWinReg: '#0047AB', homeWinOT: '#4D90E0', homeWinSO: '#99C4F0',
     awayWinReg: '#CC5500', awayWinOT: '#FF8C00', awayWinSO: '#FFBB66',
-    homeLossReg: '#DADADA', homeLossOT: '#CACACA', homeLossSO: '#BBBBBB',
-    awayLossReg: '#B0B0B0', awayLossOT: '#A4A4A4', awayLossSO: '#989898',
+    homeLossReg: '#DADADA', homeLossStripe: '#888888',
+    awayLossReg: '#B0B0B0', awayLossStripe: '#555555',
     incHome: '#606060', incAway: '#404040'
   },
   E3: {
     homeWinReg: '#0047AB', homeWinOT: '#4D90E0', homeWinSO: '#99C4F0',
     awayWinReg: '#CC5500', awayWinOT: '#FF8C00', awayWinSO: '#FFBB66',
-    homeLossReg: '#5C4A1E', homeLossOT: '#7A6430', homeLossSO: '#9E8450',
-    awayLossReg: '#7A7040', awayLossOT: '#9A9058', awayLossSO: '#BAB078',
+    homeLossReg: '#5C4A1E', homeLossStripe: '#9A8040',
+    awayLossReg: '#7A7040', awayLossStripe: '#C0B870',
     incHome: '#606060', incAway: '#404040'
   }
 };
@@ -73,17 +73,21 @@ function labelTextColor(hex) {
   return (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? '#000' : '#fff';
 }
 
-function gameColor(game) {
+// Returns a CSS background value: hex color or repeating-linear-gradient for OT/SO losses.
+function gameBg(game) {
   const s = SCHEMES[COLOR_SCHEME];
   if (game.result === null) return game.isHome ? s.incHome : s.incAway;
   const t = game.type;
   if (game.result === 'W') {
     if (game.isHome) return t === 'REG' ? s.homeWinReg : t === 'OT' ? s.homeWinOT : s.homeWinSO;
     return t === 'REG' ? s.awayWinReg : t === 'OT' ? s.awayWinOT : s.awayWinSO;
-  } else {
-    if (game.isHome) return t === 'REG' ? s.homeLossReg : t === 'OT' ? s.homeLossOT : s.homeLossSO;
-    return t === 'REG' ? s.awayLossReg : t === 'OT' ? s.awayLossOT : s.awayLossSO;
   }
+  // Regulation loss: solid color
+  if (t === 'REG') return game.isHome ? s.homeLossReg : s.awayLossReg;
+  // OT/SO loss (loser point): diagonal stripe
+  const c1 = game.isHome ? s.homeLossReg    : s.awayLossReg;
+  const c2 = game.isHome ? s.homeLossStripe : s.awayLossStripe;
+  return 'repeating-linear-gradient(45deg,' + c1 + ',' + c1 + ' 4px,' + c2 + ' 4px,' + c2 + ' 8px)';
 }
 
 // --- Data processing ---
@@ -106,10 +110,11 @@ function processGames(rawGames) {
     if (isDone) {
       const nyiScore = isHome ? g.homeTeam.score : g.awayTeam.score;
       const oppScore = isHome ? g.awayTeam.score : g.homeTeam.score;
-      game.result   = nyiScore > oppScore ? 'W' : 'L';
-      game.type     = (g.gameOutcome && g.gameOutcome.lastPeriodType) || 'REG';
-      game.nyiScore = nyiScore;
-      game.oppScore = oppScore;
+      game.result    = nyiScore > oppScore ? 'W' : 'L';
+      game.type      = (g.gameOutcome && g.gameOutcome.lastPeriodType) || 'REG';
+      game.nyiScore  = nyiScore;
+      game.oppScore  = oppScore;
+      game.isShutout = game.result === 'W' && oppScore === 0;
     }
 
     byOpp[oppAbbrev].push(game);
@@ -120,10 +125,12 @@ function processGames(rawGames) {
 // --- Bar rendering ---
 
 function renderGameCell(g) {
-  const bg   = gameColor(g);
-  const opp  = g.opponent;
-  const nyi  = g.nyiScore !== null ? g.nyiScore : '';
-  const osc  = g.oppScore !== null ? g.oppScore : '';
+  const bg      = gameBg(g);
+  const opp     = g.opponent;
+  const nyi     = g.nyiScore !== null ? g.nyiScore : '';
+  const osc     = g.oppScore !== null ? g.oppScore : '';
+  const shutout = g.isShutout ? '1' : '0';
+  const extra   = g.isShutout ? 'box-shadow:inset 0 0 0 2px #FFD700;' : '';
   return '<td' +
     ' data-opp="'      + opp                      + '"' +
     ' data-home="'     + (g.isHome ? '1' : '0')   + '"' +
@@ -132,7 +139,8 @@ function renderGameCell(g) {
     ' data-nyi="'      + nyi                       + '"' +
     ' data-oppscore="' + osc                       + '"' +
     ' data-date="'     + g.date                    + '"' +
-    ' style="background:' + bg + ';width:26px;height:15px;cursor:pointer;"' +
+    ' data-shutout="'  + shutout                   + '"' +
+    ' style="background:' + bg + ';width:26px;height:15px;cursor:pointer;' + extra + '"' +
     ' onmouseover="showSeriesTooltip(this,event)"' +
     ' onmousemove="moveSeriesTooltip(event)"' +
     ' onmouseout="hideSeriesTooltip()"' +
@@ -236,8 +244,9 @@ function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padTo
 
   const effectiveCount = entries.length;
   const pad = (padToRows || 0) - effectiveCount;
+  const padH = groupBy === 'result' ? 40 : 20;
   for (let i = 0; i < pad; i++) {
-    rows += '<tr><td colspan="2" style="height:40px;"></td></tr>';
+    rows += '<tr><td colspan="2" style="height:' + padH + 'px;"></td></tr>';
   }
 
   return '<p style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin:18px 0 4px 0;">' +
@@ -322,12 +331,14 @@ function renderTotalBar(byOpp) {
 
 function renderLegend() {
   const s = SCHEMES[COLOR_SCHEME];
-  function swatch(bg, label) {
-    const border = bg === '#DADADA' || bg === '#CACACA' || bg === '#BBBBBB' ? ' border:1px solid #555;' : '';
+  function swatch(bg, label, extra) {
+    const border = (bg === s.homeLossReg || bg === s.awayLossReg) ? ' border:1px solid #555;' : '';
     return '<td style="padding:2px 6px 2px 0;white-space:nowrap;font-size:9pt;vertical-align:middle;">' +
-      '<span style="display:inline-block;width:14px;height:14px;background:' + bg + ';' + border + 'vertical-align:middle;margin-right:4px;"></span>' +
+      '<span style="display:inline-block;width:14px;height:14px;background:' + bg + ';' + border + (extra || '') + 'vertical-align:middle;margin-right:4px;"></span>' +
       label + '</td>';
   }
+  const homeStripe = 'repeating-linear-gradient(45deg,' + s.homeLossReg + ',' + s.homeLossReg + ' 4px,' + s.homeLossStripe + ' 4px,' + s.homeLossStripe + ' 8px)';
+  const awayStripe = 'repeating-linear-gradient(45deg,' + s.awayLossReg + ',' + s.awayLossReg + ' 4px,' + s.awayLossStripe + ' 4px,' + s.awayLossStripe + ' 8px)';
 
   return '<table style="margin-bottom:14px;border-collapse:collapse;"><tr>' +
     swatch(s.homeWinReg,  'Home W')    +
@@ -336,16 +347,14 @@ function renderLegend() {
     swatch(s.awayWinReg,  'Away W')    +
     swatch(s.awayWinOT,   'Away W-OT') +
     swatch(s.awayWinSO,   'Away W-SO') +
+    swatch(s.homeWinReg,  'Shutout', 'box-shadow:inset 0 0 0 2px #FFD700;') +
     '</tr><tr>' +
-    swatch(s.homeLossReg, 'Home L')    +
-    swatch(s.homeLossOT,  'Home L-OT') +
-    swatch(s.homeLossSO,  'Home L-SO') +
-    swatch(s.awayLossReg, 'Away L')    +
-    swatch(s.awayLossOT,  'Away L-OT') +
-    swatch(s.awayLossSO,  'Away L-SO') +
-    '</tr><tr>' +
-    swatch(s.incHome, 'Inc. home') +
-    swatch(s.incAway, 'Inc. away') +
+    swatch(s.homeLossReg, 'Home L (reg)')    +
+    swatch(homeStripe,    'Home OTL/SOL')    +
+    swatch(s.awayLossReg, 'Away L (reg)')    +
+    swatch(awayStripe,    'Away OTL/SOL')    +
+    swatch(s.incHome,     'Inc. home')       +
+    swatch(s.incAway,     'Inc. away')       +
     '</tr></table>';
 }
 
@@ -370,6 +379,13 @@ function showSeriesTooltip(el, e) {
     if (type && type !== 'REG') scoreText += ' (' + type + ')';
   }
   document.getElementById('series-tt-score').textContent = scoreText;
+
+  const shutoutEl = document.getElementById('series-tt-shutout');
+  if (el.dataset.shutout === '1') {
+    shutoutEl.style.display = 'block';
+  } else {
+    shutoutEl.style.display = 'none';
+  }
 
   tt.style.display = 'block';
   moveSeriesTooltip(e);
