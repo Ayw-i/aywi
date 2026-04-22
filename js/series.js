@@ -2,8 +2,8 @@
 
 const WORKER = 'https://nhl-proxy.aywi.workers.dev';
 
-// Switch between 'E' (grey losses) and 'E3' (olive/brown losses)
-const COLOR_SCHEME = 'E';
+// Switch between 'E' (stripe OTL/SOL), 'E3' (olive/brown stripe OTL/SOL), 'F' (dark reg L / light LP / stripe inc)
+const COLOR_SCHEME = 'F';
 
 const SCHEMES = {
   E: {
@@ -19,6 +19,15 @@ const SCHEMES = {
     homeLossReg: '#5C4A1E', homeLossStripe: '#9A8040',
     awayLossReg: '#7A7040', awayLossStripe: '#C0B870',
     incHome: '#606060', incAway: '#404040'
+  },
+  // F: dark reg losses / light loser-point losses / striped unplayed
+  F: {
+    homeWinReg: '#0047AB', homeWinOT: '#4D90E0', homeWinSO: '#99C4F0',
+    awayWinReg: '#CC5500', awayWinOT: '#FF8C00', awayWinSO: '#FFBB66',
+    homeLossReg: '#333333', homeLossLP: '#F2F2F2',
+    awayLossReg: '#191919', awayLossLP: '#D8D8D8',
+    incHome: '#AAAAAA', incHomeStripe: '#3A3A3A',
+    incAway: '#888888', incAwayStripe: '#282828'
   }
 };
 
@@ -73,21 +82,28 @@ function labelTextColor(hex) {
   return (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? '#000' : '#fff';
 }
 
-// Returns a CSS background value: hex color or repeating-linear-gradient for OT/SO losses.
+function stripeGrad(c1, c2) {
+  return 'repeating-linear-gradient(45deg,' + c1 + ',' + c1 + ' 4px,' + c2 + ' 4px,' + c2 + ' 8px)';
+}
+
+// Returns a CSS background value: hex color or gradient depending on active scheme.
 function gameBg(game) {
   const s = SCHEMES[COLOR_SCHEME];
-  if (game.result === null) return game.isHome ? s.incHome : s.incAway;
+  if (game.result === null) {
+    // Scheme F: unplayed cells are striped
+    if (s.incHomeStripe) return stripeGrad(game.isHome ? s.incHome : s.incAway, game.isHome ? s.incHomeStripe : s.incAwayStripe);
+    return game.isHome ? s.incHome : s.incAway;
+  }
   const t = game.type;
   if (game.result === 'W') {
     if (game.isHome) return t === 'REG' ? s.homeWinReg : t === 'OT' ? s.homeWinOT : s.homeWinSO;
     return t === 'REG' ? s.awayWinReg : t === 'OT' ? s.awayWinOT : s.awayWinSO;
   }
-  // Regulation loss: solid color
+  // Regulation loss: always solid
   if (t === 'REG') return game.isHome ? s.homeLossReg : s.awayLossReg;
-  // OT/SO loss (loser point): diagonal stripe
-  const c1 = game.isHome ? s.homeLossReg    : s.awayLossReg;
-  const c2 = game.isHome ? s.homeLossStripe : s.awayLossStripe;
-  return 'repeating-linear-gradient(45deg,' + c1 + ',' + c1 + ' 4px,' + c2 + ' 4px,' + c2 + ' 8px)';
+  // OT/SO loss (loser point): solid light (scheme F) or diagonal stripe (schemes E/E3)
+  if (s.homeLossLP) return game.isHome ? s.homeLossLP : s.awayLossLP;
+  return stripeGrad(game.isHome ? s.homeLossReg : s.awayLossReg, game.isHome ? s.homeLossStripe : s.awayLossStripe);
 }
 
 // --- Data processing ---
@@ -331,14 +347,24 @@ function renderTotalBar(byOpp) {
 
 function renderLegend() {
   const s = SCHEMES[COLOR_SCHEME];
+
+  function swatchBorder(bg) {
+    if (bg.includes('gradient')) return '';
+    const r = parseInt(bg.slice(1,3),16), g = parseInt(bg.slice(3,5),16), b = parseInt(bg.slice(5,7),16);
+    return (0.299*r + 0.587*g + 0.114*b) > 190 ? ' border:1px solid #555;' : '';
+  }
   function swatch(bg, label, extra) {
-    const border = (bg === s.homeLossReg || bg === s.awayLossReg) ? ' border:1px solid #555;' : '';
     return '<td style="padding:2px 6px 2px 0;white-space:nowrap;font-size:9pt;vertical-align:middle;">' +
-      '<span style="display:inline-block;width:14px;height:14px;background:' + bg + ';' + border + (extra || '') + 'vertical-align:middle;margin-right:4px;"></span>' +
+      '<span style="display:inline-block;width:14px;height:14px;background:' + bg + ';' + swatchBorder(bg) + (extra || '') + 'vertical-align:middle;margin-right:4px;"></span>' +
       label + '</td>';
   }
-  const homeStripe = 'repeating-linear-gradient(45deg,' + s.homeLossReg + ',' + s.homeLossReg + ' 4px,' + s.homeLossStripe + ' 4px,' + s.homeLossStripe + ' 8px)';
-  const awayStripe = 'repeating-linear-gradient(45deg,' + s.awayLossReg + ',' + s.awayLossReg + ' 4px,' + s.awayLossStripe + ' 4px,' + s.awayLossStripe + ' 8px)';
+
+  // OTL/SOL swatch: solid light (scheme F) or stripe (E/E3)
+  const homeLPbg = s.homeLossLP || stripeGrad(s.homeLossReg, s.homeLossStripe);
+  const awayLPbg = s.awayLossLP || stripeGrad(s.awayLossReg, s.awayLossStripe);
+  // Incomplete swatch: stripe (scheme F) or solid (E/E3)
+  const incHomeBg = s.incHomeStripe ? stripeGrad(s.incHome, s.incHomeStripe) : s.incHome;
+  const incAwayBg = s.incAwayStripe ? stripeGrad(s.incAway, s.incAwayStripe) : s.incAway;
 
   return '<table style="margin-bottom:14px;border-collapse:collapse;"><tr>' +
     swatch(s.homeWinReg,  'Home W')    +
@@ -349,12 +375,12 @@ function renderLegend() {
     swatch(s.awayWinSO,   'Away W-SO') +
     swatch(s.homeWinReg,  'Shutout', 'box-shadow:inset 0 0 0 2px #FFD700;') +
     '</tr><tr>' +
-    swatch(s.homeLossReg, 'Home L (reg)')    +
-    swatch(homeStripe,    'Home OTL/SOL')    +
-    swatch(s.awayLossReg, 'Away L (reg)')    +
-    swatch(awayStripe,    'Away OTL/SOL')    +
-    swatch(s.incHome,     'Inc. home')       +
-    swatch(s.incAway,     'Inc. away')       +
+    swatch(s.homeLossReg, 'Home L (reg)')  +
+    swatch(homeLPbg,      'Home OTL/SOL') +
+    swatch(s.awayLossReg, 'Away L (reg)')  +
+    swatch(awayLPbg,      'Away OTL/SOL') +
+    swatch(incHomeBg,     'Inc. home')    +
+    swatch(incAwayBg,     'Inc. away')    +
     '</tr></table>';
 }
 
