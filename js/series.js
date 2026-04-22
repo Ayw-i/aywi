@@ -146,7 +146,7 @@ function renderGameCell(g) {
   const nyi     = g.nyiScore !== null ? g.nyiScore : '';
   const osc     = g.oppScore !== null ? g.oppScore : '';
   const shutout = g.isShutout ? '1' : '0';
-  const extra   = g.isShutout ? 'box-shadow:inset 0 0 0 2px #FFD700;' : '';
+  const extra   = g.isShutout ? 'box-shadow:inset 0 -3px 0 0 #FFD700;' : '';
   return '<td' +
     ' data-opp="'      + opp                      + '"' +
     ' data-home="'     + (g.isHome ? '1' : '0')   + '"' +
@@ -373,7 +373,7 @@ function renderLegend() {
     swatch(s.awayWinReg,  'Away W')    +
     swatch(s.awayWinOT,   'Away W-OT') +
     swatch(s.awayWinSO,   'Away W-SO') +
-    swatch(s.homeWinReg,  'Shutout', 'box-shadow:inset 0 0 0 2px #FFD700;') +
+    swatch(s.homeWinReg,  'Shutout', 'box-shadow:inset 0 -3px 0 0 #FFD700;') +
     '</tr><tr>' +
     swatch(s.homeLossReg, 'Home L (reg)')  +
     swatch(homeLPbg,      'Home OTL/SOL') +
