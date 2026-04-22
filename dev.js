@@ -404,6 +404,7 @@ function buildDevPanel() {
     { label: 'OT 3v5 (PK)', fn: function () { applyMoodOverlay(buildOTOverlay(3, 5)); } },
     { label: 'OT Playoffs',    fn: function () { applyMoodOverlay(buildPlayoffOTOverlay(null)); } },
     { label: 'OT Playoffs G6', fn: function () { applyMoodOverlay(buildPlayoffOTOverlay(6)); } },
+    { label: 'Goal Under Review', fn: function () { applyMoodOverlay(buildGoalReviewOverlay()); } },
   ];
   SIT_OVERLAYS.forEach(function (s) { addBtn(body, s.label, s.fn); });
 

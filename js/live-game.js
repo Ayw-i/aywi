@@ -532,6 +532,95 @@ function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
   return null;
 }
 
+function buildReviewHTML() {
+  return '<table style="width:100%;border-collapse:collapse;">' +
+    '<tr>' +
+    '<td style="width:50%;text-align:center;vertical-align:middle;padding:4px 8px 4px 0;">' +
+    '<img src="assets/ref-review.jpg" style="max-width:100%;">' +
+    '</td>' +
+    '<td style="width:50%;vertical-align:top;padding:4px 0 4px 8px;">' +
+    '<div id="video-analysis" tabindex="0" style="outline:1px solid #555;background:#000;display:block;">' +
+    '<div style="overflow:hidden;line-height:0;">' +
+    '<video id="review-video" src="assets/palmieris-butt-enhance-enhance.mp4"' +
+    ' muted autoplay loop playsinline tabindex="-1"' +
+    ' style="width:100%;display:block;cursor:crosshair;"></video>' +
+    '</div>' +
+    '<div style="font-size:9pt;padding:3px 4px;border-top:1px solid #333;text-align:left;">' +
+    '<button id="review-halfspeed" style="font-family:inherit;font-size:9pt;background:#222;color:#fff;border:1px solid #555;padding:1px 5px;margin-right:6px;cursor:pointer;">0.5×</button>' +
+    '<span style="opacity:0.5;">click to focus · ←→ frame · space play/pause · click zoom · right-click zoom out</span>' +
+    '</div>' +
+    '</div>' +
+    '</td>' +
+    '</tr>' +
+    '</table>';
+}
+
+function setupVideoAnalysis() {
+  var wrapper = document.getElementById('video-analysis');
+  var videoEl = document.getElementById('review-video');
+  var halfBtn = document.getElementById('review-halfspeed');
+  if (!wrapper || !videoEl) return;
+
+  var FPS = 30;
+  var zoomLevel = 1;
+  var isHalf = false;
+
+  halfBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    isHalf = !isHalf;
+    videoEl.playbackRate = isHalf ? 0.5 : 1;
+    halfBtn.textContent = isHalf ? '1×' : '0.5×';
+  });
+
+  wrapper.addEventListener('keydown', function (e) {
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      if (videoEl.paused) videoEl.play(); else videoEl.pause();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      videoEl.pause();
+      videoEl.currentTime = Math.max(0, videoEl.currentTime - 1 / FPS);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      videoEl.pause();
+      videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 1 / FPS);
+    }
+  });
+
+  videoEl.addEventListener('click', function (e) {
+    wrapper.focus();
+    zoomLevel = Math.min(zoomLevel + 0.5, 4);
+    var rect = videoEl.getBoundingClientRect();
+    var x = ((e.clientX - rect.left) / rect.width) * 100;
+    var y = ((e.clientY - rect.top) / rect.height) * 100;
+    videoEl.style.transformOrigin = x + '% ' + y + '%';
+    videoEl.style.transform = 'scale(' + zoomLevel + ')';
+  });
+
+  videoEl.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    zoomLevel = Math.max(1, zoomLevel - 0.5);
+    if (zoomLevel === 1) {
+      videoEl.style.transform = '';
+      videoEl.style.transformOrigin = '';
+    } else {
+      videoEl.style.transform = 'scale(' + zoomLevel + ')';
+    }
+  });
+}
+
+function buildGoalReviewOverlay() {
+  return {
+    aboveImage: 'GOAL UNDER REVIEW',
+    aboveFontSize: '48pt',
+    image: { type: 'review' },
+    headline: '',
+    fontSize: '1pt',
+    background: '#0a0f2c',
+    subHeadline: null,
+  };
+}
+
 function applyMoodOverlay(overlay) {
   if (!overlay) return;
 
@@ -571,6 +660,8 @@ function applyMoodOverlay(overlay) {
         container.innerHTML =
           '<img src="' + overlay.image.left  + '" style="max-width:40%;display:inline-block;margin:0 4px;">' +
           '<img src="' + overlay.image.right + '" style="max-width:40%;display:inline-block;margin:0 4px;">';
+      } else if (overlay.image.type === 'review') {
+        container.innerHTML = buildReviewHTML();
       } else {
         var gridHtml = '';
         for (var i = 0; i < 9; i++) {
@@ -592,6 +683,8 @@ function applyMoodOverlay(overlay) {
 
       var afterEl = document.getElementById('situation-above') || imgEl;
       moodSection.insertBefore(container, afterEl.nextSibling);
+
+      if (overlay.image.type === 'review') setupVideoAnalysis();
     }
   }
 
