@@ -4,6 +4,22 @@ Running log of API quirks, known issues, and things to revisit later.
 
 ---
 
+## YouTube Widget — Intermittent Failures via dev.js
+
+The YouTube hover widget on the Goal Under Review overlay is unreliable when
+triggered through dev.js. Symptoms: widget sometimes doesn't load, mousing over
+shows no track title, and play/pause doesn't respond. Other times it works fine.
+
+Likely cause: the YouTube IFrame API's `onReady` callback timing is
+unpredictable when the overlay is triggered programmatically right after page
+load, before the YT player is fully initialized. In a real live game the review
+overlay would only appear after the page has been alive for 30+ seconds, so the
+player has time to settle.
+
+Not fixing now — dev-only issue.
+
+---
+
 ## Live Game — Goalie Shutout Highlight Field Name
 
 The shutout gold highlight uses `g.goalsAgainst === 0` from the boxscore

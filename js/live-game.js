@@ -656,12 +656,21 @@ function buildGoalReviewOverlay(nyiGoal) {
     image: { type: 'review' },
     headline: '',
     fontSize: '1pt',
+    youtubeId: 'GDP4ds-ozOI',
     subHeadline: null,
   };
 }
 
 function applyMoodOverlay(overlay) {
   if (!overlay) return;
+
+  // Stop YouTube if we're leaving a YouTube overlay
+  if (_ytMode && !overlay.youtubeId) {
+    _ytMode = false;
+    if (_ytPlayer && _ytReady) _ytPlayer.pauseVideo();
+    var ytWidget = document.getElementById('yt-widget');
+    if (ytWidget) ytWidget.style.display = 'none';
+  }
 
   if (overlay.background) document.body.style.backgroundColor = overlay.background;
 
@@ -736,6 +745,18 @@ function applyMoodOverlay(overlay) {
       subEl.innerHTML = '';
       subEl.style.display = 'none';
     }
+  }
+
+  if (overlay.youtubeId) {
+    _ytMode = true;
+    var ytWidget = document.getElementById('yt-widget');
+    if (ytWidget) {
+      ytWidget.style.opacity = '0';
+      ytWidget.style.display = 'block';
+      requestAnimationFrame(function () { ytWidget.style.opacity = '1'; });
+    }
+    if (_ytReady && _ytPlayer) _ytPlayer.loadVideoById(overlay.youtubeId);
+    syncToggle();
   }
 }
 

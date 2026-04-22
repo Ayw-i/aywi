@@ -1,10 +1,54 @@
+// --- YouTube player ---
+
+var _ytPlayer = null;
+var _ytReady  = false;
+var _ytMode   = false;
+
+window.onYouTubeIframeAPIReady = function () {
+  _ytReady = true;
+  _ytPlayer = new YT.Player('yt-player', {
+    height: '1',
+    width: '1',
+    playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: 'GDP4ds-ozOI' },
+    events: {
+      onReady: function () { _ytPlayer.setVolume(50); },
+      onStateChange: function (e) {
+        if (e.data === 1 || e.data === 5) {
+          var data = _ytPlayer.getVideoData();
+          var titleEl = document.getElementById('yt-title');
+          if (titleEl && data && data.title) titleEl.textContent = data.title;
+        }
+        syncToggle();
+      },
+    },
+  });
+
+  function ytToggle() {
+    if (!_ytPlayer || !_ytReady) return;
+    if (_ytPlayer.getPlayerState() === 1) {
+      _ytPlayer.pauseVideo();
+    } else {
+      _ytPlayer.playVideo();
+    }
+  }
+
+  var ytBare = document.getElementById('yt-bare');
+  if (ytBare) ytBare.addEventListener('click', ytToggle);
+};
+
 // --- Sound toggle ---
 
 const audio  = document.getElementById('bg-audio');
 const toggle = document.getElementById('sound-toggle');
 
 function syncToggle() {
-  toggle.innerHTML = audio.paused ? '&#9654;' : '&#9646;&#9646;';
+  var playing = _ytMode
+    ? (_ytPlayer && _ytReady && _ytPlayer.getPlayerState() === 1)
+    : !audio.paused;
+  var icon = playing ? '&#9208;' : '&#9654;';
+  toggle.innerHTML = icon;
+  var ytBare = document.getElementById('yt-bare');
+  if (ytBare) ytBare.innerHTML = icon;
 }
 
 audio.addEventListener('play',  syncToggle);

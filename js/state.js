@@ -86,6 +86,14 @@ function renderMoodState(stateName, overrides) {
   if (sitImg) sitImg.parentNode.removeChild(sitImg);
   var sitAbove = document.getElementById('situation-above');
   if (sitAbove) sitAbove.parentNode.removeChild(sitAbove);
+
+  // Stop YouTube if a review overlay was active
+  if (typeof _ytMode !== 'undefined' && _ytMode) {
+    _ytMode = false;
+    if (typeof _ytPlayer !== 'undefined' && _ytPlayer && _ytReady) _ytPlayer.pauseVideo();
+    var ytWidget = document.getElementById('yt-widget');
+    if (ytWidget) ytWidget.style.display = 'none';
+  }
   var moodSub = document.getElementById('mood-sub');
   if (moodSub) { moodSub.innerHTML = ''; moodSub.style.display = 'none'; }
 
