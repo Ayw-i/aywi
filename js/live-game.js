@@ -499,6 +499,21 @@ function buildOTOverlay(nyiSkaters, oppSkaters) {
   };
 }
 
+function isGoalUnderReview(plays) {
+  var limit = Math.max(0, plays.length - 10);
+  for (var i = plays.length - 1; i >= limit; i--) {
+    var p = plays[i];
+    var t = p.typeDescKey;
+    var reason = (p.details || {}).reason || '';
+    if (t === 'stoppage') {
+      if (reason.indexOf('chlg-') === 0 || reason === 'video-review') return true;
+      continue; // non-challenge stoppage — keep scanning back
+    }
+    return false; // any non-stoppage event means play has resumed
+  }
+  return false;
+}
+
 function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
   var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
   if (isFinal) return null;
@@ -1001,6 +1016,62 @@ function checkForNewNYIGoals(plays, rosterMap, nyiIsHome, homeTeamId) {
   return true;
 }
 
+function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal) {
+  var FEED_TYPES = { goal: true, 'shot-on-goal': true, 'blocked-shot': true, hit: true, penalty: true };
+  var feed = plays.filter(function (p) { return FEED_TYPES[p.typeDescKey]; });
+  feed = feed.slice(-7);
+  if (!feed.length) return '';
+
+  function teamAbbrev(teamId) { return teamId === homeId ? homeAbbrev : awayAbbrev; }
+  function lastName(id) { var n = rosterMap[id] || ''; return n.split(' ').slice(-1)[0] || '?'; }
+
+  var rows = feed.slice().reverse().map(function (p) {
+    var t  = p.typeDescKey;
+    var d  = p.details || {};
+    var pd = p.periodDescriptor || {};
+    var period = liveGamePeriodLabel(pd.number || 0);
+    var time   = p.timeInPeriod || '';
+    var label, detail;
+
+    if (t === 'goal') {
+      label  = '<b>GOAL</b>';
+      detail = teamAbbrev(d.eventOwnerTeamId) + ' — ' + lastName(d.scoringPlayerId);
+    } else if (t === 'shot-on-goal') {
+      label  = 'Shot';
+      detail = lastName(d.shootingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')';
+    } else if (t === 'blocked-shot') {
+      label  = 'Block';
+      detail = lastName(d.blockingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')';
+    } else if (t === 'hit') {
+      label  = 'Hit';
+      detail = lastName(d.hittingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')';
+    } else if (t === 'penalty') {
+      var pname = d.committedByPlayerId ? lastName(d.committedByPlayerId) : 'Bench';
+      label  = 'Penalty';
+      detail = pname + ' (' + teamAbbrev(d.eventOwnerTeamId) + ') — ' + (d.descKey || '');
+    } else {
+      return '';
+    }
+
+    return '<tr>' +
+      '<td style="white-space:nowrap;font-size:9pt;">' + period + ' ' + time + '</td>' +
+      '<td style="font-size:9pt;">' + label + '</td>' +
+      '<td style="font-size:9pt;">' + detail + '</td>' +
+      '</tr>';
+  });
+
+  var title = isFinal ? 'PLAY LOG' : 'LIVE FEED';
+  return '<h3 style="margin-top:20px;margin-bottom:4px;">' + title + '</h3>' +
+    '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
+    '<table>' +
+    '<thead>' +
+      '<tr><th style="font-size:8pt;">Time</th><th style="font-size:8pt;">Event</th><th style="font-size:8pt;">Player</th></tr>' +
+    '</thead>' +
+    '<tbody>' + rows.join('') + '</tbody>' +
+    '</table>' +
+    '</td></tr></table>';
+}
+
 // --- Main entry point ---
 
 function buildScoreboardHTML(boxscore, playByPlay) {
@@ -1034,7 +1105,8 @@ function buildScoreboardHTML(boxscore, playByPlay) {
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
-    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev);
+    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev) +
+    buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal);
 }
 
 async function fetchAndRenderScoreboard(gameId, context) {
@@ -1090,8 +1162,12 @@ async function fetchAndRenderScoreboard(gameId, context) {
 
     var goalTriggered = checkForNewNYIGoals(plays, rosterMap, nyiIsHome, home.id);
     if (!goalTriggered) {
-      var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame);
-      applyMoodOverlay(overlay);
+      if (isGoalUnderReview(plays)) {
+        applyMoodOverlay(buildGoalReviewOverlay());
+      } else {
+        var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame);
+        applyMoodOverlay(overlay);
+      }
     }
   } catch (err) {
     console.error('Scoreboard fetch failed:', err);
