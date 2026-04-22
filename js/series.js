@@ -130,7 +130,9 @@ function processGames(rawGames) {
       game.type      = (g.gameOutcome && g.gameOutcome.lastPeriodType) || 'REG';
       game.nyiScore  = nyiScore;
       game.oppScore  = oppScore;
-      game.isShutout = game.result === 'W' && oppScore === 0;
+      // SO loss from a 0-0 game also earns a shutout (NHL credits both goalies)
+      game.isShutout = (game.result === 'W' && oppScore === 0) ||
+                       (game.result === 'L' && game.type === 'SO' && nyiScore === 0);
     }
 
     byOpp[oppAbbrev].push(game);
