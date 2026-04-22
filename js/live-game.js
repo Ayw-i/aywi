@@ -499,19 +499,39 @@ function buildOTOverlay(nyiSkaters, oppSkaters) {
   };
 }
 
-function isGoalUnderReview(plays) {
+function getReviewStatus(plays, nyiIsHome, homeTeamId) {
   var limit = Math.max(0, plays.length - 10);
   for (var i = plays.length - 1; i >= limit; i--) {
     var p = plays[i];
     var t = p.typeDescKey;
     var reason = (p.details || {}).reason || '';
     if (t === 'stoppage') {
-      if (reason.indexOf('chlg-') === 0 || reason === 'video-review') return true;
+      if (reason.indexOf('chlg-') === 0 || reason === 'video-review') {
+        var nyiGoal;
+        if (reason.indexOf('chlg-hm-') === 0) {
+          // Home team challenged → away team's goal is under review
+          nyiGoal = !nyiIsHome;
+        } else if (reason.indexOf('chlg-vis-') === 0) {
+          // Visiting team challenged → home team's goal is under review
+          nyiGoal = nyiIsHome;
+        } else {
+          // League/situation-room review — find the most recent goal to determine whose it was
+          nyiGoal = null;
+          for (var j = i - 1; j >= 0; j--) {
+            if (plays[j].typeDescKey === 'goal') {
+              var scoringTeam = (plays[j].details || {}).eventOwnerTeamId;
+              nyiGoal = nyiIsHome ? scoringTeam === homeTeamId : scoringTeam !== homeTeamId;
+              break;
+            }
+          }
+        }
+        return { active: true, nyiGoal: nyiGoal };
+      }
       continue; // non-challenge stoppage — keep scanning back
     }
-    return false; // any non-stoppage event means play has resumed
+    return { active: false }; // any non-stoppage event means play has resumed
   }
-  return false;
+  return { active: false };
 }
 
 function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
@@ -624,14 +644,18 @@ function setupVideoAnalysis() {
   });
 }
 
-function buildGoalReviewOverlay() {
+function buildGoalReviewOverlay(nyiGoal) {
+  var subText = nyiGoal === true  ? 'Oh god damn it...'
+              : nyiGoal === false ? 'Wait a minute, hold that goal!'
+              : '';
+  var aboveHtml = (subText ? '<span style="font-size:18pt;">' + subText + '</span><br>' : '') +
+                  'GOAL UNDER REVIEW';
   return {
-    aboveImage: 'GOAL UNDER REVIEW',
+    aboveImage: aboveHtml,
     aboveFontSize: '48pt',
     image: { type: 'review' },
     headline: '',
     fontSize: '1pt',
-    background: '#0a0f2c',
     subHeadline: null,
   };
 }
@@ -1162,8 +1186,9 @@ async function fetchAndRenderScoreboard(gameId, context) {
 
     var goalTriggered = checkForNewNYIGoals(plays, rosterMap, nyiIsHome, home.id);
     if (!goalTriggered) {
-      if (isGoalUnderReview(plays)) {
-        applyMoodOverlay(buildGoalReviewOverlay());
+      var review = getReviewStatus(plays, nyiIsHome, home.id);
+      if (review.active) {
+        applyMoodOverlay(buildGoalReviewOverlay(review.nyiGoal));
       } else {
         var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame);
         applyMoodOverlay(overlay);
