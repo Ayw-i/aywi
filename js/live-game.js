@@ -97,7 +97,17 @@ function buildLiveHeader(boxscore) {
   if (isFinal) {
     clockStr = 'Final';
   } else if (clock.inIntermission) {
-    clockStr = 'End of ' + liveGamePeriodLabel(period);
+    var isPlayoff = boxscore.gameType === 3;
+    var intLabel = null;
+    if (period === 1) intLabel = '1st INT';
+    else if (period === 2) intLabel = '2nd INT';
+    else if (isPlayoff && period === 3) intLabel = 'OT INT';
+    else if (isPlayoff && period >= 4) intLabel = liveGamePeriodLabel(period + 1) + ' INT';
+    if (intLabel && clock.timeRemaining) {
+      clockStr = intLabel + ' &middot; ' + clock.timeRemaining;
+    } else {
+      clockStr = 'End of ' + liveGamePeriodLabel(period);
+    }
   } else if (period > 0) {
     clockStr = liveGamePeriodLabel(period) + ' &middot; ' + (clock.timeRemaining || '&mdash;');
   } else {
