@@ -406,6 +406,8 @@ function buildDevPanel() {
     { label: 'OT Playoffs G6', fn: function () { applyMoodOverlay(buildPlayoffOTOverlay(6)); } },
     { label: 'Review (NYI goal)',  fn: function () { applyMoodOverlay(buildGoalReviewOverlay(true)); } },
     { label: 'Review (Opp goal)', fn: function () { applyMoodOverlay(buildGoalReviewOverlay(false)); } },
+    { label: 'EN (NYI pulled)',   fn: function () { applyMoodOverlay(buildNYIEmptyNetOverlay('Sorokin', 2)); } },
+    { label: 'EN (Opp pulled)',   fn: function () { applyMoodOverlay(buildOppEmptyNetOverlay('Shesterkin', 'Sorokin', 2)); } },
   ];
   SIT_OVERLAYS.forEach(function (s) { addBtn(body, s.label, s.fn); });
 

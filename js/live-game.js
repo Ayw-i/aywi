@@ -534,7 +534,40 @@ function getReviewStatus(plays, nyiIsHome, homeTeamId) {
   return { active: false };
 }
 
-function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
+var _slideshowTimer = null;
+
+var SOROKIN_WATER_IMGS = [
+  'assets/sorokin-water/11.jpg',
+  'assets/sorokin-water/22.jpg',
+  'assets/sorokin-water/33.jpg',
+  'assets/sorokin-water/44.jpg',
+  'assets/sorokin-water/55.jpg',
+  'assets/sorokin-water/66.jpg',
+];
+
+function buildNYIEmptyNetOverlay(goalieLastName, goalsNeeded) {
+  var n        = Math.max(1, goalsNeeded);
+  var needText = 'We just need ' + n + (n >= 2 ? ' in a row' : '') + '!';
+  return {
+    aboveImage:    goalieLastName + ' is off the ice...',
+    aboveFontSize: '18pt',
+    image:    { type: 'single', src: 'assets/sorokin-is-watching.png' },
+    headline: needText,
+  };
+}
+
+function buildOppEmptyNetOverlay(oppGoalieName, nyiGoalieName, nyiLead) {
+  var n    = Math.max(1, nyiLead);
+  var unit = n === 1 ? 'goal' : 'goals';
+  return {
+    aboveImage:    oppGoalieName + ' is off the ice...<br>' + nyiGoalieName + ' is locking in...',
+    aboveFontSize: '18pt',
+    image:    { type: 'slideshow', srcs: SOROKIN_WATER_IMGS },
+    headline: 'Time to find out if the Isles can score on an empty net before they concede ' + n + ' ' + unit + '.',
+  };
+}
+
+function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame, rosterMap) {
   var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
   if (isFinal) return null;
 
@@ -553,13 +586,48 @@ function getSituationOverlay(boxscore, nyiIsHome, nextHomeGame) {
       : buildOTOverlay(nyiSkaters, oppSkaters);
   }
 
-  if (nyiSkaters === 5 && oppSkaters === 5) return null;
-
-  var home = boxscore.homeTeam || {};
-  var away = boxscore.awayTeam || {};
+  var home     = boxscore.homeTeam || {};
+  var away     = boxscore.awayTeam || {};
   var nyiScore = nyiIsHome ? (home.score || 0) : (away.score || 0);
   var oppScore = nyiIsHome ? (away.score || 0) : (home.score || 0);
-  var diff = nyiScore - oppScore;
+  var diff     = nyiScore - oppScore;
+
+  var gameStats = boxscore.playerByGameStats || {};
+
+  // NYI pulled their goalie (extra attacker)
+  var nyiGoalieIn = nyiIsHome ? (code[3] === '1') : (code[0] === '1');
+  if (!nyiGoalieIn) {
+    var nyiStats     = nyiIsHome ? (gameStats.homeTeam || {}) : (gameStats.awayTeam || {});
+    var activeGoalie = (nyiStats.goalies || []).find(function (g) { return parseTOISecs(g.toi) > 0; });
+    var goalieLastName = 'Goalie';
+    if (activeGoalie && rosterMap) {
+      var fullName = rosterMap[activeGoalie.playerId] || '';
+      goalieLastName = fullName.split(' ').pop() || 'Goalie';
+    }
+    return buildNYIEmptyNetOverlay(goalieLastName, oppScore - nyiScore);
+  }
+
+  // Opponent pulled their goalie (NYI defending empty net)
+  var oppGoalieIn = nyiIsHome ? (code[0] === '1') : (code[3] === '1');
+  if (!oppGoalieIn) {
+    var oppStats        = nyiIsHome ? (gameStats.awayTeam || {}) : (gameStats.homeTeam || {});
+    var activeOppGoalie = (oppStats.goalies || []).find(function (g) { return parseTOISecs(g.toi) > 0; });
+    var oppGoalieName   = 'Goalie';
+    if (activeOppGoalie && rosterMap) {
+      var oppFullName = rosterMap[activeOppGoalie.playerId] || '';
+      oppGoalieName   = oppFullName.split(' ').pop() || 'Goalie';
+    }
+    var nyiStatsEN      = nyiIsHome ? (gameStats.homeTeam || {}) : (gameStats.awayTeam || {});
+    var activeNYIGoalie = (nyiStatsEN.goalies || []).find(function (g) { return parseTOISecs(g.toi) > 0; });
+    var nyiGoalieName   = 'Goalie';
+    if (activeNYIGoalie && rosterMap) {
+      var nyiFullName = rosterMap[activeNYIGoalie.playerId] || '';
+      nyiGoalieName   = nyiFullName.split(' ').pop() || 'Goalie';
+    }
+    return buildOppEmptyNetOverlay(oppGoalieName, nyiGoalieName, nyiScore - oppScore);
+  }
+
+  if (nyiSkaters === 5 && oppSkaters === 5) return null;
 
   if (oppSkaters > nyiSkaters) return buildPKOverlay(diff, nyiSkaters <= 3, nextHomeGame);
   if (nyiSkaters > oppSkaters) return buildPPOverlay(diff, oppSkaters <= 3);
@@ -664,6 +732,9 @@ function buildGoalReviewOverlay(nyiGoal) {
 function applyMoodOverlay(overlay) {
   if (!overlay) return;
 
+  // Clear any running slideshow
+  if (_slideshowTimer) { clearInterval(_slideshowTimer); _slideshowTimer = null; }
+
   // Stop YouTube if we're leaving a YouTube overlay
   if (_ytMode && !overlay.youtubeId) {
     _ytMode = false;
@@ -694,6 +765,16 @@ function applyMoodOverlay(overlay) {
       imgEl.src = overlay.image.src;
       imgEl.style.maxWidth = '50%';
       imgEl.style.display  = 'block';
+      if (overlay.aboveImage) {
+        var aboveDiv = document.createElement('div');
+        aboveDiv.id = 'situation-above';
+        aboveDiv.style.textAlign    = 'center';
+        aboveDiv.style.fontWeight   = 'bold';
+        aboveDiv.style.fontSize     = overlay.aboveFontSize || '28pt';
+        aboveDiv.style.marginBottom = '8px';
+        aboveDiv.innerHTML = overlay.aboveImage;
+        moodSection.insertBefore(aboveDiv, imgEl);
+      }
     } else {
       imgEl.style.display = 'none';
       var container = document.createElement('div');
@@ -710,6 +791,23 @@ function applyMoodOverlay(overlay) {
           '<img src="' + overlay.image.right + '" style="max-width:40%;display:inline-block;margin:0 4px;">';
       } else if (overlay.image.type === 'review') {
         container.innerHTML = buildReviewHTML();
+      } else if (overlay.image.type === 'slideshow') {
+        var srcs    = overlay.image.srcs || [];
+        var slideImg = document.createElement('img');
+        slideImg.src = srcs[0] || '';
+        slideImg.style.height      = '280px';
+        slideImg.style.width       = 'auto';
+        slideImg.style.objectFit   = 'contain';
+        slideImg.style.display     = 'block';
+        slideImg.style.margin      = '0 auto';
+        container.appendChild(slideImg);
+        if (srcs.length > 1) {
+          var ssIdx = 0;
+          _slideshowTimer = setInterval(function () {
+            ssIdx = (ssIdx + 1) % srcs.length;
+            slideImg.src = srcs[ssIdx];
+          }, 1000);
+        }
       } else {
         var gridHtml = '';
         for (var i = 0; i < 9; i++) {
@@ -1211,7 +1309,7 @@ async function fetchAndRenderScoreboard(gameId, context) {
       if (review.active) {
         applyMoodOverlay(buildGoalReviewOverlay(review.nyiGoal));
       } else {
-        var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame);
+        var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame, rosterMap);
         applyMoodOverlay(overlay);
       }
     }
