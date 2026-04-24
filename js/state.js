@@ -339,6 +339,19 @@ function getRegularSeasonState(data) {
   return null;
 }
 
+// --- Clinch override config ---
+// Lists which game states each clinch mood replaces. Edit here to change override behavior.
+const CLINCH_MOOD_MAP = {
+  'e': 'sorover',   // eliminated
+  'x': 'clinched',  // wildcard clinch
+  'y': 'clinched',  // division clinch
+  'z': 'clinched',  // presidents trophy
+};
+const CLINCH_STATE_OVERRIDES = {
+  'sorover':  ['win', 'loss', 'pregame', 'live'],
+  'clinched': ['win', 'loss'],
+};
+
 // --- Top-level state application ---
 
 function applyState(data) {
@@ -350,28 +363,40 @@ function applyState(data) {
     return 'outside_in';
   }
 
-  const nyi   = standings.standings.find(function (t) {
-    return t.teamAbbrev.default === 'NYI';
-  });
-  const clinch = nyi ? nyi.clinchIndicator : null;
+  const nyi        = standings.standings.find(function (t) { return t.teamAbbrev.default === 'NYI'; });
+  const clinch     = nyi ? nyi.clinchIndicator : null;
+  const clinchMood = clinch ? CLINCH_MOOD_MAP[clinch] : null;
+  const clinchOverrides = clinchMood ? CLINCH_STATE_OVERRIDES[clinchMood] : null;
 
-  if (clinch === 'e' || clinch === 'x' || clinch === 'y' || clinch === 'z') {
-    renderMoodState(clinch === 'e' ? 'sorover' : 'clinched');
-    showGameSection('Previous game:');
-    return clinch === 'e' ? 'sorover' : 'clinched';
-  }
-
-  clearGameSection();
   var gameInfo = getRegularSeasonState(data);
+
   if (!gameInfo) {
-    renderMoodState('sorover');
-    return 'sorover';
+    // No games found — off-season or no data
+    renderMoodState(clinchMood || 'sorover');
+    if (clinchMood) { showGameSection('Previous game:'); fetchAndRenderLastGame(); }
+    else            { clearGameSection(); }
+    return clinchMood || 'sorover';
   }
 
-  renderMoodState(gameInfo.stateName, gameInfo.overrides);
+  // Apply clinch mood override if this game state is in the override list
+  var moodOverridden = clinchOverrides && clinchOverrides.indexOf(gameInfo.stateName) !== -1;
+  if (moodOverridden) {
+    renderMoodState(clinchMood);
+  } else {
+    renderMoodState(gameInfo.stateName, gameInfo.overrides);
+  }
 
+  // Always render live scoreboard when there is a live game
   if (gameInfo.stateName === 'live' && typeof renderLiveGame === 'function') {
     renderLiveGame(gameInfo.gameObj || null, { nextHomeGame: gameInfo.nextHomeGame || '—', config: data.config });
+  }
+
+  // Show previous game section when clinched/eliminated and no active game today
+  if (clinchMood && gameInfo.stateName !== 'live' && gameInfo.stateName !== 'pregame') {
+    showGameSection('Previous game:');
+    fetchAndRenderLastGame();
+  } else {
+    clearGameSection();
   }
 
   return gameInfo.stateName;
@@ -426,10 +451,6 @@ async function detectAndRenderState(mockData) {
 
     if (renderedState === 'live' && !mockData) {
       _liveRefreshTimer = setInterval(detectAndRenderState, 30000);
-    }
-
-    if (renderedState === 'sorover' || renderedState === 'clinched') {
-      fetchAndRenderLastGame();
     }
 
   } catch (err) {
