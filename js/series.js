@@ -24,8 +24,8 @@ const SCHEMES = {
   F: {
     homeWinReg: '#0047AB', homeWinOT: '#4D90E0', homeWinSO: '#99C4F0',
     awayWinReg: '#CC5500', awayWinOT: '#FF8C00', awayWinSO: '#FFBB66',
-    homeLossReg: '#333333', homeLossLP: '#F2F2F2',
-    awayLossReg: '#191919', awayLossLP: '#D8D8D8',
+    homeLossReg: '#333333', homeLossOTL: '#F2F2F2', homeLossSOL: '#CCCCCC',
+    awayLossReg: '#191919', awayLossOTL: '#D8D8D8', awayLossSOL: '#BBBBBB',
     incHome: '#AAAAAA', incHomeStripe: '#3A3A3A',
     incAway: '#888888', incAwayStripe: '#282828'
   }
@@ -101,7 +101,8 @@ function gameBg(game) {
   }
   // Regulation loss: always solid
   if (t === 'REG') return game.isHome ? s.homeLossReg : s.awayLossReg;
-  // OT/SO loss (loser point): solid light (scheme F) or diagonal stripe (schemes E/E3)
+  // OT/SO loss (loser point): split OTL/SOL if scheme supports it, else solid or stripe
+  if (s.homeLossOTL) return game.isHome ? (t === 'SO' ? s.homeLossSOL : s.homeLossOTL) : (t === 'SO' ? s.awayLossSOL : s.awayLossOTL);
   if (s.homeLossLP) return game.isHome ? s.homeLossLP : s.awayLossLP;
   return stripeGrad(game.isHome ? s.homeLossReg : s.awayLossReg, game.isHome ? s.homeLossStripe : s.awayLossStripe);
 }
@@ -313,24 +314,30 @@ function renderRecordSummary(byOpp) {
 }
 
 function renderTotalBar(byOpp) {
-  let homeW = 0, awayW = 0, homeL = 0, awayL = 0, incHome = 0, incAway = 0;
+  let homeW = 0, awayW = 0, homeL = 0, awayL = 0, homeLP = 0, awayLP = 0, incHome = 0, incAway = 0;
   Object.values(byOpp).forEach(function (games) {
     games.forEach(function (g) {
-      if      (g.result === 'W' && g.isHome)   homeW++;
-      else if (g.result === 'W' && !g.isHome)  awayW++;
-      else if (g.result === 'L' && g.isHome)   homeL++;
-      else if (g.result === 'L' && !g.isHome)  awayL++;
-      else if (g.result === null && g.isHome)  incHome++;
-      else if (g.result === null && !g.isHome) incAway++;
+      if      (g.result === 'W' && g.isHome)                          homeW++;
+      else if (g.result === 'W' && !g.isHome)                         awayW++;
+      else if (g.result === 'L' && g.isHome  && g.type === 'REG')     homeL++;
+      else if (g.result === 'L' && !g.isHome && g.type === 'REG')     awayL++;
+      else if (g.result === 'L' && g.isHome)                          homeLP++;
+      else if (g.result === 'L' && !g.isHome)                         awayLP++;
+      else if (g.result === null && g.isHome)                         incHome++;
+      else if (g.result === null && !g.isHome)                        incAway++;
     });
   });
 
   const s = SCHEMES[COLOR_SCHEME];
+  const homeLPbg = s.homeLossOTL || s.homeLossLP || s.homeLossReg;
+  const awayLPbg = s.awayLossOTL || s.awayLossLP || s.awayLossReg;
   const groups = [
     { count: homeW,   bg: s.homeWinReg  },
     { count: awayW,   bg: s.awayWinReg  },
     { count: homeL,   bg: s.homeLossReg },
     { count: awayL,   bg: s.awayLossReg },
+    { count: homeLP,  bg: homeLPbg      },
+    { count: awayLP,  bg: awayLPbg      },
     { count: incHome, bg: s.incHome     },
     { count: incAway, bg: s.incAway     },
   ].filter(gr => gr.count > 0);
@@ -361,9 +368,11 @@ function renderLegend() {
       label + '</td>';
   }
 
-  // OTL/SOL swatch: solid light (scheme F) or stripe (E/E3)
-  const homeLPbg = s.homeLossLP || stripeGrad(s.homeLossReg, s.homeLossStripe);
-  const awayLPbg = s.awayLossLP || stripeGrad(s.awayLossReg, s.awayLossStripe);
+  // OTL/SOL swatches: split if scheme supports it, else combined
+  const homeOTLbg = s.homeLossOTL || s.homeLossLP || stripeGrad(s.homeLossReg, s.homeLossStripe);
+  const homeSOLbg = s.homeLossSOL || homeOTLbg;
+  const awayOTLbg = s.awayLossOTL || s.awayLossLP || stripeGrad(s.awayLossReg, s.awayLossStripe);
+  const awaySOLbg = s.awayLossSOL || awayOTLbg;
   // Incomplete swatch: stripe (scheme F) or solid (E/E3)
   const incHomeBg = s.incHomeStripe ? stripeGrad(s.incHome, s.incHomeStripe) : s.incHome;
   const incAwayBg = s.incAwayStripe ? stripeGrad(s.incAway, s.incAwayStripe) : s.incAway;
@@ -377,10 +386,12 @@ function renderLegend() {
     swatch(s.awayWinSO,   'Away W-SO') +
     swatch(s.homeWinReg,  'Shutout', 'box-shadow:inset 0 -3px 0 0 #FFD700;') +
     '</tr><tr>' +
-    swatch(s.homeLossReg, 'Home L (reg)')  +
-    swatch(homeLPbg,      'Home OTL/SOL') +
-    swatch(s.awayLossReg, 'Away L (reg)')  +
-    swatch(awayLPbg,      'Away OTL/SOL') +
+    swatch(s.homeLossReg, 'Home L')  +
+    swatch(homeOTLbg,     'Home OTL') +
+    swatch(homeSOLbg,     'Home SOL') +
+    swatch(s.awayLossReg, 'Away L')  +
+    swatch(awayOTLbg,     'Away OTL') +
+    swatch(awaySOLbg,     'Away SOL') +
     swatch(incHomeBg,     'Inc. home')    +
     swatch(incAwayBg,     'Inc. away')    +
     '</tr></table>';
