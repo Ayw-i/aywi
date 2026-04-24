@@ -1169,7 +1169,7 @@ function checkForNewNYIGoals(plays, rosterMap, nyiIsHome, homeTeamId) {
   return true;
 }
 
-function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal) {
+function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal, nyiGameNum, nhlGameNum) {
   var FEED_TYPES = { goal: true, 'shot-on-goal': true, 'blocked-shot': true, hit: true, penalty: true };
   var feed = plays.filter(function (p) { return FEED_TYPES[p.typeDescKey]; });
   feed = feed.slice(-7);
@@ -1213,7 +1213,10 @@ function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal
       '</tr>';
   });
 
-  var title = isFinal ? 'PLAY LOG' : 'LIVE FEED';
+  var gameLabel = nyiGameNum
+    ? ' &mdash; <span' + (nhlGameNum ? ' title="NHL Game ' + nhlGameNum + '"' : '') + ' style="cursor:default;">Game ' + nyiGameNum + '</span>'
+    : '';
+  var title = (isFinal ? 'PLAY LOG' : 'LIVE FEED') + gameLabel;
   return '<h3 style="margin-top:20px;margin-bottom:4px;">' + title + '</h3>' +
     '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
     '<table>' +
@@ -1227,7 +1230,7 @@ function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal
 
 // --- Main entry point ---
 
-function buildScoreboardHTML(boxscore, playByPlay) {
+function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
   var home      = boxscore.homeTeam || {};
   var away      = boxscore.awayTeam || {};
   var gameStats = boxscore.playerByGameStats || {};
@@ -1236,7 +1239,9 @@ function buildScoreboardHTML(boxscore, playByPlay) {
   var rosterMap = buildRosterMap((playByPlay || {}).rosterSpots);
   var plays     = (playByPlay || {}).plays || [];
 
-  var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
+  var isFinal    = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
+  var nhlGameNum = (boxscore.gameType === 2 && gameId)
+    ? parseInt(String(gameId).slice(-4), 10) : null;
 
   // Shutout easter eggs: saros-no-goals.png by default;
   // king-of-shutouts if NYI shut out opponent and Sorokin was their goalie.
@@ -1259,7 +1264,7 @@ function buildScoreboardHTML(boxscore, playByPlay) {
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev) +
-    buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal);
+    buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, nyiGameNum, nhlGameNum);
 }
 
 async function fetchAndRenderScoreboard(gameId, context) {
@@ -1302,7 +1307,16 @@ async function fetchAndRenderScoreboard(gameId, context) {
 
     var rosterMap  = buildRosterMap((playByPlay || {}).rosterSpots);
     var plays      = (playByPlay || {}).plays || [];
-    container.innerHTML = buildScoreboardHTML(boxscore, playByPlay);
+
+    var nyiGameNum = null;
+    if (typeof getSeasonSchedule === 'function') {
+      try {
+        var seasonGames = await getSeasonSchedule();
+        nyiGameNum = getNYIGameNumber(gameId, seasonGames);
+      } catch (e) {}
+    }
+
+    container.innerHTML = buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum);
 
     var nyiIsHome    = home.abbrev === 'NYI';
     var nextHomeGame = (context && context.nextHomeGame) || '—';

@@ -155,7 +155,7 @@ function clearGameSection() {
   if (prevScore) prevScore.innerHTML = '';
 }
 
-function renderPreviousGameScore(game) {
+function renderPreviousGameScore(game, nyiGameNum) {
   var container = document.getElementById('prev-game-score');
   if (!container) return;
   if (!game) { container.innerHTML = ''; return; }
@@ -164,6 +164,12 @@ function renderPreviousGameScore(game) {
   var away    = game.awayTeam || {};
   var outcome = (game.gameOutcome && game.gameOutcome.lastPeriodType) || 'REG';
   var finalLabel = outcome === 'REG' ? 'Final' : 'Final/' + outcome;
+  if (nyiGameNum) {
+    var nhlGameNum = (game.gameType === 2 && game.id)
+      ? parseInt(String(game.id).slice(-4), 10) : null;
+    var tooltip = nhlGameNum ? ' title="NHL Game ' + nhlGameNum + '"' : '';
+    finalLabel = '<span' + tooltip + ' style="cursor:default;">Game ' + nyiGameNum + '</span><br>' + finalLabel;
+  }
 
   function teamCell(team) {
     var abbrev = team.abbrev || '';
@@ -181,6 +187,33 @@ function renderPreviousGameScore(game) {
       '<td width="30%" align="center" style="border:none;font-size:9pt;color:#aaa;letter-spacing:1px;text-transform:uppercase;">' + finalLabel + '</td>' +
       teamCell(home) +
     '</tr></table>';
+}
+
+// --- Season schedule cache ---
+
+var _seasonScheduleCache = null;
+
+function getSeasonSchedule() {
+  if (_seasonScheduleCache) return Promise.resolve(_seasonScheduleCache);
+  var now = new Date();
+  var startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  var seasonStr = startYear + '' + (startYear + 1);
+  return fetch(WORKER + '/v1/club-schedule-season/NYI/' + seasonStr)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      _seasonScheduleCache = d.games || [];
+      return _seasonScheduleCache;
+    });
+}
+
+function getNYIGameNumber(gameId, games) {
+  var num = 0;
+  for (var i = 0; i < games.length; i++) {
+    if (games[i].gameType !== 2) continue;
+    num++;
+    if (games[i].id == gameId) return num;
+  }
+  return null;
 }
 
 // --- Config cache ---
@@ -347,16 +380,14 @@ function applyState(data) {
 // --- State detection (real API or mock data) ---
 
 function fetchAndRenderLastGame() {
-  var now = new Date();
-  var startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-  var seasonStr = startYear + '' + (startYear + 1);
-  fetch(WORKER + '/v1/club-schedule-season/NYI/' + seasonStr)
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      var completed = (d.games || []).filter(function (g) {
+  getSeasonSchedule()
+    .then(function (games) {
+      var completed = games.filter(function (g) {
         return isNYIGame(g) && (g.gameState === 'OFF' || g.gameState === 'FINAL');
       });
-      renderPreviousGameScore(completed[completed.length - 1] || null);
+      var lastGame = completed[completed.length - 1] || null;
+      var nyiGameNum = lastGame ? getNYIGameNumber(lastGame.id, games) : null;
+      renderPreviousGameScore(lastGame, nyiGameNum);
     })
     .catch(function () {});
 }
