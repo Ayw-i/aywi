@@ -151,6 +151,36 @@ function clearGameSection() {
   const gameSection  = document.getElementById('game-section');
   gameHeadline.textContent = '';
   gameSection.classList.remove('visible');
+  var prevScore = document.getElementById('prev-game-score');
+  if (prevScore) prevScore.innerHTML = '';
+}
+
+function renderPreviousGameScore(game) {
+  var container = document.getElementById('prev-game-score');
+  if (!container) return;
+  if (!game) { container.innerHTML = ''; return; }
+
+  var home    = game.homeTeam || {};
+  var away    = game.awayTeam || {};
+  var outcome = (game.gameOutcome && game.gameOutcome.lastPeriodType) || 'REG';
+  var finalLabel = outcome === 'REG' ? 'Final' : 'Final/' + outcome;
+
+  function teamCell(team) {
+    var abbrev = team.abbrev || '';
+    return '<td width="35%" align="center" style="border:none;">' +
+      '<img src="https://assets.nhle.com/logos/nhl/svg/' + abbrev + '_light.svg" width="56" alt="' + abbrev + '" ' +
+      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 4px;">' +
+      '<div style="font-size:10pt;">' + abbrev + '</div>' +
+      '<div style="font-size:22pt;font-weight:bold;line-height:1.1;">' + (team.score != null ? team.score : '&mdash;') + '</div>' +
+      '</td>';
+  }
+
+  container.innerHTML =
+    '<table style="width:100%;border-collapse:collapse;margin:10px 0;"><tr>' +
+      teamCell(away) +
+      '<td width="30%" align="center" style="border:none;font-size:9pt;color:#aaa;letter-spacing:1px;text-transform:uppercase;">' + finalLabel + '</td>' +
+      teamCell(home) +
+    '</tr></table>';
 }
 
 // --- Config cache ---
@@ -316,6 +346,21 @@ function applyState(data) {
 
 // --- State detection (real API or mock data) ---
 
+function fetchAndRenderLastGame() {
+  var now = new Date();
+  var startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  var seasonStr = startYear + '' + (startYear + 1);
+  fetch(WORKER + '/v1/club-schedule-season/NYI/' + seasonStr)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var completed = (d.games || []).filter(function (g) {
+        return isNYIGame(g) && (g.gameState === 'OFF' || g.gameState === 'FINAL');
+      });
+      renderPreviousGameScore(completed[completed.length - 1] || null);
+    })
+    .catch(function () {});
+}
+
 async function detectAndRenderState(mockData) {
   if (typeof _goalTransitionActive !== 'undefined' && _goalTransitionActive) return;
 
@@ -350,6 +395,10 @@ async function detectAndRenderState(mockData) {
 
     if (renderedState === 'live' && !mockData) {
       _liveRefreshTimer = setInterval(detectAndRenderState, 30000);
+    }
+
+    if (renderedState === 'sorover' || renderedState === 'clinched') {
+      fetchAndRenderLastGame();
     }
 
   } catch (err) {
