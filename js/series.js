@@ -49,22 +49,12 @@ const TEAM_NAMES = {
   SJS: 'San Jose',      SEA: 'Seattle',       VAN: 'Vancouver',    VGK: 'Vegas'
 };
 
-// Order of segments within the bar in "result" group mode
+// Result grouping order: all W, all reg L, all OTL/SOL, unplayed
 const RESULT_ORDER = [
-  g => g.result === 'W' && g.isHome  && g.type === 'REG',
-  g => g.result === 'W' && g.isHome  && g.type === 'OT',
-  g => g.result === 'W' && g.isHome  && g.type === 'SO',
-  g => g.result === 'W' && !g.isHome && g.type === 'REG',
-  g => g.result === 'W' && !g.isHome && g.type === 'OT',
-  g => g.result === 'W' && !g.isHome && g.type === 'SO',
-  g => g.result === 'L' && g.isHome  && g.type === 'REG',
-  g => g.result === 'L' && g.isHome  && g.type === 'OT',
-  g => g.result === 'L' && g.isHome  && g.type === 'SO',
-  g => g.result === 'L' && !g.isHome && g.type === 'REG',
-  g => g.result === 'L' && !g.isHome && g.type === 'OT',
-  g => g.result === 'L' && !g.isHome && g.type === 'SO',
-  g => g.result === null && g.isHome,
-  g => g.result === null && !g.isHome
+  g => g.result === 'W',
+  g => g.result === 'L' && g.type === 'REG',
+  g => g.result === 'L' && (g.type === 'OT' || g.type === 'SO'),
+  g => g.result === null
 ];
 
 // --- Helpers ---
@@ -122,7 +112,7 @@ function processGames(rawGames) {
     const hasScore    = g.homeTeam.score !== undefined && g.awayTeam.score !== undefined;
     const isDone      = hasScore && !isLive;
 
-    const game = { opponent: oppAbbrev, date: g.gameDate, isHome, result: null, type: null, nyiScore: null, oppScore: null };
+    const game = { opponent: oppAbbrev, date: g.gameDate, isHome, result: null, type: null, nyiScore: null, oppScore: null, gameId: g.id };
 
     if (isDone) {
       const nyiScore = isHome ? g.homeTeam.score : g.awayTeam.score;
@@ -159,10 +149,12 @@ function renderGameCell(g) {
     ' data-oppscore="' + osc                       + '"' +
     ' data-date="'     + g.date                    + '"' +
     ' data-shutout="'  + shutout                   + '"' +
+    ' data-gameid="'   + (g.gameId || '')          + '"' +
     ' style="background:' + bg + ';width:26px;height:15px;cursor:pointer;' + extra + '"' +
     ' onmouseover="showSeriesTooltip(this,event)"' +
     ' onmousemove="moveSeriesTooltip(event)"' +
     ' onmouseout="hideSeriesTooltip()"' +
+    ' onclick="toggleSeriesExpand(this,event)"' +
     '></td>';
 }
 
@@ -183,19 +175,22 @@ function renderBar(games, groupBy) {
 
   let labelRow = '';
   if (groupBy === 'result') {
+    // 3 label groups: W (blue/orange stripe), reg L (dark), OTL/SOL (lightest loser-point)
+    const wBg   = 'linear-gradient(to right,' + s.homeWinReg + ',' + s.awayWinReg + ')';
+    const rlBg  = s.homeLossReg;
+    const lpBg  = s.awayLossSOL || s.awayLossLP || s.awayLossReg;
+    const incBg = s.incHomeStripe ? stripeGrad(s.incHome, s.incHomeStripe) : s.incHome;
+
     const groups = [
-      { list: games.filter(g => g.result === 'W' && g.isHome),   bg: s.homeWinReg  },
-      { list: games.filter(g => g.result === 'W' && !g.isHome),  bg: s.awayWinReg  },
-      { list: games.filter(g => g.result === 'L' && g.isHome),   bg: s.homeLossReg },
-      { list: games.filter(g => g.result === 'L' && !g.isHome),  bg: s.awayLossReg },
-      { list: games.filter(g => g.result === null && g.isHome),  bg: s.incHome     },
-      { list: games.filter(g => g.result === null && !g.isHome), bg: s.incAway     },
+      { list: games.filter(g => g.result === 'W'),                                           bg: wBg,   tc: '#fff'               },
+      { list: games.filter(g => g.result === 'L' && g.type === 'REG'),                       bg: rlBg,  tc: labelTextColor(rlBg) },
+      { list: games.filter(g => g.result === 'L' && (g.type === 'OT' || g.type === 'SO')),  bg: lpBg,  tc: labelTextColor(lpBg) },
+      { list: games.filter(g => g.result === null),                                           bg: incBg, tc: '#fff'               },
     ].filter(gr => gr.list.length > 0);
 
     const labelCells = groups.map(function (gr) {
-      const tc = labelTextColor(gr.bg);
       return '<td colspan="' + gr.list.length + '"' +
-        ' style="background:' + gr.bg + ';color:' + tc + ';text-align:center;' +
+        ' style="background:' + gr.bg + ';color:' + gr.tc + ';text-align:center;' +
         'font-weight:bold;font-size:11px;height:20px;vertical-align:middle;">' +
         gr.list.length + '</td>';
     }).join('');
@@ -291,7 +286,7 @@ function renderRecordSummary(byOpp) {
 
   const totalW  = rw + otw + sow;
   const totalLP = otl + sol;
-  const overall = totalW + '\u2013' + rl + '\u2013' + totalLP;
+  const overall = totalW + '–' + rl + '–' + totalLP;
 
   function cell(label, big, sub) {
     return '<td style="padding:8px 20px;text-align:center;border:1px solid #444;">' +
@@ -306,9 +301,9 @@ function renderRecordSummary(byOpp) {
       overall +
     '</td></tr>' +
     '<tr>' +
-      cell('Wins',          totalW, 'RW\u00a0' + rw + '\u00a0\u00b7\u00a0OTW\u00a0' + otw + '\u00a0\u00b7\u00a0SOW\u00a0' + sow) +
-      cell('Reg. Losses',   rl,     '\u00a0') +
-      cell('Loser Points',  totalLP, 'OTL\u00a0' + otl + '\u00a0\u00b7\u00a0SOL\u00a0' + sol) +
+      cell('Wins',          totalW, 'RW ' + rw + ' · OTW ' + otw + ' · SOW ' + sow) +
+      cell('Reg. Losses',   rl,     ' ') +
+      cell('Loser Points',  totalLP, 'OTL ' + otl + ' · SOL ' + sol) +
     '</tr>' +
   '</table>';
 }
@@ -399,7 +394,11 @@ function renderLegend() {
 
 // --- Tooltip ---
 
+var _seriesExpandedCell = null;
+var _seriesBsCache      = {};
+
 function showSeriesTooltip(el, e) {
+  if (_seriesExpandedCell && _seriesExpandedCell !== el) return;
   const tt     = document.getElementById('series-tt');
   const opp    = el.dataset.opp;
   const isHome = el.dataset.home === '1';
@@ -414,31 +413,144 @@ function showSeriesTooltip(el, e) {
 
   let scoreText = '';
   if (result) {
-    scoreText = 'NYI ' + nyi + ' \u2013 ' + opp + ' ' + osc;
+    scoreText = 'NYI ' + nyi + ' – ' + opp + ' ' + osc;
     if (type && type !== 'REG') scoreText += ' (' + type + ')';
   }
   document.getElementById('series-tt-score').textContent = scoreText;
 
   const shutoutEl = document.getElementById('series-tt-shutout');
-  if (el.dataset.shutout === '1') {
-    shutoutEl.style.display = 'block';
-  } else {
-    shutoutEl.style.display = 'none';
-  }
+  shutoutEl.style.display = el.dataset.shutout === '1' ? 'block' : 'none';
 
   tt.style.display = 'block';
-  moveSeriesTooltip(e);
+  if (!_seriesExpandedCell) moveSeriesTooltip(e);
 }
 
 function moveSeriesTooltip(e) {
+  if (_seriesExpandedCell) return;
   const tt = document.getElementById('series-tt');
   tt.style.left = (e.clientX + 14) + 'px';
   tt.style.top  = (e.clientY + 14) + 'px';
 }
 
 function hideSeriesTooltip() {
+  if (_seriesExpandedCell) return;
   document.getElementById('series-tt').style.display = 'none';
 }
+
+// --- Click-to-expand tooltip ---
+
+function jafares(name) {
+  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? '🐍' : 'Jafares') : name;
+}
+
+async function toggleSeriesExpand(el, event) {
+  event.stopPropagation();
+  const expandEl = document.getElementById('series-tt-expand');
+
+  if (_seriesExpandedCell === el) {
+    // Collapse
+    el.style.outline = '';
+    _seriesExpandedCell = null;
+    expandEl.style.display = 'none';
+    expandEl.innerHTML = '';
+    document.getElementById('series-tt').style.display = 'none';
+    return;
+  }
+
+  // Collapse any previous pinned cell
+  if (_seriesExpandedCell) {
+    _seriesExpandedCell.style.outline = '';
+    expandEl.style.display = 'none';
+    expandEl.innerHTML = '';
+  }
+
+  // Show base tooltip (temporarily unpin so showSeriesTooltip proceeds)
+  _seriesExpandedCell = null;
+  showSeriesTooltip(el, event);
+  _seriesExpandedCell = el;
+  el.style.outline = '2px solid #FFD700';
+
+  if (!el.dataset.result) {
+    expandEl.innerHTML = '<div style="color:#666;font-style:italic;font-size:9pt;margin-top:6px;">Game not yet played.</div>';
+    expandEl.style.display = 'block';
+    return;
+  }
+
+  const gameId = el.dataset.gameid;
+  if (!gameId) { expandEl.style.display = 'none'; return; }
+
+  expandEl.innerHTML = '<div style="color:#888;font-size:9pt;margin-top:6px;">Loading stats…</div>';
+  expandEl.style.display = 'block';
+
+  try {
+    if (!_seriesBsCache[gameId]) {
+      const res = await fetch(WORKER + '/v1/gamecenter/' + gameId + '/boxscore');
+      _seriesBsCache[gameId] = await res.json();
+    }
+    expandEl.innerHTML = buildSeriesExpandHTML(_seriesBsCache[gameId], el.dataset.home === '1');
+    expandEl.style.display = 'block';
+  } catch (err) {
+    expandEl.innerHTML = '<div style="color:#f66;font-size:9pt;margin-top:6px;">Could not load stats.</div>';
+  }
+}
+
+function buildSeriesExpandHTML(bs, isNYIHome) {
+  const nyiStats = isNYIHome
+    ? (bs.playerByGameStats || {}).homeTeam
+    : (bs.playerByGameStats || {}).awayTeam;
+  if (!nyiStats) return '<div style="color:#666;font-size:9pt;margin-top:6px;">No stats available.</div>';
+
+  const skaters = (nyiStats.forwards || []).concat(nyiStats.defense || []);
+  const scorers = skaters
+    .filter(function (p) { return ((p.goals || 0) + (p.assists || 0)) > 0; })
+    .sort(function (a, b) {
+      if ((b.goals || 0) !== (a.goals || 0)) return (b.goals || 0) - (a.goals || 0);
+      return ((b.goals || 0) + (b.assists || 0)) - ((a.goals || 0) + (a.assists || 0));
+    });
+
+  const goalies = (nyiStats.goalies || []).filter(function (g) { return (g.shotsAgainst || 0) > 0; });
+
+  let html = '<div style="margin-top:8px;border-top:1px solid #333;padding-top:6px;">';
+
+  if (scorers.length === 0) {
+    html += '<div style="font-size:9pt;color:#888;font-style:italic;">No NYI points</div>';
+  } else {
+    html += scorers.map(function (p) {
+      const name = jafares((p.name && p.name.default) || '?');
+      const g = p.goals   || 0;
+      const a = p.assists || 0;
+      return '<div style="font-size:9pt;">' + name +
+        ' <span style="color:#aaa;">(' + g + 'G, ' + a + 'A)</span></div>';
+    }).join('');
+  }
+
+  if (goalies.length > 0) {
+    html += '<div style="margin-top:6px;border-top:1px solid #222;padding-top:4px;">';
+    html += goalies.map(function (g) {
+      const name = jafares((g.name && g.name.default) || '?');
+      const ga   = g.goalsAgainst  !== undefined ? g.goalsAgainst  : '?';
+      const sa   = g.shotsAgainst  !== undefined ? g.shotsAgainst  : '?';
+      return '<div style="font-size:9pt;">' + name +
+        ' <span style="color:#aaa;">(' + ga + 'GA / ' + sa + 'SA)</span></div>';
+    }).join('');
+    html += '</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// Collapse pinned tooltip when clicking anywhere outside a game cell
+document.addEventListener('click', function () {
+  if (_seriesExpandedCell) {
+    _seriesExpandedCell.style.outline = '';
+    _seriesExpandedCell = null;
+    const expandEl = document.getElementById('series-tt-expand');
+    expandEl.style.display = 'none';
+    expandEl.innerHTML = '';
+    document.getElementById('series-tt').style.display = 'none';
+  }
+});
 
 // --- Init ---
 

@@ -20,12 +20,83 @@ function formatGameStartTime(utcStr) {
 }
 
 function seriesStatusText(topAbbrev, topWins, bottomAbbrev, bottomWins) {
-  if (topWins === 4)    return topAbbrev    + ' wins 4\u2013' + bottomWins;
-  if (bottomWins === 4) return bottomAbbrev + ' wins 4\u2013' + topWins;
+  if (topWins === 4)    return topAbbrev    + ' wins 4–' + bottomWins;
+  if (bottomWins === 4) return bottomAbbrev + ' wins 4–' + topWins;
   if (topWins === 0 && bottomWins === 0) return 'Series not yet begun';
-  if (topWins > bottomWins)  return topAbbrev    + ' leads ' + topWins    + '\u2013' + bottomWins;
-  if (bottomWins > topWins)  return bottomAbbrev + ' leads ' + bottomWins + '\u2013' + topWins;
-  return 'Series tied ' + topWins + '\u2013' + bottomWins;
+  if (topWins > bottomWins)  return topAbbrev    + ' leads ' + topWins    + '–' + bottomWins;
+  if (bottomWins > topWins)  return bottomAbbrev + ' leads ' + bottomWins + '–' + topWins;
+  return 'Series tied ' + topWins + '–' + bottomWins;
+}
+
+// Replace any appearance of John Tavares with snake emoji
+function jafares(name) {
+  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? '🐍' : 'Jafares') : name;
+}
+
+// --- Reverse-sweep detection ---
+// Returns the abbrev of the team that was reverse-swept (led 3-0 then lost 4-3), or null.
+function detectReverseSwept(series) {
+  var games = series.games;
+  if (!games || games.length < 7) return null;
+  var topAbbrev = (series.topSeedTeam || {}).abbrev;
+
+  var winners = [];
+  for (var i = 0; i < 7; i++) {
+    var g = games[i];
+    if (!g) return null;
+    var winner = null;
+    if (g.topSeedScore !== undefined && g.bottomSeedScore !== undefined) {
+      winner = g.topSeedScore > g.bottomSeedScore ? 'top' : 'bottom';
+    } else if (g.homeScore !== undefined && g.visitingScore !== undefined && g.homeTeamAbbrev) {
+      var homeIsTop = g.homeTeamAbbrev === topAbbrev;
+      var homeWon   = g.homeScore > g.visitingScore;
+      winner = (homeWon === homeIsTop) ? 'top' : 'bottom';
+    } else {
+      return null;
+    }
+    winners.push(winner);
+  }
+
+  var first3 = winners.slice(0, 3);
+  if (first3.every(function (w) { return w === 'top'; })) {
+    // Top won first 3; if total top wins = 3 they lost the series → reverse swept
+    if (winners.filter(function (w) { return w === 'top'; }).length === 3) {
+      return topAbbrev;
+    }
+  }
+  if (first3.every(function (w) { return w === 'bottom'; })) {
+    if (winners.filter(function (w) { return w === 'bottom'; }).length === 3) {
+      return (series.bottomSeedTeam || {}).abbrev;
+    }
+  }
+  return null;
+}
+
+// --- Fraud image hover (potential-fraud.jpg) ---
+
+var _fraudImgEl = null;
+function getFraudImgEl() {
+  if (!_fraudImgEl) {
+    _fraudImgEl = document.createElement('img');
+    _fraudImgEl.src = 'assets/potential-fraud.jpg';
+    _fraudImgEl.style.cssText = 'position:fixed;z-index:999;pointer-events:none;display:none;width:200px;';
+    document.body.appendChild(_fraudImgEl);
+  }
+  return _fraudImgEl;
+}
+function showFraudImg(el, e) {
+  var img = getFraudImgEl();
+  img.style.left = (e.clientX + 14) + 'px';
+  img.style.top  = (e.clientY + 14) + 'px';
+  img.style.display = 'block';
+}
+function moveFraudImg(e) {
+  var img = getFraudImgEl();
+  img.style.left = (e.clientX + 14) + 'px';
+  img.style.top  = (e.clientY + 14) + 'px';
+}
+function hideFraudImg() {
+  getFraudImgEl().style.display = 'none';
 }
 
 // --- Goal helpers ---
@@ -70,9 +141,11 @@ function playoffsGetSituationLabel(play, homeTeamId) {
 function formatGoalLine(g, rosterMap, homeTeamId) {
   var d      = g.details || {};
   var time   = (g.timeInPeriod || '?').replace(/^0/, '');
-  var scorer = rosterMap[d.scoringPlayerId] || '?';
-  var a1     = rosterMap[d.assist1PlayerId];
-  var a2     = rosterMap[d.assist2PlayerId];
+  var scorer = jafares(rosterMap[d.scoringPlayerId] || '?');
+  var a1raw  = rosterMap[d.assist1PlayerId];
+  var a2raw  = rosterMap[d.assist2PlayerId];
+  var a1     = a1raw ? jafares(a1raw) : null;
+  var a2     = a2raw ? jafares(a2raw) : null;
 
   var assists;
   if (a1 && a2) assists = ' from ' + a1 + ' and ' + a2;
@@ -87,7 +160,9 @@ function formatGoalLine(g, rosterMap, homeTeamId) {
 
 // --- Series card (used in bracket) ---
 
-function buildSeriesCard(series) {
+function buildSeriesCard(series, seedLabels) {
+  seedLabels = seedLabels || {};
+
   var top    = series.topSeedTeam    || {};
   var bottom = series.bottomSeedTeam || {};
 
@@ -96,29 +171,121 @@ function buildSeriesCard(series) {
   var topWins      = series.topSeedWins    || 0;
   var bottomWins   = series.bottomSeedWins || 0;
 
-  var isNYI     = topAbbrev === 'NYI' || bottomAbbrev === 'NYI';
-  var seriesWon = topWins === 4 || bottomWins === 4;
-  var status    = seriesStatusText(topAbbrev, topWins, bottomAbbrev, bottomWins);
+  var isNYI      = topAbbrev === 'NYI' || bottomAbbrev === 'NYI';
+  var seriesOver = topWins === 4 || bottomWins === 4;
+  var status     = seriesStatusText(topAbbrev, topWins, bottomAbbrev, bottomWins);
 
-  var tableStyle = 'border-collapse:collapse;margin-bottom:8px;width:100%;' +
-    (isNYI     ? 'outline:1px solid white;' : '') +
-    (seriesWon ? 'opacity:0.55;'            : '');
+  var winner = seriesOver ? (topWins === 4 ? topAbbrev : bottomAbbrev) : null;
+  var loser  = seriesOver ? (topWins === 4 ? bottomAbbrev : topAbbrev) : null;
 
-  function logoCell(abbrev) {
-    return '<td align="center" width="30%" style="border:none;padding:4px 2px;">' +
-      '<img src="' + playoffsLogoURL(abbrev) + '" width="36" alt="' + abbrev + '" ' +
-      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 3px;">' +
-      '<div style="font-size:8pt;">' + abbrev + '</div>' +
-      '</td>';
+  // 6a: higher seed (top) down 2+ in an active series → fraud
+  var topFraud = !seriesOver && (bottomWins - topWins) >= 2;
+
+  // 6b: down 3-0 in an active series
+  var topDown3    = !seriesOver && topWins === 0    && bottomWins === 3;
+  var bottomDown3 = !seriesOver && bottomWins === 0 && topWins === 3;
+
+  // 6c: swept (4-0)
+  var topSwept    = seriesOver && loser === topAbbrev    && topWins === 0;
+  var bottomSwept = seriesOver && loser === bottomAbbrev && bottomWins === 0;
+
+  // 6d: gentleman's swept (4-1)
+  var topGentSwept    = seriesOver && loser === topAbbrev    && topWins === 1;
+  var bottomGentSwept = seriesOver && loser === bottomAbbrev && bottomWins === 1;
+
+  // 6e: reverse swept (won first 3, lost next 4)
+  var topRevSwept = false, bottomRevSwept = false;
+  if (seriesOver && topWins + bottomWins === 7) {
+    var rsLoser = detectReverseSwept(series);
+    if (rsLoser === topAbbrev)    topRevSwept    = true;
+    if (rsLoser === bottomAbbrev) bottomRevSwept = true;
   }
 
+  var tableStyle = 'border-collapse:collapse;margin-bottom:8px;width:100%;' +
+    (isNYI ? 'outline:1px solid white;' : '');
+
+  function teamCell(abbrev, isTop) {
+    var isFaded = seriesOver && abbrev === loser;
+    // Only the higher seed (top seed) gets the fraud treatment
+    var isFraud = isTop && topFraud;
+    var isDown3 = isTop ? topDown3 : bottomDown3;
+    var isSwept = isTop ? topSwept : bottomSwept;
+    var isGent  = isTop ? topGentSwept : bottomGentSwept;
+    var isRevSw = isTop ? topRevSwept  : bottomRevSwept;
+
+    var textColor = isFraud ? '#FF69B4'
+                  : isDown3 ? '#CC2222'
+                  : '';
+    var cellOpacity = isFaded ? 'opacity:0.5;' : '';
+
+    var leftEmoji = '', rightEmoji = '';
+    if (isRevSw) {
+      leftEmoji  = '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+      rightEmoji = '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+    } else if (isSwept) {
+      leftEmoji  = '🧹';
+      rightEmoji = '🧹';
+    } else if (isGent) {
+      leftEmoji  = '🎩';
+      rightEmoji = '🧹';
+    } else if (isDown3) {
+      leftEmoji  = '👀';
+      rightEmoji = '🧹';
+    }
+
+    var innerStyle = isRevSw ? 'display:inline-block;transform:rotate(180deg);' : '';
+
+    var fraudAttr = isFraud
+      ? ' onmouseover="showFraudImg(this,event)" onmousemove="moveFraudImg(event)" onmouseout="hideFraudImg()"'
+      : '';
+
+    var seed = seedLabels[abbrev] || '';
+    var nameColor = textColor ? 'color:' + textColor + ';' : '';
+
+    var EC = 'border:none;vertical-align:middle;padding:0 2px;font-size:14pt;';
+    var textHTML = (leftEmoji || rightEmoji)
+      ? '<table style="margin:0 auto;border-collapse:collapse;border:none;"><tr>' +
+          '<td style="' + EC + '">' + (leftEmoji  || '') + '</td>' +
+          '<td style="border:none;vertical-align:middle;padding:0;">' +
+            '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
+            (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '') +
+          '</td>' +
+          '<td style="' + EC + '">' + (rightEmoji || '') + '</td>' +
+        '</tr></table>'
+      : '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
+        (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '');
+
+    var content = '<span style="' + innerStyle + '">' +
+      '<img src="' + playoffsLogoURL(abbrev) + '" width="36" alt="' + abbrev + '" ' +
+      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 3px;">' +
+      textHTML +
+      '</span>';
+
+    return '<td align="center" width="30%" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + '>' +
+      content + '</td>';
+  }
+
+  function winsCell(abbrev, wins, isTop) {
+    var isFaded = seriesOver && abbrev === loser;
+    var isFraud = isTop && topFraud;
+    var isDown3 = isTop ? topDown3 : bottomDown3;
+
+    var textColor = isFraud ? 'color:#FF69B4;'
+                  : isDown3 ? 'color:#CC2222;'
+                  : '';
+    var cellOpacity = isFaded ? 'opacity:0.5;' : '';
+
+    return '<td align="center" width="10%" style="border:none;font-size:18pt;font-weight:bold;padding:0 2px;' + textColor + cellOpacity + '">' + wins + '</td>';
+  }
+
+  // Higher seed (top) on the LEFT; lower seed (bottom) on the RIGHT
   return '<table style="' + tableStyle + '">' +
     '<tr>' +
-    logoCell(topAbbrev) +
-    '<td align="center" width="10%" style="border:none;font-size:18pt;font-weight:bold;padding:0 2px;">' + topWins + '</td>' +
+    teamCell(topAbbrev, true) +
+    winsCell(topAbbrev, topWins, true) +
     '<td align="center" width="20%" style="border:none;font-size:8pt;opacity:0.6;">vs</td>' +
-    '<td align="center" width="10%" style="border:none;font-size:18pt;font-weight:bold;padding:0 2px;">' + bottomWins + '</td>' +
-    logoCell(bottomAbbrev) +
+    winsCell(bottomAbbrev, bottomWins, false) +
+    teamCell(bottomAbbrev, false) +
     '</tr>' +
     '<tr>' +
     '<td colspan="5" align="center" style="border-top:1px solid rgba(255,255,255,0.25);border-left:none;border-right:none;border-bottom:none;font-size:8pt;opacity:0.7;padding:3px 4px;">' +
@@ -141,7 +308,7 @@ function buildTodayGameCard(game, pbp) {
 
   var centerScore, centerSub;
   if (isFinal) {
-    centerScore = (away.score || 0) + ' \u2013 ' + (home.score || 0);
+    centerScore = (away.score || 0) + ' – ' + (home.score || 0);
     centerSub   = 'Final';
     if (game.gameOutcome) {
       if (game.gameOutcome.lastPeriodType === 'OT') centerSub = 'Final/OT';
@@ -150,10 +317,10 @@ function buildTodayGameCard(game, pbp) {
   } else if (isLive) {
     var pd    = game.periodDescriptor || {};
     var clock = game.clock || {};
-    centerScore = (away.score || 0) + ' \u2013 ' + (home.score || 0);
+    centerScore = (away.score || 0) + ' – ' + (home.score || 0);
     centerSub   = clock.inIntermission
       ? 'Intermission'
-      : playoffsPeriodLabel(pd.number || 0) + ' \u00b7 ' + (clock.timeRemaining || '');
+      : playoffsPeriodLabel(pd.number || 0) + ' · ' + (clock.timeRemaining || '');
   } else {
     centerScore = formatGameStartTime(game.startTimeUTC);
     centerSub   = '';
@@ -164,7 +331,7 @@ function buildTodayGameCard(game, pbp) {
   if (ss.seriesTitle) {
     var tA = ss.topSeedTeamAbbrev || '', bA = ss.bottomSeedTeamAbbrev || '';
     var tW = ss.topSeedWins || 0,     bW = ss.bottomSeedWins || 0;
-    seriesLine = ss.seriesTitle + (tA ? ' \u2014 ' + seriesStatusText(tA, tW, bA, bW) : '');
+    seriesLine = ss.seriesTitle + (tA ? ' — ' + seriesStatusText(tA, tW, bA, bW) : '');
   }
 
   var borderStyle = isNYI
@@ -245,7 +412,7 @@ function buildTodayGameCard(game, pbp) {
 
 var ROUND_LABEL_STYLE = 'font-size:9pt;font-weight:normal;opacity:0.7;text-transform:uppercase;margin:10px 0 6px 0;';
 
-function buildConferenceColumn(allSeries, r1, r2, cf, confName) {
+function buildConferenceColumn(allSeries, r1, r2, cf, confName, seedLabels) {
   function getSeries(letters) {
     return letters.map(function (l) {
       return allSeries.find(function (s) { return s.seriesLetter === l; });
@@ -257,19 +424,19 @@ function buildConferenceColumn(allSeries, r1, r2, cf, confName) {
   var r1Series = getSeries(r1);
   if (r1Series.length) {
     html += '<h4 style="' + ROUND_LABEL_STYLE + '">1st Round</h4>';
-    html += r1Series.map(buildSeriesCard).join('');
+    html += r1Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join('');
   }
 
   var r2Series = getSeries(r2);
   if (r2Series.length) {
     html += '<h4 style="' + ROUND_LABEL_STYLE + '">2nd Round</h4>';
-    html += r2Series.map(buildSeriesCard).join('');
+    html += r2Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join('');
   }
 
   var cfSeries = getSeries([cf]);
   if (cfSeries.length) {
     html += '<h4 style="' + ROUND_LABEL_STYLE + '">Conference Final</h4>';
-    html += cfSeries.map(buildSeriesCard).join('');
+    html += cfSeries.map(function (s) { return buildSeriesCard(s, seedLabels); }).join('');
   }
 
   return html;
@@ -284,10 +451,24 @@ async function loadPlayoffsPage() {
     var results = await Promise.all([
       fetch(WORKER + '/v1/score/now'),
       fetch(WORKER + '/v1/playoff-bracket/' + year),
+      fetch(WORKER + '/v1/standings/now'),
     ]);
 
     var scoreData   = await results[0].json();
     var bracketData = await results[1].json();
+    var standData   = await results[2].json();
+
+    // Build seed label map: A1, M2, WC1, etc.
+    var seedLabels = {};
+    (standData.standings || []).forEach(function (t) {
+      var abbrev = t.teamAbbrev && (t.teamAbbrev.default || t.teamAbbrev);
+      if (!abbrev) return;
+      if (t.divisionSequence && t.divisionSequence <= 3) {
+        seedLabels[abbrev] = (t.divisionAbbrev || '') + t.divisionSequence;
+      } else if (t.wildcardSequence && t.wildcardSequence <= 2) {
+        seedLabels[abbrev] = 'WC' + t.wildcardSequence;
+      }
+    });
 
     var todayGames = (scoreData.games || []).filter(function (g) { return g.gameType === 3; });
 
@@ -319,8 +500,8 @@ async function loadPlayoffsPage() {
       return;
     }
 
-    var eastHTML    = buildConferenceColumn(allSeries, ['A','B','C','D'], ['I','J'], 'M', 'Eastern Conference');
-    var westHTML    = buildConferenceColumn(allSeries, ['E','F','G','H'], ['K','L'], 'N', 'Western Conference');
+    var eastHTML    = buildConferenceColumn(allSeries, ['A','B','C','D'], ['I','J'], 'M', 'Eastern Conference', seedLabels);
+    var westHTML    = buildConferenceColumn(allSeries, ['E','F','G','H'], ['K','L'], 'N', 'Western Conference', seedLabels);
     var finalSeries = allSeries.find(function (s) { return s.seriesLetter === 'O'; });
 
     bracketEl.innerHTML =
@@ -332,7 +513,7 @@ async function loadPlayoffsPage() {
       '</table>' +
       (finalSeries
         ? '<h3 style="text-align:center;font-size:12pt;margin:24px 0 10px 0;">Stanley Cup Final</h3>' +
-          '<div style="max-width:300px;margin:0 auto;">' + buildSeriesCard(finalSeries) + '</div>'
+          '<div style="max-width:300px;margin:0 auto;">' + buildSeriesCard(finalSeries, seedLabels) + '</div>'
         : '');
 
     document.getElementById('footer').textContent =
