@@ -429,8 +429,29 @@ function showSeriesTooltip(el, e) {
 function moveSeriesTooltip(e) {
   if (_seriesExpandedCell) return;
   const tt = document.getElementById('series-tt');
-  tt.style.left = (e.clientX + 14) + 'px';
-  tt.style.top  = (e.clientY + 14) + 'px';
+  tt.style.left = '-9999px';
+  tt.style.top  = '-9999px';
+  tt.style.display = 'block';
+  const ttW = tt.offsetWidth;
+  const ttH = tt.offsetHeight;
+  const vw  = window.innerWidth;
+  const vh  = window.innerHeight;
+  const x = (e.clientX + 14 + ttW > vw)  ? e.clientX - 14 - ttW : e.clientX + 14;
+  const y = (e.clientY + 14 + ttH > vh)  ? e.clientY - 14 - ttH : e.clientY + 14;
+  tt.style.left = x + 'px';
+  tt.style.top  = y + 'px';
+}
+
+function clampSeriesTooltip() {
+  const tt  = document.getElementById('series-tt');
+  const vh  = window.innerHeight;
+  const vw  = window.innerWidth;
+  const top  = parseInt(tt.style.top,  10) || 0;
+  const left = parseInt(tt.style.left, 10) || 0;
+  const h   = tt.offsetHeight;
+  const w   = tt.offsetWidth;
+  if (top  + h > vh) tt.style.top  = Math.max(0, vh - h - 4) + 'px';
+  if (left + w > vw) tt.style.left = Math.max(0, vw - w - 4) + 'px';
 }
 
 function hideSeriesTooltip() {
@@ -474,6 +495,7 @@ async function toggleSeriesExpand(el, event) {
   if (!el.dataset.result) {
     expandEl.innerHTML = '<div style="color:#666;font-style:italic;font-size:9pt;margin-top:6px;">Game not yet played.</div>';
     expandEl.style.display = 'block';
+    clampSeriesTooltip();
     return;
   }
 
@@ -507,6 +529,7 @@ async function toggleSeriesExpand(el, event) {
       nyiShutout
     );
     expandEl.style.display = 'block';
+    clampSeriesTooltip();
   } catch (err) {
     expandEl.innerHTML = '<div style="color:#f66;font-size:9pt;margin-top:6px;">Could not load stats.</div>';
   }
