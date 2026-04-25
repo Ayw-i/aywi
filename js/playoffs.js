@@ -413,6 +413,16 @@ function buildTodayGameCard(game, pbp) {
 
 var ROUND_LABEL_STYLE = 'font-size:9pt;font-weight:normal;opacity:0.7;text-transform:uppercase;margin:10px 0 6px 0;';
 
+function roundStarted(seriesList) {
+  return seriesList.some(function (s) {
+    return (s.topSeedWins || 0) + (s.bottomSeedWins || 0) > 0;
+  });
+}
+
+function roundWrap(started, inner) {
+  return started ? inner : '<div style="opacity:0.5;">' + inner + '</div>';
+}
+
 function buildConferenceColumn(allSeries, r1, r2, cf, confName, seedLabels) {
   function getSeries(letters) {
     return letters.map(function (l) {
@@ -424,20 +434,23 @@ function buildConferenceColumn(allSeries, r1, r2, cf, confName, seedLabels) {
 
   var r1Series = getSeries(r1);
   if (r1Series.length) {
-    html += '<h4 style="' + ROUND_LABEL_STYLE + '">1st Round</h4>';
-    html += r1Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join('');
+    html += roundWrap(roundStarted(r1Series),
+      '<h4 style="' + ROUND_LABEL_STYLE + '">1st Round</h4>' +
+      r1Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
   }
 
   var r2Series = getSeries(r2);
   if (r2Series.length) {
-    html += '<h4 style="' + ROUND_LABEL_STYLE + '">2nd Round</h4>';
-    html += r2Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join('');
+    html += roundWrap(roundStarted(r2Series),
+      '<h4 style="' + ROUND_LABEL_STYLE + '">2nd Round</h4>' +
+      r2Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
   }
 
   var cfSeries = getSeries([cf]);
   if (cfSeries.length) {
-    html += '<h4 style="' + ROUND_LABEL_STYLE + '">Conference Final</h4>';
-    html += cfSeries.map(function (s) { return buildSeriesCard(s, seedLabels); }).join('');
+    html += roundWrap(roundStarted(cfSeries),
+      '<h4 style="' + ROUND_LABEL_STYLE + '">Conference Final</h4>' +
+      cfSeries.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
   }
 
   return html;
@@ -513,8 +526,9 @@ async function loadPlayoffsPage() {
       '</tr>' +
       '</table>' +
       (finalSeries
-        ? '<h3 style="text-align:center;font-size:12pt;margin:24px 0 10px 0;">Stanley Cup Final</h3>' +
-          '<div style="max-width:300px;margin:0 auto;">' + buildSeriesCard(finalSeries, seedLabels) + '</div>'
+        ? roundWrap(roundStarted([finalSeries]),
+            '<h3 style="text-align:center;font-size:12pt;margin:24px 0 10px 0;">Stanley Cup Final</h3>' +
+            '<div style="max-width:300px;margin:0 auto;">' + buildSeriesCard(finalSeries, seedLabels) + '</div>')
         : '');
 
     document.getElementById('footer').textContent =

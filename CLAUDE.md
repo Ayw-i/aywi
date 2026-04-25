@@ -145,6 +145,7 @@ Always rendered below the mood section (except off-season: news only, no roster)
 - Color-code skater/goalie stats by league ranking (gold/silver/green/red)
   Requires fetching league-wide stats leaders endpoints
 - Barzal spin gif for power play state (replace barzal-the-muse.png placeholder)
+- **Revisit playoffs bracket UX:** (1) The "dim unstarted rounds" logic (opacity:0.5 if no wins yet) is a rough heuristic — think through edge cases like round just starting with 0-0 records. (2) Take another look at emoji spacing in the series card — the nested mini-table approach works but may still feel off at certain sizes.
 
 ---
 
