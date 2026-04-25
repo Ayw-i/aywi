@@ -133,6 +133,25 @@ Always rendered below the mood section (except off-season: news only, no roster)
 
 ## High Priority — Planned Features
 
+- **Live skater situation display:** Add a small line near the period/time display showing the
+  current on-ice skater counts. Usually "5v5". If a penalty is active: "5v4 2:00" or "4v5 2:00"
+  (skater count from away team's perspective vs. home team's, time remaining on penalty).
+  Handle 4v4, 5v3, 3v5, and extra attacker (goalie pulled, e.g. 6v5) situations. Right now the
+  only way to know we're not at 5v5 is the mood headline, which gets overridden a lot — this
+  gives a persistent, unambiguous skater-count indicator.
+
+- **Playoff background tiers:** Live game state should be aware of playoff context and set
+  background color accordingly (no mood image in these states). Priority order (highest wins):
+  1. **Game 7** — bright orange `#FF8C00` (matches series.html away OT win color)
+  2. **Elimination game** (NYI must win or season ends) — dark burnt orange `#CC5500`
+     (matches series.html away reg win color)
+  3. **Playoff OT** — royal blue `#003B99` (brighter than standard playoff bg); keep jon_bois
+     image + "OVERTIME. PLAYOFF. ISLANDERS. HOCKEY." header; just swap background color
+  4. **Any playoff live game** — dark navy `#0a0f2c` (already used), header
+     "PLAYOFF.<br>ISLANDERS.<br>HOCKEY.", no mood image
+  Note: Game 6 Beauvillier overlay is already built and can stay as-is (it's OT + elimination
+  context combined). These tiers only affect background color + fallback behavior.
+
 - **Live game skater stats redesign:** Replace the current "best 3 / worst 3 by points/TOI"
   panel with a full per-team skater table showing all players sorted by TOI, with additional
   columns: shots, blocked shots, hits, faceoff %, takeaways, giveaways, +/-. Layout TBD

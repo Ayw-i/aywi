@@ -59,8 +59,9 @@ function getSituationLabel(play, homeTeamId) {
 
   // Scoring team pulled their own goalie (extra attacker — 6v5, 6v4, etc.)
   if (!scoringGoalieIn) {
-    if (scoringSkaters > defendSkaters) return 'PPG (EA)';
-    if (scoringSkaters < defendSkaters) return 'SHG (EA)';
+    var netSkaters = scoringSkaters - 1;
+    if (netSkaters > defendSkaters) return 'PPG (EA)';
+    if (netSkaters < defendSkaters) return 'SHG (EA)';
     return 'EA';
   }
 

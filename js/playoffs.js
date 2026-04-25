@@ -128,8 +128,9 @@ function playoffsGetSituationLabel(play, homeTeamId) {
   if (!defendGoalieIn) return 'EN';
 
   if (!scoringGoalieIn) {
-    if (scoringSkaters > defendSkaters) return 'PPG (EA)';
-    if (scoringSkaters < defendSkaters) return 'SHG (EA)';
+    var netSkaters = scoringSkaters - 1;
+    if (netSkaters > defendSkaters) return 'PPG (EA)';
+    if (netSkaters < defendSkaters) return 'SHG (EA)';
     return 'EA';
   }
 
@@ -215,9 +216,13 @@ function buildSeriesCard(series, seedLabels) {
     var isRevSw = (isTop ? topRevSwept  : bottomRevSwept)  && !isNYITeam;
 
     var textColor = isFraud ? '#FF69B4'
+                  : isSwept ? '#880000'
                   : isDown3 ? '#CC2222'
                   : '';
-    var cellOpacity = isFaded ? 'opacity:0.5;' : '';
+    // For swept teams: fade logo+name individually so emojis stay at full opacity.
+    // For all other eliminated teams: fade the whole cell.
+    var cellOpacity  = (isFaded && !isSwept) ? 'opacity:0.4;' : '';
+    var innerOpacity = isSwept ? 'opacity:0.4;' : '';
 
     var leftEmoji = '', rightEmoji = '';
     if (isRevSw) {
@@ -230,8 +235,8 @@ function buildSeriesCard(series, seedLabels) {
       leftEmoji  = '🎩';
       rightEmoji = '🧹';
     } else if (isDown3) {
-      leftEmoji  = '👀';
-      rightEmoji = '🧹';
+      leftEmoji  = '<span style="opacity:0.3;">👀</span>';
+      rightEmoji = '<span style="opacity:0.3;">🧹</span>';
     }
 
     var innerStyle = isRevSw ? 'display:inline-block;transform:rotate(180deg);' : '';
@@ -247,7 +252,7 @@ function buildSeriesCard(series, seedLabels) {
     var textHTML = (leftEmoji || rightEmoji)
       ? '<table style="margin:0 auto;border-collapse:collapse;border:none;"><tr>' +
           '<td style="' + EC + '">' + (leftEmoji  || '') + '</td>' +
-          '<td style="border:none;vertical-align:middle;padding:0;">' +
+          '<td style="border:none;vertical-align:middle;padding:0;' + innerOpacity + '">' +
             '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
             (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '') +
           '</td>' +
@@ -256,9 +261,10 @@ function buildSeriesCard(series, seedLabels) {
       : '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
         (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '');
 
+    var imgStyle = 'display:block;margin:0 auto 3px;' + innerOpacity;
     var content = '<span style="' + innerStyle + '">' +
       '<img src="' + playoffsLogoURL(abbrev) + '" width="36" alt="' + abbrev + '" ' +
-      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 3px;">' +
+      'onerror="this.style.display=\'none\'" style="' + imgStyle + '">' +
       textHTML +
       '</span>';
 
@@ -271,11 +277,13 @@ function buildSeriesCard(series, seedLabels) {
     var isNYITeam = abbrev === 'NYI';
     var isFraud = isTop && topFraud && !isNYITeam;
     var isDown3 = (isTop ? topDown3 : bottomDown3) && !isNYITeam;
+    var isSwept = (isTop ? topSwept : bottomSwept) && !isNYITeam;
 
     var textColor = isFraud ? 'color:#FF69B4;'
+                  : isSwept ? 'color:#880000;'
                   : isDown3 ? 'color:#CC2222;'
                   : '';
-    var cellOpacity = isFaded ? 'opacity:0.5;' : '';
+    var cellOpacity = isFaded ? 'opacity:0.4;' : '';
 
     return '<td align="center" width="10%" style="border:none;font-size:18pt;font-weight:bold;padding:0 2px;' + textColor + cellOpacity + '">' + wins + '</td>';
   }
