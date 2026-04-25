@@ -237,7 +237,7 @@ function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padTo
         '<td style="width:130px;text-align:right;padding-right:10px;font-size:10pt;vertical-align:middle;white-space:nowrap;color:#aaa;">' +
           name + seasonRecord +
         '</td>' +
-        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:' + (groupBy === 'result' ? 44 : 22) + 'px;padding-bottom:3px;">—</td>' +
+        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:' + (groupBy === 'result' ? 44 : 22) + 'px;padding-bottom:3px;">â€”</td>' +
       '</tr>';
       return;
     }
@@ -286,7 +286,7 @@ function renderRecordSummary(byOpp) {
 
   const totalW  = rw + otw + sow;
   const totalLP = otl + sol;
-  const overall = totalW + '–' + rl + '–' + totalLP;
+  const overall = totalW + 'â€“' + rl + 'â€“' + totalLP;
 
   function cell(label, big, sub) {
     return '<td style="padding:8px 20px;text-align:center;border:1px solid #444;">' +
@@ -301,9 +301,9 @@ function renderRecordSummary(byOpp) {
       overall +
     '</td></tr>' +
     '<tr>' +
-      cell('Wins',          totalW, 'RW ' + rw + ' · OTW ' + otw + ' · SOW ' + sow) +
-      cell('Reg. Losses',   rl,     ' ') +
-      cell('Loser Points',  totalLP, 'OTL ' + otl + ' · SOL ' + sol) +
+      cell('Wins',          totalW, 'RWÂ ' + rw + 'Â Â·Â OTWÂ ' + otw + 'Â Â·Â SOWÂ ' + sow) +
+      cell('Reg. Losses',   rl,     'Â ') +
+      cell('Loser Points',  totalLP, 'OTLÂ ' + otl + 'Â Â·Â SOLÂ ' + sol) +
     '</tr>' +
   '</table>';
 }
@@ -396,6 +396,7 @@ function renderLegend() {
 
 var _seriesExpandedCell = null;
 var _seriesBsCache      = {};
+var _seriesPbpCache     = {};
 
 function showSeriesTooltip(el, e) {
   if (_seriesExpandedCell && _seriesExpandedCell !== el) return;
@@ -413,7 +414,7 @@ function showSeriesTooltip(el, e) {
 
   let scoreText = '';
   if (result) {
-    scoreText = 'NYI ' + nyi + ' – ' + opp + ' ' + osc;
+    scoreText = 'NYI ' + nyi + ' â€“ ' + opp + ' ' + osc;
     if (type && type !== 'REG') scoreText += ' (' + type + ')';
   }
   document.getElementById('series-tt-score').textContent = scoreText;
@@ -440,7 +441,7 @@ function hideSeriesTooltip() {
 // --- Click-to-expand tooltip ---
 
 function jafares(name) {
-  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? '🐍' : 'Jafares') : name;
+  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? 'ðŸ' : 'Jafares') : name;
 }
 
 async function toggleSeriesExpand(el, event) {
@@ -479,26 +480,76 @@ async function toggleSeriesExpand(el, event) {
   const gameId = el.dataset.gameid;
   if (!gameId) { expandEl.style.display = 'none'; return; }
 
-  expandEl.innerHTML = '<div style="color:#888;font-size:9pt;margin-top:6px;">Loading stats…</div>';
+  expandEl.innerHTML = '<div style="color:#888;font-size:9pt;margin-top:6px;">Loading statsâ€¦</div>';
   expandEl.style.display = 'block';
 
   try {
+    const fetches = [];
     if (!_seriesBsCache[gameId]) {
-      const res = await fetch(WORKER + '/v1/gamecenter/' + gameId + '/boxscore');
-      _seriesBsCache[gameId] = await res.json();
+      fetches.push(
+        fetch(WORKER + '/v1/gamecenter/' + gameId + '/boxscore').then(function (r) { return r.json(); }).then(function (d) { _seriesBsCache[gameId] = d; })
+      );
     }
-    expandEl.innerHTML = buildSeriesExpandHTML(_seriesBsCache[gameId], el.dataset.home === '1');
+    if (!_seriesPbpCache[gameId]) {
+      fetches.push(
+        fetch(WORKER + '/v1/gamecenter/' + gameId + '/play-by-play').then(function (r) { return r.json(); }).then(function (d) { _seriesPbpCache[gameId] = d; }).catch(function () { _seriesPbpCache[gameId] = null; })
+      );
+    }
+    await Promise.all(fetches);
+
+    const gameType     = el.dataset.type;
+    const nyiShutout   = el.dataset.shutout === '1' && el.dataset.result === 'W';
+    expandEl.innerHTML = buildSeriesExpandHTML(
+      _seriesBsCache[gameId],
+      _seriesPbpCache[gameId] || null,
+      el.dataset.home === '1',
+      gameType,
+      nyiShutout
+    );
     expandEl.style.display = 'block';
   } catch (err) {
     expandEl.innerHTML = '<div style="color:#f66;font-size:9pt;margin-top:6px;">Could not load stats.</div>';
   }
 }
 
-function buildSeriesExpandHTML(bs, isNYIHome) {
+function buildSeriesExpandHTML(bs, pbp, isNYIHome, gameType, nyiShutout) {
   const nyiStats = isNYIHome
     ? (bs.playerByGameStats || {}).homeTeam
     : (bs.playerByGameStats || {}).awayTeam;
   if (!nyiStats) return '<div style="color:#666;font-size:9pt;margin-top:6px;">No stats available.</div>';
+
+  // Build roster map from play-by-play for OT/SO player name lookups
+  var rosterMap = {};
+  ((pbp || {}).rosterSpots || []).forEach(function (p) {
+    var first = (p.firstName && p.firstName.default) || '';
+    var last  = (p.lastName  && p.lastName.default)  || '';
+    rosterMap[p.playerId] = (first + ' ' + last).trim();
+  });
+
+  // Find OT winner player ID
+  var otWinnerPlayerId = null;
+  if (gameType === 'OT' && pbp && pbp.plays) {
+    var otGoals = pbp.plays.filter(function (p) {
+      var pd = p.periodDescriptor || {};
+      return p.typeDescKey === 'goal' && (pd.periodType === 'OT' || (pd.number || 0) > 3);
+    });
+    if (otGoals.length > 0) {
+      otWinnerPlayerId = (otGoals[otGoals.length - 1].details || {}).scoringPlayerId;
+    }
+  }
+
+  // Find NYI shootout scorers
+  var nyiSOScorers = [];
+  if (gameType === 'SO' && pbp && pbp.plays) {
+    var homeId = (bs.homeTeam || {}).id;
+    pbp.plays.forEach(function (p) {
+      var pd = p.periodDescriptor || {};
+      if (p.typeDescKey !== 'goal' || pd.periodType !== 'SO') return;
+      var d = p.details || {};
+      var nyiScored = isNYIHome ? (d.eventOwnerTeamId === homeId) : (d.eventOwnerTeamId !== homeId);
+      if (nyiScored) nyiSOScorers.push(rosterMap[d.scoringPlayerId] || '?');
+    });
+  }
 
   const skaters = (nyiStats.forwards || []).concat(nyiStats.defense || []);
   const scorers = skaters
@@ -510,28 +561,54 @@ function buildSeriesExpandHTML(bs, isNYIHome) {
 
   const goalies = (nyiStats.goalies || []).filter(function (g) { return (g.shotsAgainst || 0) > 0; });
 
+  // Primary goalie = most shots against (for shutout gold highlight)
+  var primaryGoalieId = null;
+  if (goalies.length > 0) {
+    var topG = goalies.slice().sort(function (a, b) { return (b.shotsAgainst || 0) - (a.shotsAgainst || 0); });
+    primaryGoalieId = topG[0].playerId;
+  }
+
   let html = '<div style="margin-top:8px;border-top:1px solid #333;padding-top:6px;">';
 
   if (scorers.length === 0) {
     html += '<div style="font-size:9pt;color:#888;font-style:italic;">No NYI points</div>';
   } else {
     html += scorers.map(function (p) {
-      const name = jafares((p.name && p.name.default) || '?');
-      const g = p.goals   || 0;
-      const a = p.assists || 0;
-      return '<div style="font-size:9pt;">' + name +
-        ' <span style="color:#aaa;">(' + g + 'G, ' + a + 'A)</span></div>';
+      const name  = jafares((p.name && p.name.default) || '?');
+      const g     = p.goals   || 0;
+      const a     = p.assists || 0;
+      const isOTW = otWinnerPlayerId !== null && p.playerId === otWinnerPlayerId;
+      const parts = [];
+      if (isOTW) parts.push('OTW');
+      parts.push(g + 'G');
+      parts.push(a + 'A');
+      const nameStyle = isOTW ? 'color:#FFD700;font-weight:bold;' : '';
+      return '<div style="font-size:9pt;">' +
+        '<span style="' + nameStyle + '">' + name + '</span>' +
+        ' <span style="color:#aaa;">(' + parts.join(', ') + ')</span></div>';
     }).join('');
   }
 
   if (goalies.length > 0) {
     html += '<div style="margin-top:6px;border-top:1px solid #222;padding-top:4px;">';
     html += goalies.map(function (g) {
-      const name = jafares((g.name && g.name.default) || '?');
-      const ga   = g.goalsAgainst  !== undefined ? g.goalsAgainst  : '?';
-      const sa   = g.shotsAgainst  !== undefined ? g.shotsAgainst  : '?';
-      return '<div style="font-size:9pt;">' + name +
-        ' <span style="color:#aaa;">(' + ga + 'GA / ' + sa + 'SA)</span></div>';
+      const name            = jafares((g.name && g.name.default) || '?');
+      const ga              = g.goalsAgainst !== undefined ? g.goalsAgainst : '?';
+      const sa              = g.shotsAgainst !== undefined ? g.shotsAgainst : '?';
+      const isShutoutGoalie = nyiShutout && g.playerId === primaryGoalieId;
+      const nameStyle       = isShutoutGoalie ? 'color:#FFD700;font-weight:bold;' : '';
+      return '<div style="font-size:9pt;">' +
+        '<span style="' + nameStyle + '">' + name + '</span>' +
+        ' <span style="color:#aaa;">(' + ga + 'GA / ' + sa + 'SA)</span></div>';
+    }).join('');
+    html += '</div>';
+  }
+
+  if (nyiSOScorers.length > 0) {
+    html += '<div style="margin-top:6px;border-top:1px solid #222;padding-top:4px;">';
+    html += '<div style="font-size:8pt;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:2px;">Shootout</div>';
+    html += nyiSOScorers.map(function (name) {
+      return '<div style="font-size:9pt;">' + jafares(name) + ' &#10004;</div>';
     }).join('');
     html += '</div>';
   }
