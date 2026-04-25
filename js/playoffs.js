@@ -331,7 +331,8 @@ function buildTodayGameCard(game, pbp) {
   if (ss.seriesTitle) {
     var tA = ss.topSeedTeamAbbrev || '', bA = ss.bottomSeedTeamAbbrev || '';
     var tW = ss.topSeedWins || 0,     bW = ss.bottomSeedWins || 0;
-    seriesLine = ss.seriesTitle + (tA ? ' — ' + seriesStatusText(tA, tW, bA, bW) : '');
+    var statusPart = (tW === 3 && bW === 3) ? '🚨 Game 7 🚨' : seriesStatusText(tA, tW, bA, bW);
+    seriesLine = ss.seriesTitle + (tA ? ' — ' + statusPart : '');
   }
 
   var borderStyle = isNYI
