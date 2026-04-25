@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const WORKER = 'https://nhl-proxy.aywi.workers.dev';
 
@@ -237,7 +237,7 @@ function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padTo
         '<td style="width:130px;text-align:right;padding-right:10px;font-size:10pt;vertical-align:middle;white-space:nowrap;color:#aaa;">' +
           name + seasonRecord +
         '</td>' +
-        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:' + (groupBy === 'result' ? 44 : 22) + 'px;padding-bottom:3px;">â€”</td>' +
+        '<td style="vertical-align:middle;color:#444;font-size:9pt;padding-left:4px;height:' + (groupBy === 'result' ? 44 : 22) + 'px;padding-bottom:3px;">—</td>' +
       '</tr>';
       return;
     }
@@ -286,7 +286,7 @@ function renderRecordSummary(byOpp) {
 
   const totalW  = rw + otw + sow;
   const totalLP = otl + sol;
-  const overall = totalW + 'â€“' + rl + 'â€“' + totalLP;
+  const overall = totalW + '–' + rl + '–' + totalLP;
 
   function cell(label, big, sub) {
     return '<td style="padding:8px 20px;text-align:center;border:1px solid #444;">' +
@@ -301,9 +301,9 @@ function renderRecordSummary(byOpp) {
       overall +
     '</td></tr>' +
     '<tr>' +
-      cell('Wins',          totalW, 'RWÂ ' + rw + 'Â Â·Â OTWÂ ' + otw + 'Â Â·Â SOWÂ ' + sow) +
-      cell('Reg. Losses',   rl,     'Â ') +
-      cell('Loser Points',  totalLP, 'OTLÂ ' + otl + 'Â Â·Â SOLÂ ' + sol) +
+      cell('Wins',          totalW, 'RW ' + rw + ' · OTW ' + otw + ' · SOW ' + sow) +
+      cell('Reg. Losses',   rl,     ' ') +
+      cell('Loser Points',  totalLP, 'OTL ' + otl + ' · SOL ' + sol) +
     '</tr>' +
   '</table>';
 }
@@ -414,7 +414,7 @@ function showSeriesTooltip(el, e) {
 
   let scoreText = '';
   if (result) {
-    scoreText = 'NYI ' + nyi + ' â€“ ' + opp + ' ' + osc;
+    scoreText = 'NYI ' + nyi + ' – ' + opp + ' ' + osc;
     if (type && type !== 'REG') scoreText += ' (' + type + ')';
   }
   document.getElementById('series-tt-score').textContent = scoreText;
@@ -441,7 +441,7 @@ function hideSeriesTooltip() {
 // --- Click-to-expand tooltip ---
 
 function jafares(name) {
-  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? 'ðŸ' : 'Jafares') : name;
+  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? '🐍' : 'Jafares') : name;
 }
 
 async function toggleSeriesExpand(el, event) {
@@ -480,7 +480,7 @@ async function toggleSeriesExpand(el, event) {
   const gameId = el.dataset.gameid;
   if (!gameId) { expandEl.style.display = 'none'; return; }
 
-  expandEl.innerHTML = '<div style="color:#888;font-size:9pt;margin-top:6px;">Loading statsâ€¦</div>';
+  expandEl.innerHTML = '<div style="color:#888;font-size:9pt;margin-top:6px;">Loading stats...</div>';
   expandEl.style.display = 'block';
 
   try {
@@ -497,8 +497,8 @@ async function toggleSeriesExpand(el, event) {
     }
     await Promise.all(fetches);
 
-    const gameType     = el.dataset.type;
-    const nyiShutout   = el.dataset.shutout === '1' && el.dataset.result === 'W';
+    const gameType   = el.dataset.type;
+    const nyiShutout = el.dataset.shutout === '1' && el.dataset.result === 'W';
     expandEl.innerHTML = buildSeriesExpandHTML(
       _seriesBsCache[gameId],
       _seriesPbpCache[gameId] || null,
