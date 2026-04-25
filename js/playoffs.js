@@ -318,9 +318,16 @@ function buildTodayGameCard(game, pbp) {
     var pd    = game.periodDescriptor || {};
     var clock = game.clock || {};
     centerScore = (away.score || 0) + ' – ' + (home.score || 0);
-    centerSub   = clock.inIntermission
-      ? 'Intermission'
-      : playoffsPeriodLabel(pd.number || 0) + ' · ' + (clock.timeRemaining || '');
+    var period = pd.number || 0;
+    if (clock.inIntermission) {
+      var intLabel = period === 1 ? '1st INT'
+                   : period === 2 ? '2nd INT'
+                   : period === 3 ? 'OT INT'
+                   : playoffsPeriodLabel(period + 1) + ' INT';
+      centerSub = clock.timeRemaining ? intLabel + ' · ' + clock.timeRemaining : intLabel;
+    } else {
+      centerSub = playoffsPeriodLabel(period) + ' · ' + (clock.timeRemaining || '');
+    }
   } else {
     centerScore = formatGameStartTime(game.startTimeUTC);
     centerSub   = '';
