@@ -131,6 +131,15 @@ Always rendered below the mood section (except off-season: news only, no roster)
 
 ---
 
+## High Priority — Planned Features
+
+- **Live game skater stats redesign:** Replace the current "best 3 / worst 3 by points/TOI"
+  panel with a full per-team skater table showing all players sorted by TOI, with additional
+  columns: shots, blocked shots, hits, faceoff %, takeaways, giveaways, +/-. Layout TBD
+  (collapsible vs. always expanded). Data is already available in `playerByGameStats` per player.
+
+---
+
 ## Ideas & Backlog
 
 - Randomize win/loss images (multiple alternates)

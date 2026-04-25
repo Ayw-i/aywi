@@ -130,25 +130,33 @@ async function loadSorokinPage() {
     var wins = nhlData.wins                || [];
     var gaa  = nhlData.goalsAgainstAverage || [];
     var svp  = nhlData.savePctg            || [];
+    var sho  = nhlData.shutouts            || [];
 
     var wIdx = findSorokinIdx(wins);
     var gIdx = findSorokinIdx(gaa);
     var sIdx = findSorokinIdx(svp);
+    var oIdx = findSorokinIdx(sho);
 
     var tablesEl = document.getElementById('vezina-tables');
     tablesEl.innerHTML =
       '<table width="100%" style="border:none;">' +
       '<tr>' +
-      '<td width="33%" valign="top" style="border:none;padding:0 4px 0 0;">' +
+      '<td width="50%" valign="top" style="border:none;padding:0 4px 0 0;">' +
         buildRankTable(wins, 'Wins', function (v) { return Math.round(v); }, wIdx) +
       '</td>' +
-      '<td width="33%" valign="top" style="border:none;padding:0 4px;">' +
+      '<td width="50%" valign="top" style="border:none;padding:0 0 0 4px;">' +
         buildRankTable(gaa, 'GAA', function (v) { return formatGAA(v); }, gIdx) +
       '</td>' +
-      '<td width="33%" valign="top" style="border:none;padding:0 0 0 4px;">' +
+      '</tr>' +
+      '<tr>' +
+      '<td width="50%" valign="top" style="border:none;padding:4px 4px 0 0;">' +
         buildRankTable(svp, 'SV%', function (v) { return formatSVP(v); }, sIdx) +
       '</td>' +
-      '</tr></table>';
+      '<td width="50%" valign="top" style="border:none;padding:4px 0 0 4px;">' +
+        buildRankTable(sho, 'Shutouts', function (v) { return Math.round(v); }, oIdx) +
+      '</td>' +
+      '</tr>' +
+      '</table>';
 
     document.getElementById('footer').textContent =
       'Last updated: ' + new Date().toLocaleTimeString();

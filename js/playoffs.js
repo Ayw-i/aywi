@@ -206,12 +206,13 @@ function buildSeriesCard(series, seedLabels) {
 
   function teamCell(abbrev, isTop) {
     var isFaded = seriesOver && abbrev === loser;
-    // Only the higher seed (top seed) gets the fraud treatment
-    var isFraud = isTop && topFraud;
-    var isDown3 = isTop ? topDown3 : bottomDown3;
-    var isSwept = isTop ? topSwept : bottomSwept;
-    var isGent  = isTop ? topGentSwept : bottomGentSwept;
-    var isRevSw = isTop ? topRevSwept  : bottomRevSwept;
+    var isNYITeam = abbrev === 'NYI';
+    // Only the higher seed (top seed) gets the fraud treatment; never applied to NYI
+    var isFraud = isTop && topFraud && !isNYITeam;
+    var isDown3 = (isTop ? topDown3 : bottomDown3) && !isNYITeam;
+    var isSwept = (isTop ? topSwept : bottomSwept) && !isNYITeam;
+    var isGent  = (isTop ? topGentSwept : bottomGentSwept) && !isNYITeam;
+    var isRevSw = (isTop ? topRevSwept  : bottomRevSwept)  && !isNYITeam;
 
     var textColor = isFraud ? '#FF69B4'
                   : isDown3 ? '#CC2222'
@@ -267,8 +268,9 @@ function buildSeriesCard(series, seedLabels) {
 
   function winsCell(abbrev, wins, isTop) {
     var isFaded = seriesOver && abbrev === loser;
-    var isFraud = isTop && topFraud;
-    var isDown3 = isTop ? topDown3 : bottomDown3;
+    var isNYITeam = abbrev === 'NYI';
+    var isFraud = isTop && topFraud && !isNYITeam;
+    var isDown3 = (isTop ? topDown3 : bottomDown3) && !isNYITeam;
 
     var textColor = isFraud ? 'color:#FF69B4;'
                   : isDown3 ? 'color:#CC2222;'

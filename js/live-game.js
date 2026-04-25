@@ -224,6 +224,9 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
       : d.servedByPlayerId
         ? 'Bench (served by ' + (rosterMap[d.servedByPlayerId] || '?') + ')'
         : 'Bench';
+    var drawnBy    = d.drawnByPlayerId
+      ? (rosterMap[d.drawnByPlayerId] || '?')
+      : '';
     var duration   = d.duration ? d.duration + '\'' : '';
     var isFighting = d.descKey && d.descKey.indexOf('fighting') !== -1;
     var isFirstMin = periodNum === 1 && parseTOISecs(time) < 60;
@@ -234,6 +237,7 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
       '<td>' + liveGamePeriodLabel(periodNum || '?') + ' ' + time + '</td>' +
       '<td>' + player + '</td>' +
       '<td>' + infraction + '</td>' +
+      '<td style="font-size:9pt;opacity:0.7;">' + drawnBy + '</td>' +
       '<td>' + duration + '</td>' +
       '</tr>';
   }
@@ -241,11 +245,11 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
   function penaltyTable(pens, label) {
     var rows = pens.length
       ? pens.map(penaltyRow).join('')
-      : '<tr><td colspan="4" style="opacity:0.5;">None</td></tr>';
+      : '<tr><td colspan="5" style="opacity:0.5;">None</td></tr>';
     return '<table width="100%" style="font-size:9pt;">' +
       '<thead>' +
-        '<tr><th colspan="4">' + label + '</th></tr>' +
-        '<tr><th>Time</th><th>Player</th><th>Infraction</th><th>Dur.</th></tr>' +
+        '<tr><th colspan="5">' + label + '</th></tr>' +
+        '<tr><th>Time</th><th>Player</th><th>Infraction</th><th>Drawn by</th><th>Dur.</th></tr>' +
       '</thead>' +
       '<tbody>' + rows + '</tbody>' +
       '</table>';
