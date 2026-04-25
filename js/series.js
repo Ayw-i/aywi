@@ -392,6 +392,16 @@ function renderLegend() {
     '</tr></table>';
 }
 
+function hatTrickSuffix(goals) {
+  if (goals < 3)   return '';
+  if (goals === 3) return ' 🧢';
+  if (goals === 4) return ' 🧢++';
+  if (goals === 5) return ' (🧢++)++';
+  if (goals === 6) return ' 🧢🧢';
+  return ' 🧢🧢++!?!?!? (how are you seeing this!?)';
+}
+
+
 // --- Tooltip ---
 
 var _seriesExpandedCell = null;
@@ -605,9 +615,9 @@ function buildSeriesExpandHTML(bs, pbp, isNYIHome, gameType, nyiShutout) {
       if (isOTW) parts.push('OTW');
       parts.push(g + 'G');
       parts.push(a + 'A');
-      const nameStyle = isOTW ? 'color:#FFD700;font-weight:bold;' : '';
+      const nameStyle = isOTW || g >= 3 ? 'color:#FFD700;font-weight:bold;' : '';
       return '<div style="font-size:9pt;">' +
-        '<span style="' + nameStyle + '">' + name + '</span>' +
+        '<span style="' + nameStyle + '">' + name + hatTrickSuffix(g) + '</span>' +
         ' <span style="color:#aaa;">(' + parts.join(', ') + ')</span></div>';
     }).join('');
   }

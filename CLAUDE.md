@@ -155,6 +155,7 @@ Always rendered below the mood section (except off-season: news only, no roster)
   Requires fetching league-wide stats leaders endpoints
 - Barzal spin gif for power play state (replace barzal-the-muse.png placeholder)
 - **Revisit playoffs bracket UX:** (1) The "dim unstarted rounds" logic (opacity:0.5 if no wins yet) is a rough heuristic — think through edge cases like round just starting with 0-0 records. (2) Take another look at emoji spacing in the series card — the nested mini-table approach works but may still feel off at certain sizes.
+- **Hat trick logic (partial):** Series expand view scorer list shows 🧢 suffix on 3rd goal, 🧢++ on 4th, etc.; hat trick scorer name shown in gold. Not yet surfaced in win state headline. Remaining ideas: (1) Special live celebration when hat trick detected — transparent hat PNGs raining down the page (CSS animation, confetti-style). (2) 🧢 stamp on the game cell in the series bar — requires per-player goal data which isn't in the schedule feed, only in the boxscore; would need to either fetch all boxscores on page load or stamp lazily on first expand (already tried lazy stamp, felt wrong — revisit).
 
 ---
 
