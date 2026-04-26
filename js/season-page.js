@@ -48,6 +48,62 @@ function logoImg(abbrev) {
     ' onerror="this.style.display=\'none\'">';
 }
 
+// --- Special game records ---
+
+function specialRecord(regGames, filterFn) {
+  var W = 0, L = 0, OTL = 0, remaining = 0;
+  regGames.forEach(function (g, i) {
+    if (!filterFn(g, i, regGames)) return;
+    var isPlayed = g.gameState === 'OFF' || g.gameState === 'FINAL';
+    var isLive   = g.gameState === 'LIVE' || g.gameState === 'CRIT';
+    if (!isPlayed && !isLive) { remaining++; return; }
+    if (!isPlayed) return;
+    var isHome = g.homeTeam.abbrev === 'NYI';
+    var nyi    = isHome ? g.homeTeam : g.awayTeam;
+    var opp    = isHome ? g.awayTeam : g.homeTeam;
+    var last   = (g.gameOutcome || {}).lastPeriodType || 'REG';
+    if (nyi.score > opp.score)        W++;
+    else if (last === 'OT' || last === 'SO') OTL++;
+    else                              L++;
+  });
+  var gp  = W + L + OTL;
+  var pct = gp > 0 ? ((2 * W + OTL) / (2 * gp)).toFixed(3).slice(1) : null;
+  return { W: W, L: L, OTL: OTL, gp: gp, pct: pct, remaining: remaining };
+}
+
+function renderSpecialRecords(regGames) {
+  var categories = [
+    {
+      label: 'Back-to-backs',
+      color: '#CC3333',
+      fn: function (g, i, arr) { return isBackToBack(arr, i); },
+    },
+    {
+      label: 'Matinee games',
+      color: '#FFD700',
+      fn: function (g) { return getEasternHour(g.startTimeUTC, g.easternUTCOffset) < 17; },
+    },
+    {
+      label: 'Weekend games',
+      color: '#E8DCC8',
+      fn: function (g) { return isWeekendDate(g.gameDate); },
+    },
+  ];
+
+  var rows = categories.map(function (cat) {
+    var r = specialRecord(regGames, cat.fn);
+    var record = r.gp > 0 ? r.W + '–' + r.L + '–' + r.OTL : '—';
+    var pctStr = r.pct ? ' (' + r.pct + ')' : '';
+    var remStr = r.remaining > 0 ? ', ' + r.remaining + ' remaining' : '';
+    return '<tr>' +
+      '<td style="padding:2px 8px;font-size:10pt;color:' + cat.color + ';">' + cat.label + '</td>' +
+      '<td style="padding:2px 8px;font-size:10pt;">' + record + pctStr + remStr + '</td>' +
+      '</tr>';
+  }).join('');
+
+  return '<table style="border-collapse:collapse;margin-bottom:20px;">' + rows + '</table>';
+}
+
 // --- Goalie fatigue ---
 
 function goalieColor(shortLoad, longLoad, isB2B) {
@@ -221,6 +277,7 @@ function renderSeasonTable(games, goalieMap) {
   }
 
   return '<h2 style="font-size:11pt;margin:0 0 12px 0;">' + heading + '</h2>' +
+    renderSpecialRecords(regGames) +
     '<table style="width:100%;border-collapse:collapse;">' +
     '<thead>' + header + '</thead>' +
     '<tbody>' + rows + '</tbody>' +
