@@ -36,9 +36,9 @@ function isBackToBack(games, index) {
 
 function dateColor(games, index) {
   var g = games[index];
-  if (isBackToBack(games, index))           return '#CC3333';
+  if (isBackToBack(games, index)) return '#CC3333';
   if (getEasternHour(g.startTimeUTC, g.easternUTCOffset) < 17) return '#FFD700';
-  if (isWeekendDate(g.gameDate))            return '#E8DCC8';
+  if (isWeekendDate(g.gameDate)) return '#E8DCC8';
   return '';
 }
 
@@ -48,7 +48,80 @@ function logoImg(abbrev) {
     ' onerror="this.style.display=\'none\'">';
 }
 
-function renderSeasonTable(games) {
+// --- Goalie fatigue ---
+
+function goalieColor(shortLoad, longLoad, isB2B) {
+  var shortHeavy = isB2B || shortLoad >= 4;  // B2B or 4 starts in 5 days
+  var longHeavy  = longLoad >= 18;           // 18 starts in 30 days (~every 1.7 days)
+  if (shortHeavy && longHeavy) return '#AA1111';
+  if (shortHeavy)              return '#CC4400';
+  if (longHeavy)               return '#CC8800';
+  return '';
+}
+
+function fetchGoalieMap() {
+  var now       = new Date();
+  var startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  var season    = startYear + '' + (startYear + 1);
+
+  return fetch(WORKER + '/v1/roster/NYI/' + season)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var goalies = d.goalies || [];
+      return Promise.all(goalies.map(function (g) {
+        return fetch(WORKER + '/v1/player/' + g.id + '/game-log/' + season + '/2')
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            return { lastName: g.lastName.default, log: d.gameLog || [] };
+          });
+      }));
+    })
+    .then(function (goalieData) {
+      // Collect all NYI starts sorted by date
+      var allStarts = [];
+      goalieData.forEach(function (goalie) {
+        goalie.log.forEach(function (entry) {
+          if (entry.teamAbbrev !== 'NYI' || !entry.gamesStarted) return;
+          allStarts.push({ gameId: entry.gameId, date: entry.gameDate, lastName: goalie.lastName });
+        });
+      });
+      allStarts.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+
+      // For each start compute rolling windows and B2B
+      var map = {};
+      allStarts.forEach(function (start, idx) {
+        var d    = new Date(start.date + 'T12:00:00');
+        var d5   = new Date(d.getTime() - 4 * 86400000);
+        var d30  = new Date(d.getTime() - 29 * 86400000);
+        var prev = new Date(d.getTime() - 86400000);
+        var prevStr = prev.getFullYear() + '-' +
+          String(prev.getMonth() + 1).padStart(2, '0') + '-' +
+          String(prev.getDate()).padStart(2, '0');
+
+        var shortLoad = 0, longLoad = 0, isB2B = false;
+        allStarts.forEach(function (s) {
+          if (s.lastName !== start.lastName) return;
+          var sd = new Date(s.date + 'T12:00:00');
+          if (sd >= d5 && sd <= d) shortLoad++;
+          if (sd >= d30 && sd <= d) longLoad++;
+          if (s.date === prevStr) isB2B = true;
+        });
+
+        map[start.gameId] = {
+          lastName:  start.lastName,
+          shortLoad: shortLoad,
+          longLoad:  longLoad,
+          isB2B:     isB2B,
+        };
+      });
+
+      return map;
+    });
+}
+
+// --- Render ---
+
+function renderSeasonTable(games, goalieMap) {
   var regGames = games.filter(function (g) { return g.gameType === 2; });
   if (!regGames.length) return '<p style="opacity:0.5;font-size:10pt;">No regular season games found.</p>';
 
@@ -67,6 +140,7 @@ function renderSeasonTable(games) {
     '<th ' + TH + '>Score</th>' +
     '<th ' + TH + '></th>' +
     '<th ' + TH + '>Record</th>' +
+    '<th ' + TH + '>Goalie</th>' +
     '</tr>';
 
   var rows = '';
@@ -118,15 +192,20 @@ function renderSeasonTable(games) {
       resultColor = '#555555';
     }
 
-    var dc      = dateColor(regGames, i);
+    var dc        = dateColor(regGames, i);
     var dateStyle = dc ? 'color:' + dc + ';' : '';
-    var time    = formatGameTime(g.startTimeUTC, g.easternUTCOffset);
-    var dateCell = formatSeasonDate(g.gameDate) +
+    var time      = formatGameTime(g.startTimeUTC, g.easternUTCOffset);
+    var dateCell  = formatSeasonDate(g.gameDate) +
       '<br><span style="font-size:8pt;opacity:0.6;">' + time + '</span>';
 
     var prefix  = isHome ? 'vs ' : '@ ';
     var oppCell = prefix + logoImg(opp.abbrev) + opp.abbrev;
     var rowBg   = i % 2 === 1 ? 'background-color:#0d0d0d;' : '';
+
+    var goalieData  = goalieMap ? (goalieMap[g.id] || null) : null;
+    var goalieText  = goalieData ? goalieData.lastName : '';
+    var goalieClr   = goalieData ? goalieColor(goalieData.shortLoad, goalieData.longLoad, goalieData.isB2B) : '';
+    var goalieStyle = goalieClr ? 'color:' + goalieClr + ';' : 'color:#888;';
 
     var TD = 'style="padding:3px 8px;font-size:10pt;';
     rows += '<tr style="' + rowBg + '">' +
@@ -137,6 +216,7 @@ function renderSeasonTable(games) {
       '<td ' + TD + '">' + scoreText + '</td>' +
       '<td ' + TD + 'font-size:9pt;color:#666;">' + otTag + '</td>' +
       '<td ' + TD + 'font-size:9pt;color:#888;">' + recordText + '</td>' +
+      '<td ' + TD + 'font-size:9pt;' + goalieStyle + '">' + goalieText + '</td>' +
       '</tr>';
   }
 
@@ -147,9 +227,12 @@ function renderSeasonTable(games) {
     '</table>';
 }
 
-getSeasonSchedule()
-  .then(function (games) {
-    document.getElementById('season-table').innerHTML = renderSeasonTable(games);
+Promise.all([getSeasonSchedule(), fetchGoalieMap()])
+  .then(function (results) {
+    var el = document.getElementById('season-table');
+    el.style.opacity = '';
+    el.style.fontSize = '';
+    el.innerHTML = renderSeasonTable(results[0], results[1]);
   })
   .catch(function () {
     document.getElementById('season-table').innerHTML =

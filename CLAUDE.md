@@ -161,6 +161,12 @@ Always rendered below the mood section (except off-season: news only, no roster)
 
 ## Ideas & Backlog
 
+- **Revisit goalie fatigue algorithm (season.html):** Current thresholds: shortHeavy = B2B or
+  4 starts in 5 days; longHeavy = 18 starts in 30 days. Colors: amber (long only), orange
+  (short only), red (both). Works per-goalie correctly. May need tuning — thresholds were
+  loosened from initial values that were too aggressive. Consider whether the rolling windows
+  and/or thresholds better reflect actual workload concerns.
+
 - **Schedule page — trip/stand summary:** Above the calendar, show a compact table of homestands
   and road trips (2+ consecutive same-location games) grouped by start month. Columns: Type
   (Homestand/Road Trip) | Dates | Games | W-L-OTL. Single games between stretches are skipped.
