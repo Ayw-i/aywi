@@ -157,6 +157,14 @@ Always rendered below the mood section (except off-season: news only, no roster)
   columns: shots, blocked shots, hits, faceoff %, takeaways, giveaways, +/-. Layout TBD
   (collapsible vs. always expanded). Data is already available in `playerByGameStats` per player.
 
+- **Series page past-season team correctness:** The DIVISIONS and TEAM_NAMES tables in series.js
+  are hardcoded for the current league. Past seasons need adjustments: (1) Seattle (SEA) didn't
+  exist before 2021–22 — should be hidden or replaced for earlier seasons. (2) Vegas (VGK)
+  didn't exist before 2017–18. (3) Utah (UTA) was Arizona Coyotes (ARI) through 2023–24 and
+  didn't exist as Utah until 2024–25 — series vs. ARI should show as ARI for those seasons.
+  Approach TBD: could be a season-aware DIVISIONS/TEAM_NAMES override, or filter out teams with
+  0 games played against NYI that season.
+
 ---
 
 ## Ideas & Backlog
@@ -186,6 +194,8 @@ Always rendered below the mood section (except off-season: news only, no roster)
 - Barzal spin gif for power play state (replace barzal-the-muse.png placeholder)
 - **Revisit playoffs bracket UX:** (1) The "dim unstarted rounds" logic (opacity:0.5 if no wins yet) is a rough heuristic — think through edge cases like round just starting with 0-0 records. (2) Take another look at emoji spacing in the series card — the nested mini-table approach works but may still feel off at certain sizes.
 - **Hat trick logic (partial):** Series expand view scorer list shows 🧢 suffix on 3rd goal, 🧢++ on 4th, etc.; hat trick scorer name shown in gold. Not yet surfaced in win state headline. Remaining ideas: (1) Special live celebration when hat trick detected — transparent hat PNGs raining down the page (CSS animation, confetti-style). (2) 🧢 stamp on the game cell in the series bar — requires per-player goal data which isn't in the schedule feed, only in the boxscore; would need to either fetch all boxscores on page load or stamp lazily on first expand (already tried lazy stamp, felt wrong — revisit).
+
+- **"Not quite PP goal" label:** In goal displays (live event feed, series expand scorer list), mark goals scored within 15 seconds of a power play expiring with no intervening stoppage as something like "PPG*" or "PP+" — the "power play goal that technically isn't." Detection: in the play-by-play, check that the most recent penalty-expiry or power-play-end event precedes the goal by ≤15 seconds and no stoppage event appears between them. NHL broadcasters informally call these "power play carryover" goals — they count as even-strength in the box score but were clearly set up by the man advantage.
 
 ---
 

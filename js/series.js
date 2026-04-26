@@ -664,14 +664,24 @@ document.addEventListener('click', function () {
 
 async function loadSeriesData() {
   try {
-    const [schedRes, standRes] = await Promise.all([
-      fetch(WORKER + '/v1/club-schedule-season/NYI/20252026'),
-      fetch(WORKER + '/v1/standings/now')
-    ]);
+    const season = getSelectedSeason();
+    const schedRes = await fetch(WORKER + '/v1/club-schedule-season/NYI/' + season);
     const schedData = await schedRes.json();
+    const games = schedData.games || [];
+
+    // Use last regular-season game date for historically accurate standings
+    const regDates = games
+      .filter(function (g) { return g.gameType === 2; })
+      .map(function (g) { return g.gameDate; })
+      .sort();
+    const standingsUrl = regDates.length
+      ? WORKER + '/v1/standings/' + regDates[regDates.length - 1]
+      : WORKER + '/v1/standings/now';
+
+    const standRes = await fetch(standingsUrl);
     const standData = await standRes.json();
 
-    const byOpp = processGames(schedData.games || []);
+    const byOpp = processGames(games);
 
     const teamStandings = {};
     (standData.standings || []).forEach(function (t) {
@@ -682,6 +692,11 @@ async function loadSeriesData() {
         divisionSequence:  t.divisionSequence
       };
     });
+
+    var startYear = parseInt(season.slice(0, 4), 10);
+    var seasonLabel = startYear + '–' + String(startYear + 1).slice(2);
+    document.getElementById('series-subtitle').textContent = seasonLabel + ' Regular Season';
+    document.getElementById('season-picker').innerHTML = renderSeasonPicker();
 
     const groupBy = () => document.querySelector('input[name="groupby"]:checked').value;
     const sortBy  = () => document.querySelector('input[name="sortby"]:checked').value;

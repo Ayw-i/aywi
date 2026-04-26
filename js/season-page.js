@@ -116,9 +116,7 @@ function goalieColor(shortLoad, longLoad, isB2B) {
 }
 
 function fetchGoalieMap() {
-  var now       = new Date();
-  var startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-  var season    = startYear + '' + (startYear + 1);
+  var season = getSelectedSeason();
 
   return fetch(WORKER + '/v1/roster/NYI/' + season)
     .then(function (r) { return r.json(); })
@@ -286,6 +284,7 @@ function renderSeasonTable(games, goalieMap) {
 
 Promise.all([getSeasonSchedule(), fetchGoalieMap()])
   .then(function (results) {
+    document.getElementById('season-picker').innerHTML = renderSeasonPicker();
     var el = document.getElementById('season-table');
     el.style.opacity = '';
     el.style.fontSize = '';

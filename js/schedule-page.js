@@ -146,6 +146,7 @@ function renderScheduleCalendar(games) {
 
 getSeasonSchedule()
   .then(function (games) {
+    document.getElementById('season-picker').innerHTML = renderSeasonPicker();
     var el = document.getElementById('schedule-cal');
     el.style.opacity = '';
     el.style.fontSize = '';
