@@ -1,7 +1,5 @@
 ﻿'use strict';
 
-const WORKER = 'https://nhl-proxy.aywi.workers.dev';
-
 // Switch between 'E' (stripe OTL/SOL), 'E3' (olive/brown stripe OTL/SOL), 'F' (dark reg L / light LP / stripe inc)
 const COLOR_SCHEME = 'F';
 
