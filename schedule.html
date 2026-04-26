@@ -17,16 +17,15 @@
       max-width: 800px;
       margin: 0 auto;
       padding: 40px 20px 60px 20px;
+      text-align: center;
     }
 
     h1 {
       font-size: 18pt;
       margin-bottom: 6px;
-      text-align: center;
     }
 
     nav {
-      text-align: center;
       margin-bottom: 30px;
     }
 
@@ -37,15 +36,8 @@
       font-size: 11pt;
     }
 
-    h2 {
-      font-size: 13pt;
-      margin: 30px 0 6px 0;
-      text-transform: uppercase;
-    }
-
-    p {
-      font-size: 10pt;
-      opacity: 0.6;
+    a {
+      color: white;
     }
   </style>
 </head>
@@ -56,10 +48,12 @@
   <div id="nav"></div>
   <script src="js/nav.js"></script>
 
-  <h2>Schedule</h2>
-  <p>Coming soon.</p>
+  <div id="schedule-cal" style="text-align:left;opacity:0.5;font-size:10pt;">Loading...</div>
 
 </div>
+
+<script src="js/nhl-schedule.js"></script>
+<script src="js/schedule-page.js"></script>
 
 </body>
 </html>

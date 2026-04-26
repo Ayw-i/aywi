@@ -161,6 +161,11 @@ Always rendered below the mood section (except off-season: news only, no roster)
 
 ## Ideas & Backlog
 
+- **Schedule page — trip/stand summary:** Above the calendar, show a compact table of homestands
+  and road trips (2+ consecutive same-location games) grouped by start month. Columns: Type
+  (Homestand/Road Trip) | Dates | Games | W-L-OTL. Single games between stretches are skipped.
+  Month-spanning trips filed under start month. See conversation 2026-04-25 for full brainstorm.
+
 - Randomize win/loss images (multiple alternates)
 - Animated GIF dividers between sections (source: gifcities.org)
 - "Suffering index" — visual arc of the season's emotional history
