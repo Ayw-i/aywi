@@ -435,21 +435,38 @@ function buildDevPanel() {
   loadLiveBtn.addEventListener('mouseleave', function () { loadLiveBtn.style.color = '#ccc'; });
   loadLiveBtn.addEventListener('click', function () {
     loadLiveBtn.textContent = 'Loading...';
+
+    function pickGame(games) {
+      var live = games.filter(function (g) { return g.gameState === 'LIVE'; });
+      if (live.length) return live[0];
+      var finished = games.filter(function (g) { return g.gameState === 'OFF' || g.gameState === 'FINAL'; });
+      return finished.sort(function (a, b) { return b.id - a.id; })[0] || null;
+    }
+
+    function loadGame(pick) {
+      var label = (pick.awayTeam.abbrev || '?') + ' @ ' + (pick.homeTeam.abbrev || '?');
+      loadLiveBtn.textContent = 'Loaded: ' + label;
+      gameIdInput.value = pick.id;
+      _devLastGameId = String(pick.id);
+      fetchAndRenderScoreboard(String(pick.id), { nextHomeGame: '—' });
+    }
+
     fetch(WORKER + '/v1/score/now')
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        var games = data.games || [];
-        var live = games.filter(function (g) { return g.gameState === 'LIVE'; });
-        var pick = live.length
-          ? live[0]
-          : games.filter(function (g) { return g.gameState === 'OFF' || g.gameState === 'FINAL'; })
-                 .sort(function (a, b) { return b.id - a.id; })[0];
-        if (!pick) { loadLiveBtn.textContent = 'No game found'; return; }
-        var label = (pick.awayTeam.abbrev || '?') + ' @ ' + (pick.homeTeam.abbrev || '?');
-        loadLiveBtn.textContent = 'Loaded: ' + label;
-        gameIdInput.value = pick.id;
-        _devLastGameId = String(pick.id);
-        fetchAndRenderScoreboard(String(pick.id), { nextHomeGame: '—' });
+        var pick = pickGame(data.games || []);
+        if (pick) { loadGame(pick); return; }
+
+        var yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        var dateStr = yesterday.toISOString().slice(0, 10);
+        return fetch(WORKER + '/v1/score/' + dateStr)
+          .then(function (r) { return r.json(); })
+          .then(function (data2) {
+            var pick2 = pickGame(data2.games || []);
+            if (pick2) { loadGame(pick2); return; }
+            loadLiveBtn.textContent = 'No game found';
+          });
       })
       .catch(function () { loadLiveBtn.textContent = 'Error — try again'; });
   });

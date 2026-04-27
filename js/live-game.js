@@ -412,7 +412,7 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
   // Play-by-play is more up-to-date than playerByGameStats during live games.
   var pbp = {};
   function initPbp(id) {
-    if (id && !pbp[id]) pbp[id] = { goals: 0, a1: 0, a2: 0, pd: 0, fightPIM: 0, nonFightPIM: 0 };
+    if (id && !pbp[id]) pbp[id] = { goals: 0, a1: 0, a2: 0, pd: 0, fightPIM: 0, nonFightPIM: 0, missedShots: 0 };
   }
   (plays || []).forEach(function (play) {
     var d = play.details || {};
@@ -420,6 +420,9 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       if (d.scoringPlayerId) { initPbp(d.scoringPlayerId); pbp[d.scoringPlayerId].goals++; }
       if (d.assist1PlayerId) { initPbp(d.assist1PlayerId); pbp[d.assist1PlayerId].a1++; }
       if (d.assist2PlayerId) { initPbp(d.assist2PlayerId); pbp[d.assist2PlayerId].a2++; }
+    }
+    if (play.typeDescKey === 'missed-shot') {
+      if (d.shootingPlayerId) { initPbp(d.shootingPlayerId); pbp[d.shootingPlayerId].missedShots++; }
     }
     if (play.typeDescKey === 'penalty') {
       var pim     = d.duration || 0;
@@ -436,24 +439,29 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
     }
   });
 
-  // Approximate GameScore (Luszczyszyn 2016).
-  // Omits Corsi (not in API) and raw faceoff counts (only % available).
+  // Approximate GameScore (Luszczyszyn 2016 + TOI/iCF extensions).
+  // Omits on-ice Corsi (not in API) and faceoffs (low game-level impact).
   // Fighting PIM is treated as a small positive rather than penalized.
+  // Missed shots added as iCF proxy; TOI rewards minute-eaters.
   function gameScore(p) {
-    var q  = pbp[p.playerId] || {};
-    var g  = Math.max(p.goals || 0, q.goals || 0);
-    var a1 = q.a1 || 0;
-    var a2 = q.a2 || 0;
+    var q    = pbp[p.playerId] || {};
+    var g    = Math.max(p.goals || 0, q.goals || 0);
+    var a1   = q.a1 || 0;
+    var a2   = q.a2 || 0;
     if (a1 === 0 && a2 === 0) a2 = p.assists || 0;  // fallback if pbp assist split unavailable
+    var toi     = parseTOISecs(p.toi || '0:00') / 60;
+    var toiOver = Math.max(0, toi - 15);
     return 0.75  * g
          + 0.70  * a1
          + 0.55  * a2
-         + 0.075 * (p.shots        || 0)
-         + 0.05  * (p.blockedShots || 0)
-         + 0.15  * (p.plusMinus    || 0)
-         + 0.15  * (q.pd           || 0)
-         - 0.15  * (q.nonFightPIM  || 0)
-         + 0.01  * (q.fightPIM     || 0);
+         + 0.075 * (p.sog                || 0)
+         + 0.025 * (q.missedShots        || 0)
+         + 0.05  * (p.blockedShots       || 0)
+         + 0.15  * (p.plusMinus          || 0)
+         + 0.15  * (q.pd                 || 0)
+         - 0.15  * (q.nonFightPIM        || 0)
+         + 0.01  * (q.fightPIM           || 0)
+         + 0.01  * toiOver;
   }
 
   function getPlayers(stats) {
@@ -468,7 +476,7 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
     var a2 = q.a2 || 0;
     if (a1 === 0 && a2 === 0) a2 = p.assists || 0;
     var a        = g > 0 || a1 > 0 || a2 > 0 ? a1 + a2 : (p.assists || 0);
-    var sog      = p.shots        || 0;
+    var sog      = p.sog          || 0;
     var blk      = p.blockedShots || 0;
     var pm       = p.plusMinus    || 0;
     var pd       = q.pd           || 0;
@@ -489,13 +497,19 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
     term(g,      0.75,  'G');
     term(a1,     0.70,  'A1');
     term(a2,     0.55,  'A2');
+    var missed   = q.missedShots || 0;
+    var toiMins  = parseTOISecs(p.toi || '0:00') / 60;
     term(sog,    0.075, 'SOG');
+    term(missed, 0.025, 'missed');
     term(blk,    0.05,  'BLK');
     if (pm) term(pm, 0.15, (pm >= 0 ? '+' : '') + pm + '&nbsp;&plusmn;');
     term(pd,     0.15,  'PD');
     if (nonFPIM) lines.push('-' + (0.15 * nonFPIM).toFixed(3) +
       ' &nbsp;<span style="color:#888;">(0.15&times;' + nonFPIM + ' PIM)</span>');
     term(fPIM,   0.01,  'fight');
+    var toiOver = Math.max(0, toiMins - 15);
+    if (toiOver > 0) lines.push('+' + (0.01 * toiOver).toFixed(3) +
+      ' &nbsp;<span style="color:#888;">(0.01&times;' + toiOver.toFixed(1) + ' TOI&gt;15)</span>');
 
     var tooltipHTML =
       '<span style="display:none;position:absolute;bottom:120%;right:0;z-index:999;' +
