@@ -141,7 +141,8 @@ function buildLiveHeader(boxscore, plays) {
 
   var clockStr;
   if (isFinal) {
-    clockStr = 'Final';
+    var finalSuffix = pd.periodType === 'OT' ? '/OT' : pd.periodType === 'SO' ? '/SO' : '';
+    clockStr = 'Final' + finalSuffix;
   } else if (clock.inIntermission) {
     var isPlayoff = boxscore.gameType === 3;
     var intLabel = null;
