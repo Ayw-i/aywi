@@ -422,6 +422,39 @@ function buildDevPanel() {
   });
 
   addGroupLabel(body, 'Load Game');
+
+  const loadLiveBtn = document.createElement('button');
+  loadLiveBtn.textContent = 'Load live/recent game';
+  loadLiveBtn.className = 'dev-btn';
+  loadLiveBtn.style.cssText = [
+    'display:block', 'width:100%', 'text-align:left',
+    'background:none', 'border:none', 'color:#ccc', 'cursor:pointer',
+    'padding:2px 0', 'font-size:10px', 'font-family:Helvetica,Arial,sans-serif',
+  ].join(';');
+  loadLiveBtn.addEventListener('mouseenter', function () { loadLiveBtn.style.color = 'white'; });
+  loadLiveBtn.addEventListener('mouseleave', function () { loadLiveBtn.style.color = '#ccc'; });
+  loadLiveBtn.addEventListener('click', function () {
+    loadLiveBtn.textContent = 'Loading...';
+    fetch(WORKER + '/v1/score/now')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var games = data.games || [];
+        var live = games.filter(function (g) { return g.gameState === 'LIVE'; });
+        var pick = live.length
+          ? live[0]
+          : games.filter(function (g) { return g.gameState === 'OFF' || g.gameState === 'FINAL'; })
+                 .sort(function (a, b) { return b.id - a.id; })[0];
+        if (!pick) { loadLiveBtn.textContent = 'No game found'; return; }
+        var label = (pick.awayTeam.abbrev || '?') + ' @ ' + (pick.homeTeam.abbrev || '?');
+        loadLiveBtn.textContent = 'Loaded: ' + label;
+        gameIdInput.value = pick.id;
+        _devLastGameId = String(pick.id);
+        fetchAndRenderScoreboard(String(pick.id), { nextHomeGame: '—' });
+      })
+      .catch(function () { loadLiveBtn.textContent = 'Error — try again'; });
+  });
+  body.appendChild(loadLiveBtn);
+
   const gameIdRow = document.createElement('div');
   gameIdRow.style.cssText = 'display:flex;gap:4px;margin-top:2px;';
   const gameIdInput = document.createElement('input');

@@ -86,7 +86,52 @@ function isPrimaryGoalieSorokin(goalies) {
 
 // --- Section builders ---
 
-function buildLiveHeader(boxscore) {
+// Returns the shortest time remaining (MM:SS) among active penalties, or null if none.
+function getShortestActivePenaltyTime(plays, currentPeriod, timeRemaining) {
+  if (!currentPeriod || !timeRemaining) return null;
+  var clockSecs    = parseTOISecs(timeRemaining);
+  var currentTotal = (currentPeriod - 1) * 1200 + (1200 - clockSecs);
+
+  var shortest = null;
+  (plays || []).forEach(function (p) {
+    if (p.typeDescKey !== 'penalty') return;
+    var dur = ((p.details || {}).duration || 0) * 60;
+    if (!dur) return;
+    var pp        = (p.periodDescriptor || {}).number || 0;
+    var penTotal  = (pp - 1) * 1200 + parseTOISecs(p.timeInPeriod || '0:00');
+    var remaining = penTotal + dur - currentTotal;
+    if (remaining > 0 && (shortest === null || remaining < shortest)) shortest = remaining;
+  });
+
+  if (shortest === null) return null;
+  var mins = Math.floor(shortest / 60);
+  var secs = Math.round(shortest % 60);
+  return mins + ':' + String(secs).padStart(2, '0');
+}
+
+// Returns a non-5v5 skater situation line (e.g. "5v4 1:42") in gold, replacing the date.
+// Returns empty string at 5v5, intermission, final, or when situation data is unavailable.
+function buildSkaterSituation(boxscore, plays) {
+  var isFinal = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
+  if (isFinal) return '';
+  var clock = boxscore.clock || {};
+  if (clock.inIntermission) return '';
+  var pd = boxscore.periodDescriptor || {};
+  if (!pd.number) return '';
+  var sit = boxscore.situation;
+  if (!sit || !sit.situationCode || sit.situationCode.length < 4) return '';
+
+  var code        = sit.situationCode;
+  var awaySkaters = parseInt(code[1]) || 5;
+  var homeSkaters = parseInt(code[2]) || 5;
+  if (awaySkaters === 5 && homeSkaters === 5) return '';
+
+  var penTime = getShortestActivePenaltyTime(plays, pd.number, clock.timeRemaining);
+  var text    = awaySkaters + 'v' + homeSkaters + (penTime ? ' ' + penTime : '');
+  return '<div style="font-size:9pt;color:#FFD700;margin-top:4px;">' + text + '</div>';
+}
+
+function buildLiveHeader(boxscore, plays) {
   var home  = boxscore.homeTeam || {};
   var away  = boxscore.awayTeam || {};
   var pd    = boxscore.periodDescriptor || {};
@@ -135,9 +180,12 @@ function buildLiveHeader(boxscore) {
         (away.score || 0) + ' &ndash; ' + (home.score || 0) +
       '</div>' +
       '<div style="font-size:12pt;margin-top:6px;">' + clockStr + '</div>' +
-      (boxscore.gameDate
-        ? '<div style="font-size:9pt;opacity:0.7;margin-top:4px;">' + formatGameDate(boxscore.gameDate) + '</div>'
-        : '') +
+      (function () {
+        var sit = buildSkaterSituation(boxscore, plays);
+        return sit || (boxscore.gameDate
+          ? '<div style="font-size:9pt;opacity:0.7;margin-top:4px;">' + formatGameDate(boxscore.gameDate) + '</div>'
+          : '');
+      }()) +
     '</td>' +
     teamCell(home, homeSOG) +
     '</tr>' +
@@ -1264,7 +1312,7 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
   var wentToOT = ((boxscore.periodDescriptor || {}).number || 0) > 3;
 
   // Away is always left column, home is always right column — consistent with header.
-  return buildLiveHeader(boxscore) +
+  return buildLiveHeader(boxscore, plays) +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
