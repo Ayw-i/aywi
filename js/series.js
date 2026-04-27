@@ -29,14 +29,14 @@ const SCHEMES = {
   }
 };
 
-const DIVISIONS = [
+let DIVISIONS = [
   { name: 'METROPOLITAN', teams: ['CAR','CBJ','NJD','NYR','PHI','PIT','WSH'] },
   { name: 'ATLANTIC',     teams: ['BOS','BUF','DET','FLA','MTL','OTT','TBL','TOR'] },
   { name: 'CENTRAL',      teams: ['CHI','COL','DAL','MIN','NSH','STL','UTA','WPG'] },
   { name: 'PACIFIC',      teams: ['ANA','CGY','EDM','LAK','SJS','SEA','VAN','VGK'] }
 ];
 
-const TEAM_NAMES = {
+let TEAM_NAMES = {
   CAR: 'Carolina',      CBJ: 'Columbus',      NJD: 'New Jersey',   NYR: 'NY Rangers',
   PHI: 'Philadelphia',  PIT: 'Pittsburgh',    WSH: 'Washington',
   BOS: 'Boston',        BUF: 'Buffalo',       DET: 'Detroit',      FLA: 'Florida',
@@ -46,6 +46,48 @@ const TEAM_NAMES = {
   ANA: 'Anaheim',       CGY: 'Calgary',       EDM: 'Edmonton',     LAK: 'Los Angeles',
   SJS: 'San Jose',      SEA: 'Seattle',       VAN: 'Vancouver',    VGK: 'Vegas'
 };
+
+// Patch DIVISIONS and TEAM_NAMES for seasons where teams didn't exist yet or used different names.
+// ATL (Atlanta Thrashers) → WPG (Winnipeg Jets) starting 2011-12
+// PHX (Phoenix Coyotes) → ARI (Arizona Coyotes) starting 2014-15
+// ARI moved from Pacific to Central when SEA joined 2021-22
+// UTA replaced ARI starting 2024-25; VGK joined 2017-18; SEA joined 2021-22
+function applySeasonTeamConfig(startYear) {
+  var central = ['CHI','COL','DAL','MIN','NSH','STL'];
+  var pacific  = ['ANA','CGY','EDM','LAK','SJS','VAN'];
+
+  // Winnipeg Jets / Atlanta Thrashers
+  central.push(startYear >= 2011 ? 'WPG' : 'ATL');
+
+  // Utah / Arizona / Phoenix — and which division they belong to
+  if (startYear >= 2024)      { central.push('UTA'); }
+  else if (startYear >= 2021) { central.push('ARI'); }  // ARI moved to Central when SEA joined
+  else if (startYear >= 2014) { pacific.push('ARI'); }  // Arizona Coyotes in Pacific
+  else                        { pacific.push('PHX'); }  // Phoenix Coyotes in Pacific
+
+  if (startYear >= 2017) { pacific.push('VGK'); }
+  if (startYear >= 2021) { pacific.push('SEA'); }
+
+  DIVISIONS = [
+    { name: 'METROPOLITAN', teams: ['CAR','CBJ','NJD','NYR','PHI','PIT','WSH'] },
+    { name: 'ATLANTIC',     teams: ['BOS','BUF','DET','FLA','MTL','OTT','TBL','TOR'] },
+    { name: 'CENTRAL',      teams: central },
+    { name: 'PACIFIC',      teams: pacific }
+  ];
+
+  TEAM_NAMES = {
+    CAR: 'Carolina',      CBJ: 'Columbus',      NJD: 'New Jersey',   NYR: 'NY Rangers',
+    PHI: 'Philadelphia',  PIT: 'Pittsburgh',    WSH: 'Washington',
+    BOS: 'Boston',        BUF: 'Buffalo',       DET: 'Detroit',      FLA: 'Florida',
+    MTL: 'Montreal',      OTT: 'Ottawa',        TBL: 'Tampa Bay',    TOR: 'Toronto',
+    CHI: 'Chicago',       COL: 'Colorado',      DAL: 'Dallas',       MIN: 'Minnesota',
+    NSH: 'Nashville',     STL: 'St. Louis',     WPG: 'Winnipeg',     ATL: 'Atlanta',
+    ANA: 'Anaheim',       CGY: 'Calgary',       EDM: 'Edmonton',     LAK: 'Los Angeles',
+    SJS: 'San Jose',      VAN: 'Vancouver',
+    UTA: 'Utah',          ARI: 'Arizona',       PHX: 'Phoenix',
+    VGK: 'Vegas',         SEA: 'Seattle'
+  };
+}
 
 // Result grouping order: all W, all reg L, all OTL/SOL, unplayed
 const RESULT_ORDER = [
@@ -470,7 +512,11 @@ function hideSeriesTooltip() {
 // --- Click-to-expand tooltip ---
 
 function jafares(name) {
-  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? '🐍' : 'Jafares') : name;
+  if (!name) return name;
+  return name.replace(/J(?:ohn)?\.?\s+Tavares/gi, function (match) {
+    if (/^John/i.test(match)) return Math.random() < 0.5 ? '🐍' : 'Jafares';
+    return match.replace(/Tavares/i, 'Afares');
+  });
 }
 
 async function toggleSeriesExpand(el, event) {
@@ -694,6 +740,7 @@ async function loadSeriesData() {
     });
 
     var startYear = parseInt(season.slice(0, 4), 10);
+    applySeasonTeamConfig(startYear);
     var seasonLabel = startYear + '–' + String(startYear + 1).slice(2);
     document.getElementById('series-subtitle').textContent = seasonLabel + ' Regular Season';
     document.getElementById('season-picker').innerHTML = renderSeasonPicker();
