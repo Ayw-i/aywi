@@ -156,6 +156,21 @@ Always rendered below the mood section (except off-season: news only, no roster)
   panel with a full per-team skater table showing all players sorted by TOI, with additional
   columns: shots, blocked shots, hits, faceoff %, takeaways, giveaways, +/-. Layout TBD
   (collapsible vs. always expanded). Data is already available in `playerByGameStats` per player.
+  Best/worst ranking should use a GameScore-style algorithm (see below).
+
+- **GameScore algorithm for best/worst skater ranking:** Imitate Dom Luszczyszyn's GameScore
+  using available data. Formula: `0.75×G + 0.70×A1 + 0.55×A2 + 0.075×SOG + 0.05×BLK +
+  0.15×plusMinus − 0.15×nonFightingPIM + smallPositive×fightingPenalty`.
+  A1/A2 derived from play-by-play (assist1PlayerId = primary, assist2PlayerId = secondary).
+  Non-fighting vs fighting PIM split from penalty events (check descKey for "fighting").
+  PD (penalties drawn, ×0.15 positive) also derivable from play-by-play drawnByPlayerId — optional.
+  Corsi not available; raw faceoff counts not available (only faceoffWinningPctg — skip or approximate).
+  "Worst" = lowest GameScore, not a separate formula. Alignment note: skater panel height may vary
+  when 5v5 situation indicator is hidden vs shown — review center cell layout if it causes issues.
+
+- **Fight transition overlay:** When a fight is detected mid-game (penalty event with descKey
+  containing "fighting"), show a brief transitional overlay — image and text TBD. Detect via
+  play-by-play penalty events, same pattern as PK/PP detection.
 
 - **Series page past-season team correctness:** The DIVISIONS and TEAM_NAMES tables in series.js
   are hardcoded for the current league. Past seasons need adjustments: (1) Seattle (SEA) didn't

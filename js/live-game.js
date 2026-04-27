@@ -405,47 +405,142 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, le
     '</tr></table>';
 }
 
-function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev) {
-  function playerBestScore(p) {
-    // Points take priority; TOI breaks ties (scaled to stay below 1 point of weight)
-    var points  = (p.goals || 0) + (p.assists || 0);
-    var toiSecs = parseTOISecs(p.toi);
-    return points * 10000 + toiSecs;
+function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays) {
+  // Build per-player data from play-by-play: goals, primary/secondary assists,
+  // penalties drawn, and fighting vs non-fighting PIM.
+  // Play-by-play is more up-to-date than playerByGameStats during live games.
+  var pbp = {};
+  function initPbp(id) {
+    if (id && !pbp[id]) pbp[id] = { goals: 0, a1: 0, a2: 0, pd: 0, fightPIM: 0, nonFightPIM: 0 };
+  }
+  (plays || []).forEach(function (play) {
+    var d = play.details || {};
+    if (play.typeDescKey === 'goal') {
+      if (d.scoringPlayerId) { initPbp(d.scoringPlayerId); pbp[d.scoringPlayerId].goals++; }
+      if (d.assist1PlayerId) { initPbp(d.assist1PlayerId); pbp[d.assist1PlayerId].a1++; }
+      if (d.assist2PlayerId) { initPbp(d.assist2PlayerId); pbp[d.assist2PlayerId].a2++; }
+    }
+    if (play.typeDescKey === 'penalty') {
+      var pim     = d.duration || 0;
+      var isFight = d.descKey && d.descKey.indexOf('fighting') !== -1;
+      if (d.committedByPlayerId) {
+        initPbp(d.committedByPlayerId);
+        if (isFight) pbp[d.committedByPlayerId].fightPIM    += pim;
+        else         pbp[d.committedByPlayerId].nonFightPIM += pim;
+      }
+      if (d.drawnByPlayerId) {
+        initPbp(d.drawnByPlayerId);
+        pbp[d.drawnByPlayerId].pd += pim;
+      }
+    }
+  });
+
+  // Approximate GameScore (Luszczyszyn 2016).
+  // Omits Corsi (not in API) and raw faceoff counts (only % available).
+  // Fighting PIM is treated as a small positive rather than penalized.
+  function gameScore(p) {
+    var q  = pbp[p.playerId] || {};
+    var g  = Math.max(p.goals || 0, q.goals || 0);
+    var a1 = q.a1 || 0;
+    var a2 = q.a2 || 0;
+    if (a1 === 0 && a2 === 0) a2 = p.assists || 0;  // fallback if pbp assist split unavailable
+    return 0.75  * g
+         + 0.70  * a1
+         + 0.55  * a2
+         + 0.075 * (p.shots        || 0)
+         + 0.05  * (p.blockedShots || 0)
+         + 0.15  * (p.plusMinus    || 0)
+         + 0.15  * (q.pd           || 0)
+         - 0.15  * (q.nonFightPIM  || 0)
+         + 0.01  * (q.fightPIM     || 0);
   }
 
   function getPlayers(stats) {
     return ((stats.forwards || []).concat(stats.defense || []))
-      .filter(function (p) { return parseTOISecs(p.toi) > 0; });
+      .filter(function (p) { return parseTOISecs(p.toi) > 0 || pbp[p.playerId]; });
   }
 
   function skaterRow(p) {
+    var q  = pbp[p.playerId] || {};
+    var g  = Math.max(p.goals || 0, q.goals || 0);
+    var a1 = q.a1 || 0;
+    var a2 = q.a2 || 0;
+    if (a1 === 0 && a2 === 0) a2 = p.assists || 0;
+    var a        = g > 0 || a1 > 0 || a2 > 0 ? a1 + a2 : (p.assists || 0);
+    var sog      = p.shots        || 0;
+    var blk      = p.blockedShots || 0;
+    var pm       = p.plusMinus    || 0;
+    var pd       = q.pd           || 0;
+    var nonFPIM  = q.nonFightPIM  || 0;
+    var fPIM     = q.fightPIM     || 0;
+    var gs       = gameScore(p);
+    var gsStr    = (gs >= 0 ? '+' : '') + gs.toFixed(2);
+    var gsColor  = gs >= 0 ? '#8f8' : '#f88';
+
+    // Build breakdown tooltip lines for each non-zero component
+    var lines = [];
+    function term(val, coeff, label) {
+      if (!val) return;
+      var contrib = coeff * val;
+      lines.push((contrib >= 0 ? '+' : '') + contrib.toFixed(3) +
+        ' &nbsp;<span style="color:#888;">(' + coeff + '&times;' + val + ' ' + label + ')</span>');
+    }
+    term(g,      0.75,  'G');
+    term(a1,     0.70,  'A1');
+    term(a2,     0.55,  'A2');
+    term(sog,    0.075, 'SOG');
+    term(blk,    0.05,  'BLK');
+    if (pm) term(pm, 0.15, (pm >= 0 ? '+' : '') + pm + '&nbsp;&plusmn;');
+    term(pd,     0.15,  'PD');
+    if (nonFPIM) lines.push('-' + (0.15 * nonFPIM).toFixed(3) +
+      ' &nbsp;<span style="color:#888;">(0.15&times;' + nonFPIM + ' PIM)</span>');
+    term(fPIM,   0.01,  'fight');
+
+    var tooltipHTML =
+      '<span style="display:none;position:absolute;bottom:120%;right:0;z-index:999;' +
+      'background:#111;border:1px solid #555;padding:5px 7px;white-space:nowrap;' +
+      'font-size:8pt;font-family:monospace;color:#ccc;line-height:1.6;">' +
+      (lines.length ? lines.join('<br>') : '<span style="color:#888;">no contributions</span>') +
+      '<br><span style="border-top:1px solid #444;display:block;margin-top:3px;padding-top:3px;">' +
+      '<b style="color:' + gsColor + ';">' + gsStr + '</b> GameScore</span>' +
+      '</span>';
+
+    var gsCell =
+      '<span style="position:relative;display:inline-block;">' +
+      '<span style="cursor:help;text-decoration:underline dotted;" ' +
+      'onmouseenter="this.nextElementSibling.style.display=\'block\'" ' +
+      'onmouseleave="this.nextElementSibling.style.display=\'none\'">' + gsStr + '</span>' +
+      tooltipHTML +
+      '</span>';
+
     return '<tr>' +
       '<td>' + ((p.name && p.name.default) || '?') + '</td>' +
-      '<td style="white-space:nowrap;">' + (p.goals || 0) + 'G ' + (p.assists || 0) + 'A</td>' +
+      '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A</td>' +
       '<td>' + (p.toi || '&mdash;') + '</td>' +
+      '<td style="white-space:nowrap;color:' + gsColor + ';">' + gsCell + '</td>' +
       '</tr>';
   }
 
   function skaterPanel(players, label) {
     if (!players.length) return '';
-    var byBest = players.slice().sort(function (a, b) { return playerBestScore(b) - playerBestScore(a); });
-    var byTOI  = players.slice().sort(function (a, b) { return parseTOISecs(a.toi) - parseTOISecs(b.toi); });
-    var top    = byBest.slice(0, 3);
-    var bottom = players.length >= 6 ? byTOI.slice(0, 3) : [];
+    var sorted = players.slice().sort(function (a, b) { return gameScore(b) - gameScore(a); });
+    var top    = sorted.slice(0, 3);
+    var bottom = players.length >= 6 ? sorted.slice(-3).reverse() : [];
     var thead  = '<tr>' +
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
       '<th style="font-size:8pt;">TOI</th>' +
+      '<th style="font-size:8pt;">GS</th>' +
       '</tr>';
 
     var html = '<table width="100%">' +
-      '<thead><tr><th colspan="3">' + label + ' — Best</th></tr>' + thead + '</thead>' +
+      '<thead><tr><th colspan="4">' + label + ' — Best</th></tr>' + thead + '</thead>' +
       '<tbody>' + top.map(skaterRow).join('') + '</tbody>' +
       '</table>';
 
     if (bottom.length) {
       html += '<table width="100%" style="margin-top:4px;">' +
-        '<thead><tr><th colspan="3">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
+        '<thead><tr><th colspan="4">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
         '<tbody>' + bottom.map(skaterRow).join('') + '</tbody>' +
         '</table>';
     }
@@ -1316,7 +1411,7 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
-    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev) +
+    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays) +
     buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, nyiGameNum, nhlGameNum);
 }
 
