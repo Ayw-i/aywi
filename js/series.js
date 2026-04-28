@@ -244,8 +244,10 @@ function renderBar(games, groupBy) {
 
 // --- Division + total rendering ---
 
+var COVID_EAST_DIV = { name: 'EAST', teams: ['BOS','BUF','NJD','NYR','PHI','PIT','WSH'] };
+
 function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padToRows) {
-  const isMetro = div.name === 'METROPOLITAN';
+  const isMetro = div.name === 'METROPOLITAN' || div.name === 'EAST';
 
   // Build the ordered list of entries, inserting NYI when sorting by standing
   let entries = div.teams.map(function (abbrev) {
@@ -706,6 +708,60 @@ document.addEventListener('click', function () {
   }
 });
 
+// --- Postseason ---
+
+function processPlayoffGames(rawGames) {
+  var byOpp = {}, order = [];
+  rawGames.forEach(function(g) {
+    if (g.gameType !== 3) return;
+    var isHome    = g.homeTeam.abbrev === 'NYI';
+    var oppAbbrev = isHome ? g.awayTeam.abbrev : g.homeTeam.abbrev;
+    if (!byOpp[oppAbbrev]) { byOpp[oppAbbrev] = []; order.push(oppAbbrev); }
+    var isLive   = g.gameState === 'LIVE' || g.gameState === 'CRIT';
+    var hasScore = g.homeTeam.score !== undefined && g.awayTeam.score !== undefined;
+    var isDone   = hasScore && !isLive;
+    var game = { opponent: oppAbbrev, date: g.gameDate, isHome: isHome,
+                 result: null, type: null, nyiScore: null, oppScore: null, gameId: g.id };
+    if (isDone) {
+      var nyiScore  = isHome ? g.homeTeam.score : g.awayTeam.score;
+      var oppScore  = isHome ? g.awayTeam.score : g.homeTeam.score;
+      game.result   = nyiScore > oppScore ? 'W' : 'L';
+      game.type     = (g.gameOutcome && g.gameOutcome.lastPeriodType) || 'REG';
+      game.nyiScore = nyiScore;
+      game.oppScore = oppScore;
+      game.isShutout = (game.result === 'W' && oppScore === 0);
+    }
+    byOpp[oppAbbrev].push(game);
+  });
+  return { byOpp: byOpp, order: order };
+}
+
+function playoffSeriesLabel(games) {
+  var w = games.filter(function(g) { return g.result === 'W'; }).length;
+  var l = games.filter(function(g) { return g.result === 'L'; }).length;
+  if (w === 4) return { text: 'Won ' + w + '–' + l, color: '#4D90E0' };
+  if (l === 4) return { text: 'Lost ' + w + '–' + l, color: '#888' };
+  return { text: w + '–' + l, color: '#aaa' };
+}
+
+function renderPostseason(byOpp, order) {
+  if (!order || order.length === 0) return '';
+  var rows = order.map(function(abbrev) {
+    var games = byOpp[abbrev] || [];
+    var lbl   = playoffSeriesLabel(games);
+    var name  = TEAM_NAMES[abbrev] || abbrev;
+    return '<tr>' +
+      '<td style="width:130px;text-align:right;padding-right:10px;font-size:10pt;vertical-align:middle;white-space:nowrap;">' +
+        name + ' <span style="color:' + lbl.color + ';font-size:9pt;">' + lbl.text + '</span>' +
+      '</td>' +
+      '<td style="vertical-align:middle;padding-bottom:3px;">' + renderBar(games, 'chrono') + '</td>' +
+    '</tr>';
+  }).join('');
+  return '<hr style="border:none;border-top:1px solid #333;margin:30px 0 10px;">' +
+    '<p style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin:0 0 4px 0;">POSTSEASON</p>' +
+    '<table style="border-collapse:collapse;">' + rows + '</table>';
+}
+
 // --- Init ---
 
 async function loadSeriesData() {
@@ -728,6 +784,7 @@ async function loadSeriesData() {
     const standData = await standRes.json();
 
     const byOpp = processGames(games);
+    var playoff = processPlayoffGames(games);
 
     const teamStandings = {};
     (standData.standings || []).forEach(function (t) {
@@ -740,6 +797,7 @@ async function loadSeriesData() {
     });
 
     var startYear = parseInt(season.slice(0, 4), 10);
+    var isCovid = (startYear === 2020);
     applySeasonTeamConfig(startYear);
     var seasonLabel = startYear + '–' + String(startYear + 1).slice(2);
     document.getElementById('series-subtitle').textContent = seasonLabel + ' Regular Season';
@@ -752,13 +810,25 @@ async function loadSeriesData() {
     document.getElementById('legend').innerHTML = renderLegend();
 
     function refresh() {
+      var gbVal = groupBy();
+      var sbVal = sortBy();
+      var metroCount = DIVISIONS[0].teams.length + (sbVal === 'standing' ? 1 : 0);
+      var topRows    = Math.max(metroCount, DIVISIONS[2].teams.length);
+      var bottomRows = Math.max(DIVISIONS[1].teams.length, DIVISIONS[3].teams.length);
       document.getElementById('total-bar').innerHTML = renderTotalBar(byOpp);
-      document.getElementById('col-left').innerHTML  =
-        renderDivisionSection(DIVISIONS[0], byOpp, groupBy(), teamStandings, sortBy(), DIVISIONS[2].teams.length) +
-        renderDivisionSection(DIVISIONS[1], byOpp, groupBy(), teamStandings, sortBy());
-      document.getElementById('col-right').innerHTML =
-        renderDivisionSection(DIVISIONS[2], byOpp, groupBy(), teamStandings, sortBy()) +
-        renderDivisionSection(DIVISIONS[3], byOpp, groupBy(), teamStandings, sortBy());
+      document.getElementById('col-left').innerHTML =
+        renderDivisionSection(DIVISIONS[0], byOpp, gbVal, teamStandings, sbVal, topRows) +
+        renderDivisionSection(DIVISIONS[1], byOpp, gbVal, teamStandings, sbVal, bottomRows);
+      if (isCovid) {
+        document.getElementById('col-left').innerHTML =
+          renderDivisionSection(COVID_EAST_DIV, byOpp, gbVal, teamStandings, sbVal);
+        document.getElementById('col-right').innerHTML = '';
+      } else {
+        document.getElementById('col-right').innerHTML =
+          renderDivisionSection(DIVISIONS[2], byOpp, gbVal, teamStandings, sbVal, topRows) +
+          renderDivisionSection(DIVISIONS[3], byOpp, gbVal, teamStandings, sbVal, bottomRows);
+      }
+      document.getElementById('postseason').innerHTML = renderPostseason(playoff.byOpp, playoff.order);
     }
 
     refresh();

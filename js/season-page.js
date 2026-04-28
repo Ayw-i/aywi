@@ -282,13 +282,97 @@ function renderSeasonTable(games, goalieMap) {
     '</table>';
 }
 
+// --- Postseason ---
+
+function renderPostseasonTable(allGames) {
+  var pgGames = allGames.filter(function(g) { return g.gameType === 3; });
+  if (!pgGames.length) return '';
+
+  var byOpp = {}, oppOrder = [];
+  pgGames.forEach(function(g) {
+    var isHome = g.homeTeam.abbrev === 'NYI';
+    var opp    = isHome ? g.awayTeam.abbrev : g.homeTeam.abbrev;
+    if (!byOpp[opp]) { byOpp[opp] = []; oppOrder.push(opp); }
+    byOpp[opp].push(g);
+  });
+
+  var sections = oppOrder.map(function(oppAbbrev) {
+    var seriesGames = byOpp[oppAbbrev];
+    var W = 0, L = 0;
+    seriesGames.forEach(function(g) {
+      var isPlayed = g.gameState === 'OFF' || g.gameState === 'FINAL';
+      if (!isPlayed) return;
+      var isHome = g.homeTeam.abbrev === 'NYI';
+      var nyi    = isHome ? g.homeTeam : g.awayTeam;
+      var opp    = isHome ? g.awayTeam : g.homeTeam;
+      if (nyi.score > opp.score) W++; else L++;
+    });
+    var seriesResult = W === 4 ? 'Won ' + W + '–' + L :
+                       L === 4 ? 'Lost ' + W + '–' + L :
+                       W + '–' + L;
+    var seriesColor  = W === 4 ? '#4D90E0' : L === 4 ? '#CC3333' : '#aaa';
+
+    var rows = seriesGames.map(function(g, i) {
+      var isHome   = g.homeTeam.abbrev === 'NYI';
+      var nyi      = isHome ? g.homeTeam : g.awayTeam;
+      var opp      = isHome ? g.awayTeam : g.homeTeam;
+      var isPlayed = g.gameState === 'OFF' || g.gameState === 'FINAL';
+      var isLive   = g.gameState === 'LIVE' || g.gameState === 'CRIT';
+
+      var resultText = '', resultColor = '', scoreText = '', otTag = '';
+      if (isPlayed) {
+        var last = (g.gameOutcome || {}).lastPeriodType || 'REG';
+        var won  = nyi.score > opp.score;
+        var isOT = last === 'OT';
+        var isSO = last === 'SO';
+        resultText  = won ? 'W' : (isSO ? 'SOL' : isOT ? 'OTL' : 'L');
+        resultColor = won ? '#4A90D9' : (isOT || isSO ? '#999999' : '#CC3333');
+        scoreText   = nyi.score + '–' + opp.score;
+        if (isOT) otTag = 'OT';
+        if (isSO) otTag = 'SO';
+      } else if (isLive) {
+        resultText  = 'LIVE';
+        resultColor = '#FFD700';
+        scoreText   = nyi.score + '–' + opp.score;
+      } else {
+        resultText  = formatGameTime(g.startTimeUTC, g.easternUTCOffset);
+        resultColor = '#555555';
+      }
+
+      var prefix = isHome ? 'vs ' : '@ ';
+      var rowBg  = i % 2 === 1 ? 'background-color:#0d0d0d;' : '';
+      var TD     = 'style="padding:3px 8px;font-size:10pt;';
+      return '<tr style="' + rowBg + '">' +
+        '<td style="padding:3px 6px;text-align:right;font-size:9pt;color:#444;">G' + (i + 1) + '</td>' +
+        '<td ' + TD + '">' + formatSeasonDate(g.gameDate) + '</td>' +
+        '<td ' + TD + '">' + prefix + logoImg(opp.abbrev) + opp.abbrev + '</td>' +
+        '<td ' + TD + 'font-weight:bold;color:' + resultColor + ';">' + resultText + '</td>' +
+        '<td ' + TD + '">' + scoreText + '</td>' +
+        '<td ' + TD + 'font-size:9pt;color:#666;">' + otTag + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div style="margin-bottom:24px;">' +
+      '<div style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#888;margin:0 0 4px 0;">' +
+        logoImg(oppAbbrev) + oppAbbrev +
+        ' &nbsp;<span style="color:' + seriesColor + ';">' + seriesResult + '</span>' +
+      '</div>' +
+      '<table style="width:100%;border-collapse:collapse;">' + rows + '</table>' +
+    '</div>';
+  }).join('');
+
+  return '<hr style="border:none;border-top:1px solid #333;margin:30px 0 20px;">' +
+    '<h2 style="font-size:11pt;margin:0 0 16px 0;">POSTSEASON</h2>' +
+    sections;
+}
+
 Promise.all([getSeasonSchedule(), fetchGoalieMap()])
   .then(function (results) {
     document.getElementById('season-picker').innerHTML = renderSeasonPicker();
     var el = document.getElementById('season-table');
     el.style.opacity = '';
     el.style.fontSize = '';
-    el.innerHTML = renderSeasonTable(results[0], results[1]);
+    el.innerHTML = renderSeasonTable(results[0], results[1]) + renderPostseasonTable(results[0]);
   })
   .catch(function () {
     document.getElementById('season-table').innerHTML =
