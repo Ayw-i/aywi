@@ -386,9 +386,11 @@ function buildSeriesCard(series, seedLabels) {
       : '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
         (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '');
 
+    var teamObj  = isTop ? top : bottom;
+    var logoUrl  = teamObj.logo || playoffsLogoURL(abbrev);
     var imgStyle = 'display:block;margin:0 auto 3px;' + innerOpacity;
     var content = '<span style="' + innerStyle + '">' +
-      '<img src="' + playoffsLogoURL(abbrev) + '" width="36" alt="' + abbrev + '" ' +
+      '<img src="' + logoUrl + '" width="36" alt="' + abbrev + '" ' +
       'onerror="this.style.display=\'none\'" style="' + imgStyle + '">' +
       textHTML +
       '</span>';
@@ -487,7 +489,7 @@ function buildTodayGameCard(game, pbp) {
 
   function teamCell(team) {
     return '<td align="center" width="35%" style="border:none;padding:10px 6px;">' +
-      '<img src="' + playoffsLogoURL(team.abbrev || '') + '" width="64" alt="' + (team.abbrev || '') + '" ' +
+      '<img src="' + (team.logo || playoffsLogoURL(team.abbrev || '')) + '" width="64" alt="' + (team.abbrev || '') + '" ' +
       'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 6px;">' +
       '<div style="font-size:10pt;">' + (team.abbrev || '') + '</div>' +
       '</td>';
@@ -569,37 +571,25 @@ function roundWrap(started, inner) {
   return started ? inner : '<div style="opacity:0.5;">' + inner + '</div>';
 }
 
-function buildConferenceColumn(allSeries, r1, r2, cf, confName, seedLabels) {
+// Returns { header, r1, r2, cf } HTML strings for aligned row-per-round rendering.
+function buildConferenceRounds(allSeries, r1Letters, r2Letters, cfLetter, confName, seedLabels) {
   function getSeries(letters) {
     return letters.map(function (l) {
       return allSeries.find(function (s) { return s.seriesLetter === l; });
     }).filter(Boolean);
   }
-
-  var html = '<h3 style="text-align:center;font-size:12pt;margin:0 0 10px 0;">' + confName + '</h3>';
-
-  var r1Series = getSeries(r1);
-  if (r1Series.length) {
-    html += roundWrap(roundStarted(r1Series),
-      '<h4 style="' + ROUND_LABEL_STYLE + '">1st Round</h4>' +
-      r1Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
+  function roundHTML(seriesList, label) {
+    if (!seriesList.length) return '';
+    return roundWrap(roundStarted(seriesList),
+      '<h4 style="' + ROUND_LABEL_STYLE + '">' + label + '</h4>' +
+      seriesList.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
   }
-
-  var r2Series = getSeries(r2);
-  if (r2Series.length) {
-    html += roundWrap(roundStarted(r2Series),
-      '<h4 style="' + ROUND_LABEL_STYLE + '">2nd Round</h4>' +
-      r2Series.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
-  }
-
-  var cfSeries = getSeries([cf]);
-  if (cfSeries.length) {
-    html += roundWrap(roundStarted(cfSeries),
-      '<h4 style="' + ROUND_LABEL_STYLE + '">Conference Final</h4>' +
-      cfSeries.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
-  }
-
-  return html;
+  return {
+    header: '<h3 style="text-align:center;font-size:12pt;margin:0 0 10px 0;">' + confName + '</h3>',
+    r1: roundHTML(getSeries(r1Letters), '1st Round'),
+    r2: roundHTML(getSeries(r2Letters), '2nd Round'),
+    cf: roundHTML(getSeries([cfLetter]), 'Conference Final'),
+  };
 }
 
 // --- Main ---
@@ -677,16 +667,24 @@ async function loadPlayoffsPage() {
       return;
     }
 
-    var eastHTML    = buildConferenceColumn(allSeries, ['A','B','C','D'], ['I','J'], 'M', 'Eastern Conference', seedLabels);
-    var westHTML    = buildConferenceColumn(allSeries, ['E','F','G','H'], ['K','L'], 'N', 'Western Conference', seedLabels);
+    var east        = buildConferenceRounds(allSeries, ['A','B','C','D'], ['I','J'], 'M', 'Eastern Conference', seedLabels);
+    var west        = buildConferenceRounds(allSeries, ['E','F','G','H'], ['K','L'], 'N', 'Western Conference', seedLabels);
     var finalSeries = allSeries.find(function (s) { return s.seriesLetter === 'O'; });
+
+    function confRow(eastCell, westCell) {
+      if (!eastCell && !westCell) return '';
+      return '<tr>' +
+        '<td width="50%" valign="top" style="border:none;padding-right:14px;">' + (eastCell || '') + '</td>' +
+        '<td width="50%" valign="top" style="border:none;padding-left:14px;">'  + (westCell || '') + '</td>' +
+        '</tr>';
+    }
 
     bracketEl.innerHTML =
       '<table width="100%" style="border:none;">' +
-      '<tr>' +
-      '<td width="50%" valign="top" style="border:none;padding-right:14px;">' + eastHTML + '</td>' +
-      '<td width="50%" valign="top" style="border:none;padding-left:14px;">'  + westHTML + '</td>' +
-      '</tr>' +
+      confRow(east.header, west.header) +
+      confRow(east.r1, west.r1) +
+      confRow(east.r2, west.r2) +
+      confRow(east.cf, west.cf) +
       '</table>' +
       (finalSeries
         ? roundWrap(roundStarted([finalSeries]),
