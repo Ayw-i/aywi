@@ -145,6 +145,34 @@ function hideFraudImg() {
   getFraudImgEl().style.display = 'none';
 }
 
+// --- Reverse-sweep watch hover (potential-fraud.jpg flipped upside down) ---
+
+var _revSwWatchEl = null;
+function getRevSwWatchEl() {
+  if (!_revSwWatchEl) {
+    _revSwWatchEl = document.createElement('div');
+    _revSwWatchEl.style.cssText = 'position:fixed;z-index:999;pointer-events:none;display:none;width:200px;';
+    _revSwWatchEl.innerHTML = '<img src="assets/potential-fraud.jpg" ' +
+      'style="width:100%;display:block;transform:rotate(180deg);">';
+    document.body.appendChild(_revSwWatchEl);
+  }
+  return _revSwWatchEl;
+}
+function showRevSwWatchImg(el, e) {
+  var el2 = getRevSwWatchEl();
+  el2.style.left = (e.clientX + 14) + 'px';
+  el2.style.top  = (e.clientY + 14) + 'px';
+  el2.style.display = 'block';
+}
+function moveRevSwWatchImg(e) {
+  var el2 = getRevSwWatchEl();
+  el2.style.left = (e.clientX + 14) + 'px';
+  el2.style.top  = (e.clientY + 14) + 'px';
+}
+function hideRevSwWatchImg() {
+  getRevSwWatchEl().style.display = 'none';
+}
+
 // --- Reverse-sweep hover (eddie-westfall-sends-his-regards.jpg) ---
 
 var _revSwEl = null;
@@ -301,10 +329,11 @@ function buildSeriesCard(series, seedLabels) {
     var isRevSw   = (isTop ? topRevSwept   : bottomRevSwept)  && !isNYITeam;
     var isRevSwW  = (isTop ? topRevSwWatch : bottomRevSwWatch) && !isNYITeam;
 
-    var textColor = isFraud ? '#FF69B4'
-                  : isSwept ? '#880000'
-                  : isRevSw ? '#660066'
-                  : isDown3 ? '#CC2222'
+    var textColor = isFraud   ? '#FF69B4'
+                  : isRevSwW ? '#FF69B4'
+                  : isSwept  ? '#880000'
+                  : isRevSw  ? '#660066'
+                  : isDown3  ? '#CC2222'
                   : '';
     // For swept/reverse-swept teams: fade logo+name individually so emojis stay at full opacity.
     // For all other eliminated teams: fade the whole cell.
@@ -334,6 +363,9 @@ function buildSeriesCard(series, seedLabels) {
     var fraudAttr = isFraud
       ? ' onmouseover="showFraudImg(this,event)" onmousemove="moveFraudImg(event)" onmouseout="hideFraudImg()"'
       : '';
+    var revSwWAttr = isRevSwW
+      ? ' onmouseover="showRevSwWatchImg(this,event)" onmousemove="moveRevSwWatchImg(event)" onmouseout="hideRevSwWatchImg()"'
+      : '';
     var revSwAttr = isRevSw
       ? ' onmouseover="showRevSwHover(this,event)" onmousemove="moveRevSwHover(event)" onmouseout="hideRevSwHover()"'
       : '';
@@ -361,7 +393,7 @@ function buildSeriesCard(series, seedLabels) {
       textHTML +
       '</span>';
 
-    return '<td align="center" width="30%" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + revSwAttr + '>' +
+    return '<td align="center" width="30%" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + revSwAttr + revSwWAttr + '>' +
       content + '</td>';
   }
 
@@ -371,12 +403,14 @@ function buildSeriesCard(series, seedLabels) {
     var isFraud = isTop && topFraud && !isNYITeam;
     var isDown3 = (isTop ? topDown3 : bottomDown3) && !isNYITeam;
     var isSwept = (isTop ? topSwept : bottomSwept) && !isNYITeam;
-    var isRevSw = (isTop ? topRevSwept : bottomRevSwept) && !isNYITeam;
+    var isRevSw  = (isTop ? topRevSwept   : bottomRevSwept)  && !isNYITeam;
+    var isRevSwW = (isTop ? topRevSwWatch : bottomRevSwWatch) && !isNYITeam;
 
-    var textColor = isFraud ? 'color:#FF69B4;'
-                  : isSwept ? 'color:#880000;'
-                  : isRevSw ? 'color:#660066;'
-                  : isDown3 ? 'color:#CC2222;'
+    var textColor = isFraud  ? 'color:#FF69B4;'
+                  : isRevSwW ? 'color:#FF69B4;'
+                  : isSwept  ? 'color:#880000;'
+                  : isRevSw  ? 'color:#660066;'
+                  : isDown3  ? 'color:#CC2222;'
                   : '';
     var cellOpacity = isFaded ? 'opacity:0.4;' : '';
 
