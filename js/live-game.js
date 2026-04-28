@@ -539,8 +539,8 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
   function skaterPanel(players, label) {
     if (!players.length) return '';
     var sorted = players.slice().sort(function (a, b) { return gameScore(b) - gameScore(a); });
-    var top    = sorted.slice(0, 3);
-    var bottom = players.length >= 6 ? sorted.slice(-3).reverse() : [];
+    var top    = sorted.slice(0, 5);
+    var bottom = players.length >= 10 ? sorted.slice(-5).reverse() : [];
     var thead  = '<tr>' +
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
