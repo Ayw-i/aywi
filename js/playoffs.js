@@ -42,6 +42,32 @@ var HISTORICAL_REVERSE_SWEEPS = [
   { year: 2014, loser: 'SJS' }, // LAK came back from 0-3 vs SJS
 ];
 
+// Returns the abbrev of the team that led 3-0 but is now tied 3-3 (reverse sweep watch), or null.
+function detectReverseSweptWatch(series) {
+  var games = series.games;
+  if (!games || games.length < 6) return null;
+  var topAbbrev = (series.topSeedTeam || {}).abbrev;
+  var winners = [];
+  for (var i = 0; i < 6; i++) {
+    var g = games[i];
+    if (!g) return null;
+    var winner = null;
+    if (g.topSeedScore !== undefined && g.bottomSeedScore !== undefined) {
+      winner = g.topSeedScore > g.bottomSeedScore ? 'top' : 'bottom';
+    } else if (g.homeScore !== undefined && g.visitingScore !== undefined && g.homeTeamAbbrev) {
+      var homeIsTop = g.homeTeamAbbrev === topAbbrev;
+      winner = (g.homeScore > g.visitingScore) === homeIsTop ? 'top' : 'bottom';
+    } else {
+      return null;
+    }
+    winners.push(winner);
+  }
+  var first3 = winners.slice(0, 3);
+  if (first3.every(function (w) { return w === 'top'; }))    return topAbbrev;
+  if (first3.every(function (w) { return w === 'bottom'; })) return (series.bottomSeedTeam || {}).abbrev;
+  return null;
+}
+
 // Returns the abbrev of the team that was reverse-swept (led 3-0 then lost 4-3), or null.
 function detectReverseSwept(series) {
   var games = series.games;
@@ -253,6 +279,14 @@ function buildSeriesCard(series, seedLabels) {
     if (rsLoser === bottomAbbrev) bottomRevSwept = true;
   }
 
+  // 6f: reverse sweep watch (led 3-0, now tied 3-3)
+  var topRevSwWatch = false, bottomRevSwWatch = false;
+  if (!seriesOver && topWins === 3 && bottomWins === 3) {
+    var rswLoser = detectReverseSweptWatch(series);
+    if (rswLoser === topAbbrev)    topRevSwWatch    = true;
+    if (rswLoser === bottomAbbrev) bottomRevSwWatch = true;
+  }
+
   var tableStyle = 'border-collapse:collapse;margin-bottom:8px;width:100%;' +
     (isNYI ? 'outline:1px solid white;' : '');
 
@@ -261,10 +295,11 @@ function buildSeriesCard(series, seedLabels) {
     var isNYITeam = abbrev === 'NYI';
     // Only the higher seed (top seed) gets the fraud treatment; never applied to NYI
     var isFraud = isTop && topFraud && !isNYITeam;
-    var isDown3 = (isTop ? topDown3 : bottomDown3) && !isNYITeam;
-    var isSwept = (isTop ? topSwept : bottomSwept) && !isNYITeam;
-    var isGent  = (isTop ? topGentSwept : bottomGentSwept) && !isNYITeam;
-    var isRevSw = (isTop ? topRevSwept  : bottomRevSwept)  && !isNYITeam;
+    var isDown3   = (isTop ? topDown3      : bottomDown3)     && !isNYITeam;
+    var isSwept   = (isTop ? topSwept      : bottomSwept)     && !isNYITeam;
+    var isGent    = (isTop ? topGentSwept  : bottomGentSwept) && !isNYITeam;
+    var isRevSw   = (isTop ? topRevSwept   : bottomRevSwept)  && !isNYITeam;
+    var isRevSwW  = (isTop ? topRevSwWatch : bottomRevSwWatch) && !isNYITeam;
 
     var textColor = isFraud ? '#FF69B4'
                   : isSwept ? '#880000'
@@ -286,6 +321,9 @@ function buildSeriesCard(series, seedLabels) {
     } else if (isGent) {
       leftEmoji  = '🎩';
       rightEmoji = '🧹';
+    } else if (isRevSwW) {
+      leftEmoji  = '<span style="opacity:0.3;">👀</span>';
+      rightEmoji = '<span style="opacity:0.3;display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
     } else if (isDown3) {
       leftEmoji  = '<span style="opacity:0.3;">👀</span>';
       rightEmoji = '<span style="opacity:0.3;">🧹</span>';
