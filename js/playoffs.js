@@ -584,11 +584,13 @@ function buildConferenceRounds(allSeries, r1Letters, r2Letters, cfLetter, confNa
       '<h4 style="' + ROUND_LABEL_STYLE + '">' + label + '</h4>' +
       seriesList.map(function (s) { return buildSeriesCard(s, seedLabels); }).join(''));
   }
+  var cfSeries  = getSeries([cfLetter]);
+  var cfLabel   = (cfSeries[0] && cfSeries[0].seriesTitle) || 'Conference Final';
   return {
     header: '<h3 style="text-align:center;font-size:12pt;margin:0 0 10px 0;">' + confName + '</h3>',
     r1: roundHTML(getSeries(r1Letters), '1st Round'),
     r2: roundHTML(getSeries(r2Letters), '2nd Round'),
-    cf: roundHTML(getSeries([cfLetter]), 'Conference Final'),
+    cf: roundHTML(cfSeries, cfLabel),
   };
 }
 
@@ -667,8 +669,9 @@ async function loadPlayoffsPage() {
       return;
     }
 
-    var east        = buildConferenceRounds(allSeries, ['A','B','C','D'], ['I','J'], 'M', 'Eastern Conference', seedLabels);
-    var west        = buildConferenceRounds(allSeries, ['E','F','G','H'], ['K','L'], 'N', 'Western Conference', seedLabels);
+    var isCovid21   = (year === 2021);
+    var east        = buildConferenceRounds(allSeries, ['A','B','C','D'], ['I','J'], 'M', isCovid21 ? 'East / Central' : 'Eastern Conference', seedLabels);
+    var west        = buildConferenceRounds(allSeries, ['E','F','G','H'], ['K','L'], 'N', isCovid21 ? 'West / North'   : 'Western Conference', seedLabels);
     var finalSeries = allSeries.find(function (s) { return s.seriesLetter === 'O'; });
 
     function confRow(eastCell, westCell) {
