@@ -34,10 +34,30 @@ function jafares(name) {
 }
 
 // --- Reverse-sweep detection ---
+
+var _bracketYear = null; // set by loadPlayoffsPage
+
+// Hard-coded historical reverse sweeps (bracket API lacks per-game data for past seasons).
+var HISTORICAL_REVERSE_SWEEPS = [
+  { year: 2014, loser: 'SJS' }, // LAK came back from 0-3 vs SJS
+];
+
 // Returns the abbrev of the team that was reverse-swept (led 3-0 then lost 4-3), or null.
 function detectReverseSwept(series) {
   var games = series.games;
-  if (!games || games.length < 7) return null;
+  if (!games || games.length < 7) {
+    // Fall back to hard-coded list for historical seasons
+    if (!_bracketYear) return null;
+    var tAbbrev = (series.topSeedTeam    || {}).abbrev;
+    var bAbbrev = (series.bottomSeedTeam || {}).abbrev;
+    for (var i = 0; i < HISTORICAL_REVERSE_SWEEPS.length; i++) {
+      var h = HISTORICAL_REVERSE_SWEEPS[i];
+      if (h.year === _bracketYear && (h.loser === tAbbrev || h.loser === bAbbrev)) {
+        return h.loser;
+      }
+    }
+    return null;
+  }
   var topAbbrev = (series.topSeedTeam || {}).abbrev;
 
   var winners = [];
@@ -97,6 +117,37 @@ function moveFraudImg(e) {
 }
 function hideFraudImg() {
   getFraudImgEl().style.display = 'none';
+}
+
+// --- Reverse-sweep hover (eddie-westfall-sends-his-regards.jpg) ---
+
+var _revSwEl = null;
+function getRevSwEl() {
+  if (!_revSwEl) {
+    _revSwEl = document.createElement('div');
+    _revSwEl.style.cssText = 'position:fixed;z-index:999;pointer-events:none;display:none;' +
+      'background:#000;border:1px solid #fff;padding:6px;text-align:center;width:180px;';
+    _revSwEl.innerHTML = '<img src="assets/eddie-westfall-sends-his-regards.jpg" ' +
+      'style="width:100%;display:block;margin-bottom:5px;">' +
+      '<span style="color:#fff;font-size:8pt;font-family:Helvetica,Arial,sans-serif;' +
+      'letter-spacing:1px;">ED WESTFALL SENDS HIS REGARDS</span>';
+    document.body.appendChild(_revSwEl);
+  }
+  return _revSwEl;
+}
+function showRevSwHover(el, e) {
+  var el2 = getRevSwEl();
+  el2.style.left = (e.clientX + 14) + 'px';
+  el2.style.top  = (e.clientY + 14) + 'px';
+  el2.style.display = 'block';
+}
+function moveRevSwHover(e) {
+  var el2 = getRevSwEl();
+  el2.style.left = (e.clientX + 14) + 'px';
+  el2.style.top  = (e.clientY + 14) + 'px';
+}
+function hideRevSwHover() {
+  getRevSwEl().style.display = 'none';
 }
 
 // --- Goal helpers ---
@@ -217,12 +268,13 @@ function buildSeriesCard(series, seedLabels) {
 
     var textColor = isFraud ? '#FF69B4'
                   : isSwept ? '#880000'
+                  : isRevSw ? '#660066'
                   : isDown3 ? '#CC2222'
                   : '';
-    // For swept teams: fade logo+name individually so emojis stay at full opacity.
+    // For swept/reverse-swept teams: fade logo+name individually so emojis stay at full opacity.
     // For all other eliminated teams: fade the whole cell.
-    var cellOpacity  = (isFaded && !isSwept) ? 'opacity:0.4;' : '';
-    var innerOpacity = isSwept ? 'opacity:0.4;' : '';
+    var cellOpacity  = (isFaded && !isSwept && !isRevSw) ? 'opacity:0.4;' : '';
+    var innerOpacity = (isSwept || isRevSw) ? 'opacity:0.4;' : '';
 
     var leftEmoji = '', rightEmoji = '';
     if (isRevSw) {
@@ -243,6 +295,9 @@ function buildSeriesCard(series, seedLabels) {
 
     var fraudAttr = isFraud
       ? ' onmouseover="showFraudImg(this,event)" onmousemove="moveFraudImg(event)" onmouseout="hideFraudImg()"'
+      : '';
+    var revSwAttr = isRevSw
+      ? ' onmouseover="showRevSwHover(this,event)" onmousemove="moveRevSwHover(event)" onmouseout="hideRevSwHover()"'
       : '';
 
     var seed = seedLabels[abbrev] || '';
@@ -268,7 +323,7 @@ function buildSeriesCard(series, seedLabels) {
       textHTML +
       '</span>';
 
-    return '<td align="center" width="30%" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + '>' +
+    return '<td align="center" width="30%" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + revSwAttr + '>' +
       content + '</td>';
   }
 
@@ -278,9 +333,11 @@ function buildSeriesCard(series, seedLabels) {
     var isFraud = isTop && topFraud && !isNYITeam;
     var isDown3 = (isTop ? topDown3 : bottomDown3) && !isNYITeam;
     var isSwept = (isTop ? topSwept : bottomSwept) && !isNYITeam;
+    var isRevSw = (isTop ? topRevSwept : bottomRevSwept) && !isNYITeam;
 
     var textColor = isFraud ? 'color:#FF69B4;'
                   : isSwept ? 'color:#880000;'
+                  : isRevSw ? 'color:#660066;'
                   : isDown3 ? 'color:#CC2222;'
                   : '';
     var cellOpacity = isFaded ? 'opacity:0.4;' : '';
@@ -476,50 +533,67 @@ function buildConferenceColumn(allSeries, r1, r2, cf, confName, seedLabels) {
 // --- Main ---
 
 async function loadPlayoffsPage() {
-  var year = new Date().getFullYear();
+  var season  = getSelectedSeason();
+  var year    = parseInt(season.slice(4), 10);
+  var nowYear = (function () {
+    var now = new Date();
+    return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
+  }());
+  var isCurrent = (year === nowYear);
+
+  _bracketYear = year;
+  document.getElementById('season-picker').innerHTML = renderSeasonPicker();
+
+  // Hide today's games section for historical seasons
+  var todaySection = document.getElementById('today-games-section');
+  if (!isCurrent) todaySection.style.display = 'none';
 
   try {
-    var results = await Promise.all([
-      fetch(WORKER + '/v1/score/now'),
-      fetch(WORKER + '/v1/playoff-bracket/' + year),
-      fetch(WORKER + '/v1/standings/now'),
-    ]);
+    var bracketData, seedLabels = {}, todayGames = [], pbpResults = [];
 
-    var scoreData   = await results[0].json();
-    var bracketData = await results[1].json();
-    var standData   = await results[2].json();
+    if (isCurrent) {
+      var results = await Promise.all([
+        fetch(WORKER + '/v1/score/now'),
+        fetch(WORKER + '/v1/playoff-bracket/' + year),
+        fetch(WORKER + '/v1/standings/now'),
+      ]);
+      var scoreData = await results[0].json();
+      bracketData   = await results[1].json();
+      var standData = await results[2].json();
 
-    // Build seed label map: A1, M2, WC1, etc.
-    var seedLabels = {};
-    (standData.standings || []).forEach(function (t) {
-      var abbrev = t.teamAbbrev && (t.teamAbbrev.default || t.teamAbbrev);
-      if (!abbrev) return;
-      if (t.divisionSequence && t.divisionSequence <= 3) {
-        seedLabels[abbrev] = (t.divisionAbbrev || '') + t.divisionSequence;
-      } else if (t.wildcardSequence && t.wildcardSequence <= 2) {
-        seedLabels[abbrev] = 'WC' + t.wildcardSequence;
-      }
-    });
+      // Build seed label map: A1, M2, WC1, etc.
+      (standData.standings || []).forEach(function (t) {
+        var abbrev = t.teamAbbrev && (t.teamAbbrev.default || t.teamAbbrev);
+        if (!abbrev) return;
+        if (t.divisionSequence && t.divisionSequence <= 3) {
+          seedLabels[abbrev] = (t.divisionAbbrev || '') + t.divisionSequence;
+        } else if (t.wildcardSequence && t.wildcardSequence <= 2) {
+          seedLabels[abbrev] = 'WC' + t.wildcardSequence;
+        }
+      });
 
-    var todayGames = (scoreData.games || []).filter(function (g) { return g.gameType === 3; });
-
-    // Fetch play-by-play for each today's game in parallel
-    var pbpResults = await Promise.all(
-      todayGames.map(function (g) {
-        return fetch(WORKER + '/v1/gamecenter/' + g.id + '/play-by-play')
-          .then(function (r) { return r.json(); })
-          .catch(function () { return null; });
-      })
-    );
-
-    // Today's games
-    var todayEl = document.getElementById('today-games');
-    if (todayGames.length) {
-      todayEl.innerHTML = todayGames.map(function (game, i) {
-        return buildTodayGameCard(game, pbpResults[i]);
-      }).join('');
+      todayGames = (scoreData.games || []).filter(function (g) { return g.gameType === 3; });
+      pbpResults = await Promise.all(
+        todayGames.map(function (g) {
+          return fetch(WORKER + '/v1/gamecenter/' + g.id + '/play-by-play')
+            .then(function (r) { return r.json(); })
+            .catch(function () { return null; });
+        })
+      );
     } else {
-      todayEl.innerHTML = '<p style="opacity:0.5;font-size:10pt;">No playoff games today.</p>';
+      bracketData = await fetch(WORKER + '/v1/playoff-bracket/' + year).then(function (r) { return r.json(); });
+    }
+
+    // Today's games (current season only)
+    if (isCurrent) {
+      var todayEl = document.getElementById('today-games');
+      if (todayGames.length) {
+        todayEl.innerHTML = todayGames.map(function (game, i) {
+          return buildTodayGameCard(game, pbpResults[i]);
+        }).join('');
+      } else {
+        todayEl.innerHTML = '<p style="opacity:0.5;font-size:10pt;">No playoff games today.</p>';
+      }
     }
 
     // Bracket
@@ -553,7 +627,7 @@ async function loadPlayoffsPage() {
 
   } catch (err) {
     console.error('Playoffs page load failed:', err);
-    document.getElementById('today-games').innerHTML =
+    document.getElementById('bracket').innerHTML =
       '<p style="opacity:0.5;font-size:10pt;">Failed to load data.</p>';
   }
 }
