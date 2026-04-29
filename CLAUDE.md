@@ -190,6 +190,11 @@ Always rendered below the mood section (except off-season: news only, no roster)
   loosened from initial values that were too aggressive. Consider whether the rolling windows
   and/or thresholds better reflect actual workload concerns.
 
+- **Schedule page — break indicator:** Gray out the league-wide All-Star/Olympics break on the
+  calendar. Approach: find the longest Jan–Feb gap in NYI's schedule, walk inward from each edge
+  calling `/v1/schedule/{date}` until hitting days with zero league-wide games — that window is
+  the true break. Adds ~4–7 extra API calls on page load.
+
 - **Schedule page — trip/stand summary:** Above the calendar, show a compact table of homestands
   and road trips (2+ consecutive same-location games) grouped by start month. Columns: Type
   (Homestand/Road Trip) | Dates | Games | W-L-OTL. Single games between stretches are skipped.

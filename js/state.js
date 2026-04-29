@@ -25,6 +25,16 @@ const STATES = {
     audioSrc: null,
     fades: false,
   },
+  shutout_win: {
+    background: '#000000',
+    image: 'assets/sorokin-butt.jpg',
+    imageSize: '50%',
+    headline: '',
+    headlineLink: null,
+    audioSrc: null,
+    fades: true,
+    headlineAbove: true,
+  },
   win: {
     background: '#000000',
     image: 'assets/lee.png',
@@ -75,9 +85,8 @@ function renderMoodState(stateName, overrides) {
 
   document.body.style.backgroundColor = state.background;
 
-  // Clear live scoreboard — renderLiveGame repopulates it if needed
-  var liveBoard = document.getElementById('live-scoreboard');
-  if (liveBoard) liveBoard.innerHTML = '';
+  // Clear live scoreboard only for non-live states that have no loaded game
+  // (renderLiveGame repopulates it when transitioning into live state)
 
   // Clear any situation overlay from a prior live state
   var sitImg = document.getElementById('situation-img');
@@ -113,6 +122,14 @@ function renderMoodState(stateName, overrides) {
     headline.textContent = state.headline;
   }
   headline.style.fontSize = state.headline.length > 25 ? '28pt' : '';
+
+  // Reorder headline vs image in the DOM based on state flag
+  var moodSection = img.parentNode;
+  if (state.headlineAbove) {
+    moodSection.insertBefore(headline, img);
+  } else {
+    moodSection.insertBefore(img, headline);
+  }
 
   const audio = document.getElementById('bg-audio');
   const toggle = document.getElementById('sound-toggle');
@@ -215,6 +232,25 @@ function nyiDiff(game) {
 
 function nyiWon(game) { return nyiDiff(game) > 0; }
 
+function oppScore(game) {
+  return game.awayTeam.abbrev === 'NYI'
+    ? (game.homeTeam.score || 0)
+    : (game.awayTeam.score || 0);
+}
+
+async function fetchOppLeadingScorer(abbrev) {
+  var season = getSelectedSeason();
+  try {
+    var r = await fetch(WORKER + '/v1/club-stats/' + abbrev + '/' + season + '/2');
+    var d = await r.json();
+    var skaters = (d.skaters || []).slice().sort(function (a, b) { return b.goals - a.goals; });
+    if (skaters.length && skaters[0].lastName) {
+      return skaters[0].lastName.default || null;
+    }
+  } catch (e) {}
+  return null;
+}
+
 function wasOTorSO(game) {
   return game.gameOutcome &&
     (game.gameOutcome.lastPeriodType === 'OT' ||
@@ -254,7 +290,7 @@ function getResponseText(config, situation, params) {
 
 // --- Regular season state ---
 
-function getRegularSeasonState(data) {
+async function getRegularSeasonState(data) {
   const { todayGames, monthGames, config } = data;
 
   const nyiGame = todayGames.find(function (g) {
@@ -274,6 +310,11 @@ function getRegularSeasonState(data) {
     const nextGameDay = nextGame ? formatNextGameDay(nextGame.gameDate) : 'soon';
 
     if (nyiWon(lastGame)) {
+      if (oppScore(lastGame) === 0) {
+        var opp1 = lastGame.awayTeam.abbrev === 'NYI' ? lastGame.homeTeam : lastGame.awayTeam;
+        var cap1 = await fetchOppLeadingScorer(opp1.abbrev);
+        return { stateName: 'shutout_win', overrides: { headline: cap1 ? 'Hey ' + cap1 + '...' : 'Hey...' } };
+      }
       return { stateName: 'win',  overrides: { headline: getResponseText(config, 'between_win',  { nextGameDay: nextGameDay }), image: null } };
     } else {
       return { stateName: 'loss', overrides: { headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }), image: null } };
@@ -300,11 +341,16 @@ function getRegularSeasonState(data) {
 
   if (state === 'OFF' || state === 'FINAL') {
     if (nyiWon(nyiGame)) {
-      return { stateName: 'win',  overrides: { headline: getResponseText(config, 'postgame_win') } };
+      if (oppScore(nyiGame) === 0) {
+        var opp2 = nyiGame.awayTeam.abbrev === 'NYI' ? nyiGame.homeTeam : nyiGame.awayTeam;
+        var cap2 = await fetchOppLeadingScorer(opp2.abbrev);
+        return { stateName: 'shutout_win', overrides: { headline: cap2 ? 'Hey ' + cap2 + '...' : 'Hey...' }, gameObj: nyiGame };
+      }
+      return { stateName: 'win',  overrides: { headline: getResponseText(config, 'postgame_win') }, gameObj: nyiGame };
     } else if (wasOTorSO(nyiGame)) {
-      return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_ot') } };
+      return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_ot') },  gameObj: nyiGame };
     } else {
-      return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_reg') } };
+      return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_reg') }, gameObj: nyiGame };
     }
   }
 
@@ -326,7 +372,7 @@ const CLINCH_STATE_OVERRIDES = {
 
 // --- Top-level state application ---
 
-function applyState(data) {
+async function applyState(data) {
   const { standings, todayGames } = data;
 
   if (todayGames.some(function (g) { return g.gameType === 3; })) {
@@ -340,7 +386,7 @@ function applyState(data) {
   const clinchMood = clinch ? CLINCH_MOOD_MAP[clinch] : null;
   const clinchOverrides = clinchMood ? CLINCH_STATE_OVERRIDES[clinchMood] : null;
 
-  var gameInfo = getRegularSeasonState(data);
+  var gameInfo = await getRegularSeasonState(data);
 
   if (!gameInfo) {
     // No games found — off-season or no data
@@ -358,9 +404,9 @@ function applyState(data) {
     renderMoodState(gameInfo.stateName, gameInfo.overrides);
   }
 
-  // Always render live scoreboard when there is a live game
-  if (gameInfo.stateName === 'live' && typeof renderLiveGame === 'function') {
-    renderLiveGame(gameInfo.gameObj || null, { nextHomeGame: gameInfo.nextHomeGame || '—', config: data.config });
+  // Render scoreboard for live and final games (skip mock objects which have no id)
+  if (gameInfo.gameObj && gameInfo.gameObj.id && typeof renderLiveGame === 'function') {
+    renderLiveGame(gameInfo.gameObj, { nextHomeGame: gameInfo.nextHomeGame || '—', config: data.config });
   }
 
   // Show previous game section when clinched/eliminated and no active game today
@@ -419,7 +465,7 @@ async function detectAndRenderState(mockData) {
       monthGames      = month.games || [];
     }
 
-    const renderedState = applyState({ standings, todayGames, monthGames, config });
+    const renderedState = await applyState({ standings, todayGames, monthGames, config });
 
     if (renderedState === 'live' && !mockData) {
       _liveRefreshTimer = setInterval(detectAndRenderState, 30000);

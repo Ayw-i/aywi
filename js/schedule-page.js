@@ -61,6 +61,7 @@ function renderCalMonth(year, month, gamesByDate, todayStr) {
 
       var bg = cellColor(isHome, isPlayed || isLive, won);
       cellStyle += 'background-color:' + bg + ';';
+      if (game.gameType === 3) cellStyle += 'outline:2px solid #FFD700;outline-offset:-2px;';
 
       var prefix = isHome ? '' : '@ ';
       var oppLine = '<div style="font-size:9pt;font-weight:bold;padding:2px 4px 0;">' +
@@ -116,15 +117,15 @@ function renderCalMonth(year, month, gamesByDate, todayStr) {
 }
 
 function renderScheduleCalendar(games) {
-  var regGames = games.filter(function (g) { return g.gameType === 2; });
-  if (!regGames.length) return '<p style="opacity:0.5;font-size:10pt;">No games found.</p>';
+  var calGames = games.filter(function (g) { return g.gameType === 2 || g.gameType === 3; });
+  if (!calGames.length) return '<p style="opacity:0.5;font-size:10pt;">No games found.</p>';
 
   // Index games by date
   var gamesByDate = {};
-  regGames.forEach(function (g) { gamesByDate[g.gameDate] = g; });
+  calGames.forEach(function (g) { gamesByDate[g.gameDate] = g; });
 
   // Determine month range
-  var dates     = regGames.map(function (g) { return g.gameDate; }).sort();
+  var dates     = calGames.map(function (g) { return g.gameDate; }).sort();
   var firstDate = new Date(dates[0] + 'T12:00:00');
   var lastDate  = new Date(dates[dates.length - 1] + 'T12:00:00');
 

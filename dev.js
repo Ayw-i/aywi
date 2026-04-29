@@ -63,6 +63,16 @@ const DEV_MOCK_SCENARIOS = {
     todayGames: [mockNYIGame('OFF', 4, 2, 'REG')],
     monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
   },
+  'Mock: Shutout win': {
+    standings: mockStandings(null),
+    todayGames: [{
+      gameType: 2, gameState: 'OFF',
+      awayTeam: { abbrev: 'NYI', score: 3 },
+      homeTeam: { abbrev: 'NYR', score: 0 },
+      gameOutcome: { lastPeriodType: 'REG' },
+    }],
+    monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
+  },
   'Mock: Loss today (reg)': {
     standings: mockStandings(null),
     todayGames: [mockNYIGame('OFF', 1, 3, 'REG')],
@@ -149,7 +159,7 @@ const DEV_MOCK_SCENARIOS = {
 
 const DEV_MOCK_GROUPS = [
   { label: 'Season',    states: ['Mock: Sorover', 'Mock: Clinched', 'Mock: Outside In'] },
-  { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
+  { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Shutout win', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
   { label: 'Between',   states: ['Mock: Between (last W)', 'Mock: Between (last L)'] },
   { label: 'Pre-Game',  states: ['Mock: Pre-game'] },
   { label: 'Live',      states: ['Mock: Live +1', 'Mock: Live +2', 'Mock: Live +3', 'Mock: Live +4',

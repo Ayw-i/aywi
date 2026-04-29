@@ -528,10 +528,30 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       tooltipHTML +
       '</span>';
 
+    var pmColor = pm > 0 ? '#8f8' : pm < 0 ? '#f88' : '#ccc';
+    var pmStr   = (pm > 0 ? '+' : '') + pm;
+
+    var pmCell;
+    if (pm === -3) {
+      pmCell = '<span style="position:relative;display:inline-block;">' +
+        '<span style="cursor:help;color:' + pmColor + ';" ' +
+        'onmouseenter="this.nextElementSibling.style.display=\'block\';var v=this.nextElementSibling.querySelector(\'video\');v.volume=0.5;v.play();" ' +
+        'onmouseleave="this.nextElementSibling.style.display=\'none\';var v=this.nextElementSibling.querySelector(\'video\');v.pause();v.currentTime=0;">' +
+        pmStr + '</span>' +
+        '<span style="display:none;position:absolute;bottom:120%;left:50%;transform:translateX(-50%);z-index:999;' +
+        'background:#000;border:1px solid #555;">' +
+        '<video src="assets/es minus tri vuxu.mp4" width="220" playsinline ' +
+        'onended="this.parentElement.style.display=\'none\';this.currentTime=0;"></video>' +
+        '</span></span>';
+    } else {
+      pmCell = '<span style="color:' + pmColor + ';">' + pmStr + '</span>';
+    }
+
     return '<tr>' +
       '<td>' + ((p.name && p.name.default) || '?') + '</td>' +
       '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A</td>' +
       '<td>' + (p.toi || '&mdash;') + '</td>' +
+      '<td>' + pmCell + '</td>' +
       '<td style="white-space:nowrap;color:' + gsColor + ';">' + gsCell + '</td>' +
       '</tr>';
   }
@@ -545,17 +565,18 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
       '<th style="font-size:8pt;">TOI</th>' +
+      '<th style="font-size:8pt;">+/-</th>' +
       '<th style="font-size:8pt;">GS</th>' +
       '</tr>';
 
     var html = '<table width="100%">' +
-      '<thead><tr><th colspan="4">' + label + ' — Best</th></tr>' + thead + '</thead>' +
+      '<thead><tr><th colspan="5">' + label + ' — Best</th></tr>' + thead + '</thead>' +
       '<tbody>' + top.map(skaterRow).join('') + '</tbody>' +
       '</table>';
 
     if (bottom.length) {
       html += '<table width="100%" style="margin-top:4px;">' +
-        '<thead><tr><th colspan="4">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
+        '<thead><tr><th colspan="5">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
         '<tbody>' + bottom.map(skaterRow).join('') + '</tbody>' +
         '</table>';
     }

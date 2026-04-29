@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Color Swatches</title>
+<style>
+  body { background: #111; color: #fff; font-family: Helvetica, Arial, sans-serif; padding: 20px; }
+  h2 { margin: 20px 0 8px; }
+  .row { display: flex; gap: 8px; margin-bottom: 6px; }
+  .swatch { width: 120px; height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
+  .label { margin-top: 4px; font-size: 11px; color: #ccc; width: 120px; text-align: center; }
+  .group { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<h1>Season Series — Color Scheme Options</h1>
+
+<!-- OPTION A -->
+<h2>Option A — Saturation steps (home = vivid, away = muted)</h2>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#1565C0; color:#fff;">Home Reg W</div>
+      <div class="label">#1565C0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#1E90FF; color:#fff;">Home OT W</div>
+      <div class="label">#1E90FF</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#87CEEB; color:#000;">Home SO W</div>
+      <div class="label">#87CEEB</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#0D3B7A; color:#fff;">Away Reg W</div>
+      <div class="label">#0D3B7A</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#4A7FB5; color:#fff;">Away OT W</div>
+      <div class="label">#4A7FB5</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#B0C4DE; color:#000;">Away SO W</div>
+      <div class="label">#B0C4DE</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#CC4400; color:#fff;">Home Reg L</div>
+      <div class="label">#CC4400</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF7733; color:#fff;">Home OT L</div>
+      <div class="label">#FF7733</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFAA77; color:#000;">Home SO L</div>
+      <div class="label">#FFAA77</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#8B2500; color:#fff;">Away Reg L</div>
+      <div class="label">#8B2500</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#CC5500; color:#fff;">Away OT L</div>
+      <div class="label">#CC5500</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#E8956B; color:#000;">Away SO L</div>
+      <div class="label">#E8956B</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#cccccc; color:#000;">Inc. Home</div>
+      <div class="label">#cccccc</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#888888; color:#fff;">Inc. Away</div>
+      <div class="label">#888888</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION B -->
+<h2>Option B — Home = warm, Away = cool within family</h2>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#1565C0; color:#fff;">Home Reg W</div>
+      <div class="label">#1565C0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#1E90FF; color:#fff;">Home OT W</div>
+      <div class="label">#1E90FF</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#87CEEB; color:#000;">Home SO W</div>
+      <div class="label">#87CEEB</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#007B83; color:#fff;">Away Reg W</div>
+      <div class="label">#007B83</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#2AADAA; color:#fff;">Away OT W</div>
+      <div class="label">#2AADAA</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#80D4D2; color:#000;">Away SO W</div>
+      <div class="label">#80D4D2</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#CC4400; color:#fff;">Home Reg L</div>
+      <div class="label">#CC4400</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF7733; color:#fff;">Home OT L</div>
+      <div class="label">#FF7733</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFAA77; color:#000;">Home SO L</div>
+      <div class="label">#FFAA77</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#AA0000; color:#fff;">Away Reg L</div>
+      <div class="label">#AA0000</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#DD3333; color:#fff;">Away OT L</div>
+      <div class="label">#DD3333</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#EE8888; color:#000;">Away SO L</div>
+      <div class="label">#EE8888</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#cccccc; color:#000;">Inc. Home</div>
+      <div class="label">#cccccc</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#888888; color:#fff;">Inc. Away</div>
+      <div class="label">#888888</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION C -->
+<h2>Option C — Brightness only, pure hue</h2>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#0047AB; color:#fff;">Home Reg W</div>
+      <div class="label">#0047AB</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#4D90E0; color:#fff;">Home OT W</div>
+      <div class="label">#4D90E0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#99C4F0; color:#000;">Home SO W</div>
+      <div class="label">#99C4F0</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#002D6E; color:#fff;">Away Reg W</div>
+      <div class="label">#002D6E</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#2E64A8; color:#fff;">Away OT W</div>
+      <div class="label">#2E64A8</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#7AA5D4; color:#000;">Away SO W</div>
+      <div class="label">#7AA5D4</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#E05000; color:#fff;">Home Reg L</div>
+      <div class="label">#E05000</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#F08040; color:#fff;">Home OT L</div>
+      <div class="label">#F08040</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#F8BF99; color:#000;">Home SO L</div>
+      <div class="label">#F8BF99</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#8B2E00; color:#fff;">Away Reg L</div>
+      <div class="label">#8B2E00</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#C46030; color:#fff;">Away OT L</div>
+      <div class="label">#C46030</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#E4A07A; color:#000;">Away SO L</div>
+      <div class="label">#E4A07A</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#cccccc; color:#000;">Inc. Home</div>
+      <div class="label">#cccccc</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#888888; color:#fff;">Inc. Away</div>
+      <div class="label">#888888</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION D -->
+<h2>Option D — Border stripe to distinguish home/away</h2>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#1565C0; color:#fff; border-top: 5px solid #fff;">Home Reg W</div>
+      <div class="label">#1565C0 + stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#1E90FF; color:#fff; border-top: 5px solid #fff;">Home OT W</div>
+      <div class="label">#1E90FF + stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#87CEEB; color:#000; border-top: 5px solid #fff;">Home SO W</div>
+      <div class="label">#87CEEB + stripe</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#1565C0; color:#fff;">Away Reg W</div>
+      <div class="label">#1565C0 no stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#1E90FF; color:#fff;">Away OT W</div>
+      <div class="label">#1E90FF no stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#87CEEB; color:#000;">Away SO W</div>
+      <div class="label">#87CEEB no stripe</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#CC4400; color:#fff; border-top: 5px solid #fff;">Home Reg L</div>
+      <div class="label">#CC4400 + stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF7733; color:#fff; border-top: 5px solid #fff;">Home OT L</div>
+      <div class="label">#FF7733 + stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFAA77; color:#000; border-top: 5px solid #fff;">Home SO L</div>
+      <div class="label">#FFAA77 + stripe</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#CC4400; color:#fff;">Away Reg L</div>
+      <div class="label">#CC4400 no stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF7733; color:#fff;">Away OT L</div>
+      <div class="label">#FF7733 no stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFAA77; color:#000;">Away SO L</div>
+      <div class="label">#FFAA77 no stripe</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#cccccc; color:#000; border-top: 5px solid #fff;">Inc. Home</div>
+      <div class="label">#cccccc + stripe</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#888888; color:#fff;">Inc. Away</div>
+      <div class="label">#888888 no stripe</div>
+    </div>
+  </div>
+</div>
+
+
+<hr style="border-color:#444; margin: 30px 0;">
+<h1>Option E — Home=Blue, Away=Orange wins</h1>
+<p style="color:#aaa">All loss greys LIGHTER than #888. All incomplete greys DARKER than #888.</p>
+
+<!-- OPTION E (your spec) -->
+<h2>Option E — Losses: light grey / Incomplete: dark grey</h2>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#0047AB; color:#fff;">Home Reg W</div>
+      <div class="label">#0047AB</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#4D90E0; color:#fff;">Home OT W</div>
+      <div class="label">#4D90E0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#99C4F0; color:#000;">Home SO W</div>
+      <div class="label">#99C4F0</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#CC5500; color:#fff;">Away Reg W</div>
+      <div class="label">#CC5500</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF8C00; color:#fff;">Away OT W</div>
+      <div class="label">#FF8C00</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFBB66; color:#000;">Away SO W</div>
+      <div class="label">#FFBB66</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#DADADA; color:#000;">Home Reg L</div>
+      <div class="label">#DADADA</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#CACACA; color:#000;">Home OT L</div>
+      <div class="label">#CACACA</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#BBBBBB; color:#000;">Home SO L</div>
+      <div class="label">#BBBBBB</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#B0B0B0; color:#000;">Away Reg L</div>
+      <div class="label">#B0B0B0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#A4A4A4; color:#000;">Away OT L</div>
+      <div class="label">#A4A4A4</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#989898; color:#000;">Away SO L</div>
+      <div class="label">#989898</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#606060; color:#fff;">Inc. Home</div>
+      <div class="label">#606060</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#404040; color:#fff;">Inc. Away</div>
+      <div class="label">#404040</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION E1 -->
+<h2>Option E1 — Losses: pale/desaturated version of win color</h2>
+<p style="color:#aaa">Home loss = washed blue. Away loss = washed orange.</p>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#0047AB; color:#fff;">Home Reg W</div>
+      <div class="label">#0047AB</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#4D90E0; color:#fff;">Home OT W</div>
+      <div class="label">#4D90E0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#99C4F0; color:#000;">Home SO W</div>
+      <div class="label">#99C4F0</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#CC5500; color:#fff;">Away Reg W</div>
+      <div class="label">#CC5500</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF8C00; color:#fff;">Away OT W</div>
+      <div class="label">#FF8C00</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFBB66; color:#000;">Away SO W</div>
+      <div class="label">#FFBB66</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#7A9EC2; color:#000;">Home Reg L</div>
+      <div class="label">#7A9EC2</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#9CBAD8; color:#000;">Home OT L</div>
+      <div class="label">#9CBAD8</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#BDD4E8; color:#000;">Home SO L</div>
+      <div class="label">#BDD4E8</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#C49060; color:#000;">Away Reg L</div>
+      <div class="label">#C49060</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#D8AE88; color:#000;">Away OT L</div>
+      <div class="label">#D8AE88</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#E8CCAA; color:#000;">Away SO L</div>
+      <div class="label">#E8CCAA</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#606060; color:#fff;">Inc. Home</div>
+      <div class="label">#606060</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#404040; color:#fff;">Inc. Away</div>
+      <div class="label">#404040</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION E3 -->
+<h2>Option E3 — Losses: muted olive/brown</h2>
+<p style="color:#aaa">Neutral "bad result" color, distinct from grey. Home loss = darker olive, away loss = slightly lighter.</p>
+<div class="group">
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#0047AB; color:#fff;">Home Reg W</div>
+      <div class="label">#0047AB</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#4D90E0; color:#fff;">Home OT W</div>
+      <div class="label">#4D90E0</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#99C4F0; color:#000;">Home SO W</div>
+      <div class="label">#99C4F0</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#CC5500; color:#fff;">Away Reg W</div>
+      <div class="label">#CC5500</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FF8C00; color:#fff;">Away OT W</div>
+      <div class="label">#FF8C00</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#FFBB66; color:#000;">Away SO W</div>
+      <div class="label">#FFBB66</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#5C4A1E; color:#fff;">Home Reg L</div>
+      <div class="label">#5C4A1E</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#7A6430; color:#fff;">Home OT L</div>
+      <div class="label">#7A6430</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#9E8450; color:#fff;">Home SO L</div>
+      <div class="label">#9E8450</div>
+    </div>
+    <div style="width:20px"></div>
+    <div>
+      <div class="swatch" style="background:#7A7040; color:#fff;">Away Reg L</div>
+      <div class="label">#7A7040</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#9A9058; color:#fff;">Away OT L</div>
+      <div class="label">#9A9058</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#BAB078; color:#000;">Away SO L</div>
+      <div class="label">#BAB078</div>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="swatch" style="background:#606060; color:#fff;">Inc. Home</div>
+      <div class="label">#606060</div>
+    </div>
+    <div>
+      <div class="swatch" style="background:#404040; color:#fff;">Inc. Away</div>
+      <div class="label">#404040</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
