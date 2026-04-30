@@ -27,7 +27,7 @@ const STATES = {
   },
   shutout_win: {
     background: '#000000',
-    image: 'assets/sorokin-butt.jpg',
+    image: 'assets/hey-ovi-tell-me-how.jpg',
     imageSize: '50%',
     headline: '',
     headlineLink: null,

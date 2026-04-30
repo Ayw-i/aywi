@@ -421,6 +421,29 @@ function buildDevPanel() {
   ];
   SIT_OVERLAYS.forEach(function (s) { addBtn(body, s.label, s.fn); });
 
+  addGroupLabel(body, 'Fight');
+  addBtn(body, 'Fight (no add. pen)', async function () {
+    var fdata = await loadFightsData();
+    var hist  = pickHistoricalFight(new Date(), fdata);
+    _fightOverlayData = { fighters: ['Mayfield', 'Wilson'], additionalPen: null, historical: hist };
+    _fightTimerEnd    = Date.now() + 45000;
+    applyMoodOverlay(buildFightOverlay());
+  });
+  addBtn(body, 'Fight + roughing (NYI) 😔', async function () {
+    var fdata = await loadFightsData();
+    var hist  = pickHistoricalFight(new Date(), fdata);
+    _fightOverlayData = { fighters: ['Lee', 'Tkachuk'], additionalPen: 'roughing on Barzal 😔', historical: hist };
+    _fightTimerEnd    = Date.now() + 45000;
+    applyMoodOverlay(buildFightOverlay());
+  });
+  addBtn(body, 'Fight + roughing (OPP) 😊', async function () {
+    var fdata = await loadFightsData();
+    var hist  = pickHistoricalFight(new Date(), fdata);
+    _fightOverlayData = { fighters: ['Lee', 'Tkachuk'], additionalPen: 'roughing on Wilson 😊', historical: hist };
+    _fightTimerEnd    = Date.now() + 45000;
+    applyMoodOverlay(buildFightOverlay());
+  });
+
   addGroupLabel(body, 'Goal Transition');
   Object.keys(DEV_GOAL_SITUATIONS).forEach(function (key) {
     addBtn(body, DEV_GOAL_SITUATIONS[key].label, function () { devTriggerGoalTransition(key); });

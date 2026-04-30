@@ -924,6 +924,16 @@ function buildGoalReviewOverlay(nyiGoal) {
 }
 
 function applyMoodOverlay(overlay) {
+  var fightEl = document.getElementById('fight-content');
+  if (fightEl) {
+    if (overlay && overlay.fightContent) {
+      fightEl.innerHTML = overlay.fightContent;
+      fightEl.style.display = 'block';
+    } else {
+      fightEl.innerHTML = '';
+      fightEl.style.display = 'none';
+    }
+  }
   if (!overlay) return;
 
   // Clear any running slideshow
@@ -948,6 +958,8 @@ function applyMoodOverlay(overlay) {
 
   var imgEl      = document.getElementById('mood-image');
   var moodSection = document.getElementById('mood-section');
+
+  if (imgEl && !overlay.image) imgEl.style.display = 'none';
 
   var old = document.getElementById('situation-img');
   if (old) old.parentNode.removeChild(old);
@@ -1191,6 +1203,155 @@ function buildShootoutBoard(boxscore, playByPlay) {
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table>';
+}
+
+// --- Fight transition ---
+
+var _fightsData           = null;
+var _lastSeenFightEventId = -1;
+var _fightTimerEnd        = 0;
+var _fightOverlayData     = null;
+
+async function loadFightsData() {
+  if (_fightsData) return _fightsData;
+  try {
+    var r = await fetch('fights.json');
+    _fightsData = await r.json();
+  } catch (e) { _fightsData = []; }
+  return _fightsData;
+}
+
+function getDayOfYear(d) {
+  var start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d - start) / 86400000);
+}
+
+function pickHistoricalFight(today, fights) {
+  var todayYear = today.getFullYear();
+  var todayDOY  = getDayOfYear(today);
+  var past = fights.filter(function (f) {
+    return f.youtubeId && parseInt((f.date || '').split('-')[0]) < todayYear;
+  });
+  if (!past.length) return null;
+
+  var best = null, bestDist = Infinity;
+  past.forEach(function (f) {
+    var fDate = new Date(f.date + 'T12:00:00');
+    var fDOY  = getDayOfYear(fDate);
+    var dist  = Math.abs(fDOY - todayDOY);
+    dist = Math.min(dist, 365 - dist);
+    if (dist < bestDist) { bestDist = dist; best = f; }
+  });
+  if (!best) return null;
+
+  var yearsAgo = todayYear - parseInt(best.date.split('-')[0]);
+  var label = bestDist === 0
+    ? 'on this day, ' + yearsAgo + ' year' + (yearsAgo !== 1 ? 's' : '') + ' ago...'
+    : bestDist <= 7
+    ? 'on (almost) this day, ' + yearsAgo + ' year' + (yearsAgo !== 1 ? 's' : '') + ' ago...'
+    : yearsAgo + ' year' + (yearsAgo !== 1 ? 's' : '') + ' ago...';
+
+  var MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+  var fDate     = new Date(best.date + 'T12:00:00');
+  var dateLabel = MONTHS[fDate.getMonth()] + ' ' + fDate.getDate() + ', ' + fDate.getFullYear();
+
+  return { youtubeId: best.youtubeId, fighters: best.fighters, label: label, dateLabel: dateLabel };
+}
+
+function buildFightHTML(data) {
+  var html = '';
+
+  if (data.historical) {
+    var h = data.historical;
+    html += '<p style="margin:12px 0 2px;font-size:9pt;opacity:0.8;">Meanwhile, ' + h.label + '</p>';
+    html += '<p style="margin:0 0 6px;font-size:9pt;opacity:0.6;">' + h.dateLabel + ':</p>';
+    if (h.youtubeId) {
+      html += '<div style="text-align:center;">' +
+              '<iframe src="https://www.youtube.com/embed/' + h.youtubeId + '?rel=0" ' +
+              'style="width:100%;max-width:480px;height:270px;border:1px solid #444;" ' +
+              'allowfullscreen></iframe></div>';
+    }
+  }
+
+  return html;
+}
+
+function buildFightOverlay() {
+  if (!_fightOverlayData) return null;
+  var d = _fightOverlayData;
+  var fightersLine = d.fighters.length >= 2
+    ? d.fighters[0] + ' vs ' + d.fighters[1]
+    : d.fighters[0] || '';
+
+  return {
+    background: '#000000',
+    headline: '🥊 FIGHT! FIGHT! FIGHT! 🥊<br>' +
+              '<span style="font-size:14pt;">' + fightersLine + '</span>',
+    subHeadline: d.additionalPen
+      ? 'Additional ' + d.additionalPen
+      : null,
+    fightContent: buildFightHTML(d),
+  };
+}
+
+async function checkForNewFight(plays, rosterMap, homeTeamId, nyiIsHome) {
+  var fightPens = plays.filter(function (p) {
+    return p.typeDescKey === 'penalty' &&
+           ((p.details || {}).descKey || '').indexOf('fighting') !== -1 &&
+           (p.eventId || 0) > _lastSeenFightEventId;
+  });
+  if (!fightPens.length) return false;
+
+  var maxId = Math.max.apply(null, fightPens.map(function (p) { return p.eventId || 0; }));
+
+  if (!_scoreboardInitialized) {
+    _lastSeenFightEventId = maxId;
+    return false;
+  }
+
+  _lastSeenFightEventId = maxId;
+
+  var seen = {};
+  var fighterNames = [];
+  fightPens.forEach(function (p) {
+    var pid = (p.details || {}).committedByPlayerId;
+    if (pid && !seen[pid]) {
+      seen[pid] = true;
+      var full = (rosterMap && rosterMap[pid]) || '';
+      fighterNames.push(full.split(' ').pop() || '?');
+    }
+  });
+
+  var fdata = await loadFightsData();
+  var historical = pickHistoricalFight(new Date(), fdata);
+
+  _fightOverlayData = { fighters: fighterNames, additionalPen: null, historical: historical };
+  _fightTimerEnd    = Date.now() + 45000;
+  return true;
+}
+
+function checkFightAdditionalPenalty(plays, rosterMap, homeTeamId, nyiIsHome) {
+  var newPens = plays.filter(function (p) {
+    return p.typeDescKey === 'penalty' &&
+           ((p.details || {}).descKey || '').indexOf('fighting') === -1 &&
+           (p.eventId || 0) > _lastSeenFightEventId;
+  });
+  if (!newPens.length || !_fightOverlayData) return;
+
+  var latest  = newPens[newPens.length - 1];
+  var d       = latest.details || {};
+  var pid     = d.committedByPlayerId;
+  var name    = pid && rosterMap ? ((rosterMap[pid] || '').split(' ').pop() || '') : '';
+  var ptype   = (d.descKey || 'penalty').replace(/-/g, ' ');
+  var maxId   = Math.max.apply(null, newPens.map(function (p) { return p.eventId || 0; }));
+  var isNYI   = nyiIsHome
+    ? d.eventOwnerTeamId === homeTeamId
+    : d.eventOwnerTeamId !== homeTeamId;
+  var emoji   = isNYI ? ' 😔' : ' 😊';
+
+  _lastSeenFightEventId = maxId;
+  _fightOverlayData.additionalPen = ptype + (name ? ' on ' + name : '') + emoji;
 }
 
 // --- Goal transition ---
@@ -1509,16 +1670,26 @@ async function fetchAndRenderScoreboard(gameId, context) {
       _currentGameId         = gameId;
       _scoreboardInitialized = false;
       _lastSeenGoalEventId   = -1;
+      _lastSeenFightEventId  = -1;
+      _fightTimerEnd         = 0;
+      _fightOverlayData      = null;
     }
+
+    await checkForNewFight(plays, rosterMap, home.id, nyiIsHome);
 
     var goalTriggered = checkForNewNYIGoals(plays, rosterMap, nyiIsHome, home.id);
     if (!goalTriggered) {
-      var review = getReviewStatus(plays, nyiIsHome, home.id);
-      if (review.active) {
-        applyMoodOverlay(buildGoalReviewOverlay(review.nyiGoal));
+      if (_fightTimerEnd > Date.now()) {
+        checkFightAdditionalPenalty(plays, rosterMap, home.id, nyiIsHome);
+        applyMoodOverlay(buildFightOverlay());
       } else {
-        var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame, rosterMap);
-        applyMoodOverlay(overlay);
+        var review = getReviewStatus(plays, nyiIsHome, home.id);
+        if (review.active) {
+          applyMoodOverlay(buildGoalReviewOverlay(review.nyiGoal));
+        } else {
+          var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame, rosterMap);
+          applyMoodOverlay(overlay);
+        }
       }
     }
   } catch (err) {

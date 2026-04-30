@@ -1,0 +1,793 @@
+[
+  {
+    "id": "257331",
+    "season": "reg2019",
+    "date": "2018-12-18",
+    "fighters": "Scott Mayfield vs Lawson Crouse",
+    "youtubeId": "hkHSKHJAn54"
+  },
+  {
+    "id": "257418",
+    "season": "reg2019",
+    "date": "2018-12-28",
+    "fighters": "Christian Jaros vs Ross Johnston",
+    "youtubeId": "yN3GRwjvdkU"
+  },
+  {
+    "id": "257419",
+    "season": "reg2019",
+    "date": "2018-12-28",
+    "fighters": "Ben Harpur vs Scott Mayfield",
+    "youtubeId": "pJjgCa1KBMs"
+  },
+  {
+    "id": "257417",
+    "season": "reg2019",
+    "date": "2018-12-28",
+    "fighters": "Mark Borowiecki vs Matt Martin",
+    "youtubeId": "f4EOk-j_mEE"
+  },
+  {
+    "id": "257625",
+    "season": "reg2019",
+    "date": "2019-01-10",
+    "fighters": "Matt Martin vs Cody McLeod",
+    "youtubeId": "U5sOF2U8DxI"
+  },
+  {
+    "id": "258115",
+    "season": "reg2019",
+    "date": "2019-02-16",
+    "fighters": "Darnell Nurse vs Anders Lee",
+    "youtubeId": "3zj9E6xhCGc"
+  },
+  {
+    "id": "258388",
+    "season": "reg2019",
+    "date": "2019-03-03",
+    "fighters": "Travis Konecny vs Jordan Eberle",
+    "youtubeId": "9vXROvMq-bk"
+  },
+  {
+    "id": "258648",
+    "season": "reg2019",
+    "date": "2019-03-19",
+    "fighters": "Zdeno Chara vs Matt Martin",
+    "youtubeId": "LMghmMFeHCc"
+  },
+  {
+    "id": "258660",
+    "season": "reg2019",
+    "date": "2019-03-21",
+    "fighters": "Thomas Hickey vs Brendan Gallagher",
+    "youtubeId": "bOebHd8mbQY"
+  },
+  {
+    "id": "259017",
+    "season": "pre2020",
+    "date": "2019-09-16",
+    "fighters": "Kyle Burroughs vs Chris Stewart",
+    "youtubeId": "qDAVe3Ju9IE"
+  },
+  {
+    "id": "259019",
+    "season": "pre2020",
+    "date": "2019-09-17",
+    "fighters": "Kurtis Gabriel vs Ross Johnston",
+    "youtubeId": "ERKZW2nSDoc"
+  },
+  {
+    "id": "259119",
+    "season": "pre2020",
+    "date": "2019-09-28",
+    "fighters": "Micheal Haley vs Ross Johnston",
+    "youtubeId": "VU9XLkQbHCM"
+  },
+  {
+    "id": "259226",
+    "season": "reg2020",
+    "date": "2019-10-12",
+    "fighters": "Josh Brown vs Ross Johnston",
+    "youtubeId": "HorGQD78Zv8"
+  },
+  {
+    "id": "259358",
+    "season": "reg2020",
+    "date": "2019-10-25",
+    "fighters": "Casey Cizikas vs Brady Tkachuk",
+    "youtubeId": "ZFqMjeoNKyM"
+  },
+  {
+    "id": "259423",
+    "season": "reg2020",
+    "date": "2019-10-27",
+    "fighters": "Chris Stewart vs Ross Johnston",
+    "youtubeId": "hf0bUWghf5c"
+  },
+  {
+    "id": "259445",
+    "season": "reg2020",
+    "date": "2019-11-01",
+    "fighters": "Luke Witkowski vs Ross Johnston",
+    "youtubeId": "PkR7R76MvRQ"
+  },
+  {
+    "id": "259712",
+    "season": "reg2020",
+    "date": "2019-11-21",
+    "fighters": "Zach Aston-Reese vs Anders Lee",
+    "youtubeId": "c10pfUlX84k"
+  },
+  {
+    "id": "259750",
+    "season": "reg2020",
+    "date": "2019-11-23",
+    "fighters": "Casey Cizikas vs Brenden Dillon",
+    "youtubeId": "dD-YfKHDa68"
+  },
+  {
+    "id": "259778",
+    "season": "reg2020",
+    "date": "2019-11-25",
+    "fighters": "Scott Mayfield vs Nicolas Deslauriers",
+    "youtubeId": "aLV8J5uMUME"
+  },
+  {
+    "id": "260025",
+    "season": "reg2020",
+    "date": "2019-12-12",
+    "fighters": "Anders Lee vs Brian Boyle",
+    "youtubeId": "7xacUGUOPZo"
+  },
+  {
+    "id": "260435",
+    "season": "reg2020",
+    "date": "2020-01-13",
+    "fighters": "Ross Johnston vs Micheal Haley",
+    "youtubeId": "MpvUL0Pziek"
+  },
+  {
+    "id": "260436",
+    "season": "reg2020",
+    "date": "2020-01-13",
+    "fighters": "Matt Martin vs Brendan Smith",
+    "youtubeId": "C621dCWZahs"
+  },
+  {
+    "id": "260728",
+    "season": "reg2020",
+    "date": "2020-02-06",
+    "fighters": "Alec Martinez vs Casey Cizikas",
+    "youtubeId": "OFufSQeSHBs"
+  },
+  {
+    "id": "260881",
+    "season": "reg2020",
+    "date": "2020-02-15",
+    "fighters": "Ross Johnston vs Ryan Reaves",
+    "youtubeId": "nWW9-4fs1vo"
+  },
+  {
+    "id": "260883",
+    "season": "reg2020",
+    "date": "2020-02-15",
+    "fighters": "Anders Lee vs Nick Holden",
+    "youtubeId": "5N1KSTSbIEQ"
+  },
+  {
+    "id": "261020",
+    "season": "reg2020",
+    "date": "2020-02-25",
+    "fighters": "Jacob Trouba vs Jean-Gabriel Pageau",
+    "youtubeId": "kC5Dpy1qpSQ"
+  },
+  {
+    "id": "261109",
+    "season": "reg2020",
+    "date": "2020-03-03",
+    "fighters": "Christian Folin vs Anders Lee",
+    "youtubeId": "8U-QnmJho5E"
+  },
+  {
+    "id": "261119",
+    "season": "reg2020",
+    "date": "2020-03-07",
+    "fighters": "Ryan Dzingel vs Anthony Beauvillier",
+    "youtubeId": "gYbtX464DNg"
+  },
+  {
+    "id": "261581",
+    "season": "reg2021",
+    "date": "2021-02-18",
+    "fighters": "Casey Cizikas vs Brandon Tanev",
+    "youtubeId": "rLa85Yd4rgA"
+  },
+  {
+    "id": "261941",
+    "season": "reg2021",
+    "date": "2021-04-01",
+    "fighters": "Zdeno Chara vs Matt Martin",
+    "youtubeId": "zBjGI9frBzQ"
+  },
+  {
+    "id": "261970",
+    "season": "reg2021",
+    "date": "2021-04-03",
+    "fighters": "Samuel Morin vs Ross Johnston",
+    "youtubeId": "XFyE_J_X6fU"
+  },
+  {
+    "id": "262223",
+    "season": "reg2021",
+    "date": "2021-04-27",
+    "fighters": "Matt Martin vs Zdeno Chara",
+    "youtubeId": "FqPDubTpmJg"
+  },
+  {
+    "id": "262742",
+    "season": "reg2022",
+    "date": "2021-10-19",
+    "fighters": "Matt Martin vs Jujhar Khaira",
+    "youtubeId": "v0-lUv55GIs"
+  },
+  {
+    "id": "262792",
+    "season": "reg2022",
+    "date": "2021-10-23",
+    "fighters": "Matt Martin vs Liam O'Brien",
+    "youtubeId": "6Tl5-q_vTko"
+  },
+  {
+    "id": "262999",
+    "season": "reg2022",
+    "date": "2021-11-06",
+    "fighters": "Scott Mayfield vs Adam Lowry",
+    "youtubeId": "-2IRkQZhylo"
+  },
+  {
+    "id": "263172",
+    "season": "reg2022",
+    "date": "2021-11-15",
+    "fighters": "Zdeno Chara vs Pat Maroon",
+    "youtubeId": "61wIRUQKarc"
+  },
+  {
+    "id": "263174",
+    "season": "reg2022",
+    "date": "2021-11-15",
+    "fighters": "Brock Nelson vs Anthony Cirelli",
+    "youtubeId": "i06N46vudYI"
+  },
+  {
+    "id": "263181",
+    "season": "reg2022",
+    "date": "2021-11-16",
+    "fighters": "Kyle Palmieri vs Radko Gudas",
+    "youtubeId": "LieuBuG7uKQ"
+  },
+  {
+    "id": "263273",
+    "season": "reg2022",
+    "date": "2021-11-24",
+    "fighters": "Alexis Lafrenière vs Jean-Gabriel Pageau",
+    "youtubeId": "hOD4tT1bNtk"
+  },
+  {
+    "id": "263432",
+    "season": "reg2022",
+    "date": "2021-12-04",
+    "fighters": "Oliver Wahlstrom vs Adam Erne",
+    "youtubeId": "lMran_W7eiI"
+  },
+  {
+    "id": "263488",
+    "season": "reg2022",
+    "date": "2021-12-09",
+    "fighters": "Yakov Trenin vs Zdeno Chara",
+    "youtubeId": "pZ22S5kvVP4"
+  },
+  {
+    "id": "263531",
+    "season": "reg2022",
+    "date": "2021-12-11",
+    "fighters": "Mason Geertsen vs Zdeno Chara",
+    "youtubeId": "6dTci5oBWIc"
+  },
+  {
+    "id": "263593",
+    "season": "reg2022",
+    "date": "2021-12-16",
+    "fighters": "Nick Foligno vs Matt Martin",
+    "youtubeId": "Li-fu92TcQo"
+  },
+  {
+    "id": "263645",
+    "season": "reg2022",
+    "date": "2021-12-19",
+    "fighters": "Max Pacioretty vs Kieffer Bellows",
+    "youtubeId": "wYrM0gs6E5w"
+  },
+  {
+    "id": "263956",
+    "season": "reg2022",
+    "date": "2022-01-18",
+    "fighters": "Zdeno Chara vs Zack MacEwen",
+    "youtubeId": "MBdixA-bvlY"
+  },
+  {
+    "id": "263969",
+    "season": "reg2022",
+    "date": "2022-01-21",
+    "fighters": "Liam O'Brien vs Matt Martin",
+    "youtubeId": "SM9tmtcLAg0"
+  },
+  {
+    "id": "264247",
+    "season": "reg2022",
+    "date": "2022-02-09",
+    "fighters": "Ross Johnston vs Luke Schenn",
+    "youtubeId": "PQytKWSPTuw"
+  },
+  {
+    "id": "264322",
+    "season": "reg2022",
+    "date": "2022-02-12",
+    "fighters": "Ross Johnston vs Erik Gudbranson",
+    "youtubeId": "qac6lFrviao"
+  },
+  {
+    "id": "264464",
+    "season": "reg2022",
+    "date": "2022-02-24",
+    "fighters": "Zdeno Chara vs Jeffrey Viel",
+    "youtubeId": "TFmmfcFxK7A"
+  },
+  {
+    "id": "264465",
+    "season": "reg2022",
+    "date": "2022-02-24",
+    "fighters": "Jean-Gabriel Pageau vs Matthew Nieto",
+    "youtubeId": "N1oWcoDP_pA"
+  },
+  {
+    "id": "264629",
+    "season": "reg2022",
+    "date": "2022-03-05",
+    "fighters": "Klim Kostin vs Scott Mayfield",
+    "youtubeId": "1g_t22PuF8E"
+  },
+  {
+    "id": "264961",
+    "season": "reg2022",
+    "date": "2022-03-26",
+    "fighters": "Matt Martin vs Nick Foligno",
+    "youtubeId": "y8TQOvGynr8"
+  },
+  {
+    "id": "264999",
+    "season": "reg2022",
+    "date": "2022-03-27",
+    "fighters": "Pat Maroon vs Ross Johnston",
+    "youtubeId": "mzrHrSSDxk0"
+  },
+  {
+    "id": "265110",
+    "season": "reg2022",
+    "date": "2022-04-03",
+    "fighters": "Oliver Wahlstrom vs P.K. Subban",
+    "youtubeId": "1X7qXUORzSM"
+  },
+  {
+    "id": "265238",
+    "season": "reg2022",
+    "date": "2022-04-15",
+    "fighters": "Matt Martin vs Joel Edmundson",
+    "youtubeId": "IkPthecioZg"
+  },
+  {
+    "id": "265306",
+    "season": "reg2022",
+    "date": "2022-04-17",
+    "fighters": "Ross Johnston vs Wayne Simmonds",
+    "youtubeId": "jHOQ-uwigpE"
+  },
+  {
+    "id": "265542",
+    "season": "pre2023",
+    "date": "2022-10-04",
+    "fighters": "Ross Johnston vs Ronnie Attard",
+    "youtubeId": "1FIMSBpy9rU"
+  },
+  {
+    "id": "265557",
+    "season": "pre2023",
+    "date": "2022-10-08",
+    "fighters": "Jarred Tinordi vs Ross Johnston",
+    "youtubeId": "vws90QjgdLY"
+  },
+  {
+    "id": "265780",
+    "season": "reg2023",
+    "date": "2022-11-03",
+    "fighters": "Anders Lee vs Niko Mikkola",
+    "youtubeId": "8SJbmT4aENs"
+  },
+  {
+    "id": "265835",
+    "season": "reg2023",
+    "date": "2022-11-10",
+    "fighters": "Josh Brown vs Matt Martin",
+    "youtubeId": "SOP1CGuGm44"
+  },
+  {
+    "id": "265889",
+    "season": "reg2023",
+    "date": "2022-11-14",
+    "fighters": "Ross Johnston vs Austin Watson",
+    "youtubeId": "2IolfE9hZVw"
+  },
+  {
+    "id": "265961",
+    "season": "reg2023",
+    "date": "2022-11-21",
+    "fighters": "Oliver Wahlstrom vs Rasmus Sandin",
+    "youtubeId": "zJyynQP0UMc"
+  },
+  {
+    "id": "265985",
+    "season": "reg2023",
+    "date": "2022-11-25",
+    "fighters": "Anders Lee vs Mathieu Olivier",
+    "youtubeId": "SzqWWtYmWpk"
+  },
+  {
+    "id": "266000",
+    "season": "reg2023",
+    "date": "2022-11-26",
+    "fighters": "Tony DeAngelo vs Oliver Wahlstrom",
+    "youtubeId": "EAqAbWWsM-o"
+  },
+  {
+    "id": "266033",
+    "season": "reg2023",
+    "date": "2022-11-29",
+    "fighters": "Matt Martin vs Zack MacEwen",
+    "youtubeId": "3onmQ9TiYR8"
+  },
+  {
+    "id": "266034",
+    "season": "reg2023",
+    "date": "2022-11-29",
+    "fighters": "Ross Johnston vs Nicolas Deslauriers",
+    "youtubeId": "NJW0lGxWCI4"
+  },
+  {
+    "id": "266102",
+    "season": "reg2023",
+    "date": "2022-12-02",
+    "fighters": "Michael McCarron vs Matt Martin",
+    "youtubeId": "6bFPQbdDlKY"
+  },
+  {
+    "id": "266166",
+    "season": "reg2023",
+    "date": "2022-12-04",
+    "fighters": "Reese Johnson vs Casey Cizikas",
+    "youtubeId": "RKI5uF5wSAI"
+  },
+  {
+    "id": "266202",
+    "season": "reg2023",
+    "date": "2022-12-09",
+    "fighters": "Alexander Romanov vs Michael McLeod",
+    "youtubeId": "Y6Jcx2scw5I"
+  },
+  {
+    "id": "266270",
+    "season": "reg2023",
+    "date": "2022-12-13",
+    "fighters": "Matt Martin vs A.J. Greer",
+    "youtubeId": "D8C8_7s4JNE"
+  },
+  {
+    "id": "266363",
+    "season": "reg2023",
+    "date": "2022-12-23",
+    "fighters": "Givani Smith vs Matt Martin",
+    "youtubeId": "KQzNelHrDFQ"
+  },
+  {
+    "id": "266707",
+    "season": "reg2023",
+    "date": "2023-01-25",
+    "fighters": "Matt Martin vs Austin Watson",
+    "youtubeId": "UyyS_sn5Th0"
+  },
+  {
+    "id": "267076",
+    "season": "reg2023",
+    "date": "2023-02-26",
+    "fighters": "Scott Mayfield vs Pierre-Luc Dubois",
+    "youtubeId": "as5aCevVeOQ"
+  },
+  {
+    "id": "267110",
+    "season": "reg2023",
+    "date": "2023-02-28",
+    "fighters": "Ross Johnston vs Ryan Reaves",
+    "youtubeId": "-OxMgFoIS98"
+  },
+  {
+    "id": "267340",
+    "season": "reg2023",
+    "date": "2023-03-21",
+    "fighters": "Noel Acciari vs Matt Martin",
+    "youtubeId": "HqMukGsqidE"
+  },
+  {
+    "id": "267609",
+    "season": "pre2024",
+    "date": "2023-09-30",
+    "fighters": "Ross Johnston vs Matt Rempe",
+    "youtubeId": "aLkgj116vt8"
+  },
+  {
+    "id": "267628",
+    "season": "pre2024",
+    "date": "2023-09-30",
+    "fighters": "Anders Lee vs Barclay Goodrow",
+    "youtubeId": "YQt0SeL_-BA"
+  },
+  {
+    "id": "267783",
+    "season": "reg2024",
+    "date": "2023-10-21",
+    "fighters": "Adam Pelech vs Alex Tuch",
+    "youtubeId": "BOnGTewY7yA"
+  },
+  {
+    "id": "267822",
+    "season": "reg2024",
+    "date": "2023-10-26",
+    "fighters": "Mark Kastelic vs Matt Martin",
+    "youtubeId": "U4rJW6hWKgs"
+  },
+  {
+    "id": "268185",
+    "season": "reg2024",
+    "date": "2023-11-28",
+    "fighters": "Anders Lee vs Brendan Smith",
+    "youtubeId": "pVIiDzG168c"
+  },
+  {
+    "id": "268280",
+    "season": "reg2024",
+    "date": "2023-12-09",
+    "fighters": "Andreas Englund vs Scott Mayfield",
+    "youtubeId": "Wgeko1DGVKs"
+  },
+  {
+    "id": "268486",
+    "season": "reg2024",
+    "date": "2023-12-31",
+    "fighters": "Matt Martin vs John Ludvig",
+    "youtubeId": "_HIhCJbqz4g"
+  },
+  {
+    "id": "268879",
+    "season": "reg2024",
+    "date": "2024-02-05",
+    "fighters": "Bo Horvat vs Simon Benoit",
+    "youtubeId": "M6xZQfh0p6I"
+  },
+  {
+    "id": "268987",
+    "season": "reg2024",
+    "date": "2024-02-18",
+    "fighters": "Matt Rempe vs Matt Martin",
+    "youtubeId": "aZHLemRNSMw"
+  },
+  {
+    "id": "269260",
+    "season": "reg2024",
+    "date": "2024-03-14",
+    "fighters": "Anders Lee vs Connor Clifton",
+    "youtubeId": "Lnyq0IvJDBQ"
+  },
+  {
+    "id": "269310",
+    "season": "reg2024",
+    "date": "2024-03-19",
+    "fighters": "Brendan Lemieux vs Matt Martin",
+    "youtubeId": "lmP66dymJQM"
+  },
+  {
+    "id": "269328",
+    "season": "reg2024",
+    "date": "2024-03-23",
+    "fighters": "Morgan Barron vs Kyle MacLean",
+    "youtubeId": "QD5lMjb3dME"
+  },
+  {
+    "id": "269341",
+    "season": "reg2024",
+    "date": "2024-03-24",
+    "fighters": "Timo Meier vs Anders Lee",
+    "youtubeId": "4HK6eku30Ko"
+  },
+  {
+    "id": "269424",
+    "season": "reg2024",
+    "date": "2024-04-02",
+    "fighters": "Jarred Tinordi vs Matt Martin",
+    "youtubeId": "IyqOWSMv1Q8"
+  },
+  {
+    "id": "269503",
+    "season": "reg2024",
+    "date": "2024-04-11",
+    "fighters": "Brendan Gallagher vs Jean-Gabriel Pageau",
+    "youtubeId": "wQOUELu51AQ"
+  },
+  {
+    "id": "269669",
+    "season": "pre2025",
+    "date": "2024-09-24",
+    "fighters": "Scott Mayfield vs Ryan Lindgren",
+    "youtubeId": "-hZ4hce1NBQ"
+  },
+  {
+    "id": "269677",
+    "season": "pre2025",
+    "date": "2024-09-27",
+    "fighters": "Johnathan Kovacevic vs Travis Mitchell",
+    "youtubeId": "nbiDWt5nQE8"
+  },
+  {
+    "id": "269910",
+    "season": "reg2025",
+    "date": "2024-10-25",
+    "fighters": "Scott Mayfield vs Kurtis MacDermid",
+    "youtubeId": "6wlW70JK3Go"
+  },
+  {
+    "id": "269988",
+    "season": "reg2025",
+    "date": "2024-11-01",
+    "fighters": "Oliver Wahlstrom vs Jason Zucker",
+    "youtubeId": "A7bYTdp5Im8"
+  },
+  {
+    "id": "270133",
+    "season": "reg2025",
+    "date": "2024-11-14",
+    "fighters": "Matt Martin vs Vincent Desharnais",
+    "youtubeId": "GKNUKnNL7Qc"
+  },
+  {
+    "id": "270780",
+    "season": "reg2025",
+    "date": "2025-01-14",
+    "fighters": "Zack MacEwen vs Matt Martin",
+    "youtubeId": "-KEz4liTATM"
+  },
+  {
+    "id": "270877",
+    "season": "reg2025",
+    "date": "2025-01-25",
+    "fighters": "Jesperi Kotkaniemi vs Jean-Gabriel Pageau",
+    "youtubeId": "Kjn8eY8jpeA"
+  },
+  {
+    "id": "270950",
+    "season": "reg2025",
+    "date": "2025-01-30",
+    "fighters": "Maxim Tsyplakov vs Scott Laughton",
+    "youtubeId": "8qZRsiFaTJM"
+  },
+  {
+    "id": "270975",
+    "season": "reg2025",
+    "date": "2025-02-01",
+    "fighters": "Marc Gatcomb vs Cam Atkinson",
+    "youtubeId": "qs6HUboRZQc"
+  },
+  {
+    "id": "271201",
+    "season": "reg2025",
+    "date": "2025-02-23",
+    "fighters": "Matt Dumba vs Casey Cizikas",
+    "youtubeId": "4VbRNewWIMs"
+  },
+  {
+    "id": "271318",
+    "season": "reg2025",
+    "date": "2025-03-04",
+    "fighters": "Adam Lowry vs Anders Lee",
+    "youtubeId": "j8JfTMRDNiQ"
+  },
+  {
+    "id": "271596",
+    "season": "reg2025",
+    "date": "2025-04-01",
+    "fighters": "Yanni Gourde vs Casey Cizikas",
+    "youtubeId": "-7IoZQ8SPYo"
+  },
+  {
+    "id": "272058",
+    "season": "reg2026",
+    "date": "2025-10-25",
+    "fighters": "Scott Mayfield vs Garnet Hathaway",
+    "youtubeId": "rqgXpgymU2Y"
+  },
+  {
+    "id": "272059",
+    "season": "reg2026",
+    "date": "2025-10-25",
+    "fighters": "Kyle MacLean vs Rodrigo Abols",
+    "youtubeId": "nxpA6vkonX8"
+  },
+  {
+    "id": "272254",
+    "season": "reg2026",
+    "date": "2025-11-16",
+    "fighters": "Anders Lee vs Josh Manson",
+    "youtubeId": "lYDl-yWEBj4"
+  },
+  {
+    "id": "272289",
+    "season": "reg2026",
+    "date": "2025-11-20",
+    "fighters": "Tony DeAngelo vs Marco Kasper",
+    "youtubeId": "CRdO1ZCw0cE"
+  },
+  {
+    "id": "272935",
+    "season": "reg2026",
+    "date": "2026-02-02",
+    "fighters": "Scott Mayfield vs Tom Wilson",
+    "youtubeId": "FBMurDrnMP8"
+  },
+  {
+    "id": "273310",
+    "season": "reg2026",
+    "date": "2026-03-17",
+    "fighters": "Kyle MacLean vs Morgan Rielly",
+    "youtubeId": "fYahqj4D-PY"
+  },
+  {
+    "id": "273321",
+    "season": "reg2026",
+    "date": "2026-03-19",
+    "fighters": "Anders Lee vs Brady Tkachuk",
+    "youtubeId": "Y0aMCi0LEng"
+  },
+  {
+    "id": "273322",
+    "season": "reg2026",
+    "date": "2026-03-19",
+    "fighters": "Brayden Schenn vs Ridly Greig",
+    "youtubeId": "CwnMJlPlMhA"
+  },
+  {
+    "id": "273436",
+    "season": "reg2026",
+    "date": "2026-03-30",
+    "fighters": "Elmer Soderblom vs Scott Mayfield",
+    "youtubeId": "L5NDCqcf2Xg"
+  },
+  {
+    "id": "273446",
+    "season": "reg2026",
+    "date": "2026-03-31",
+    "fighters": "Anders Lee vs Sam Carrick",
+    "youtubeId": "J5cD1IR1gNs"
+  },
+  {
+    "id": "273505",
+    "season": "reg2026",
+    "date": "2026-04-11",
+    "fighters": "Brady Tkachuk vs Anders Lee",
+    "youtubeId": "KNJkC6aoRcA"
+  }
+]
