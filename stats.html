@@ -6,7 +6,7 @@
   <title>Stats — Are Ya Winning, Isles?</title>
   <style>
     body {
-      background-color: #000000;
+      background-color: #000;
       color: white;
       font-family: Helvetica, Arial, sans-serif;
       margin: 0;
@@ -17,12 +17,6 @@
       max-width: 800px;
       margin: 0 auto;
       padding: 40px 20px 60px 20px;
-    }
-
-    h1 {
-      font-size: 18pt;
-      margin-bottom: 6px;
-      text-align: center;
     }
 
     nav {
@@ -37,15 +31,55 @@
       font-size: 11pt;
     }
 
-    h2 {
-      font-size: 13pt;
-      margin: 30px 0 6px 0;
-      text-transform: uppercase;
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+      text-align: center;
     }
 
-    p {
-      font-size: 10pt;
+    h2 {
+      font-size: 18pt;
+      text-transform: uppercase;
+      margin: 30px 0 6px 0;
+    }
+
+    h3 {
+      font-size: 11pt;
+      text-transform: uppercase;
+      font-weight: normal;
+      opacity: 0.8;
+      margin: 20px 0 4px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      text-align: left;
+    }
+
+    th, td {
+      border: 1px solid white;
+      padding: 3px 6px;
+      white-space: nowrap;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    a {
+      color: white;
+    }
+
+    #footer {
+      font-size: 9pt;
+      margin-top: 50px;
       opacity: 0.6;
+    }
+
+    .sort-ind {
+      font-size: 8pt;
     }
   </style>
 </head>
@@ -57,9 +91,82 @@
   <script src="js/nav.js"></script>
 
   <h2>Stats</h2>
-  <p>Coming soon.</p>
+
+  <h3>Forwards</h3>
+  <table id="forwards-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Pos</th>
+        <th>GP</th>
+        <th>G</th>
+        <th>A</th>
+        <th>PTS</th>
+        <th>+/-</th>
+        <th>PIM</th>
+        <th>PPG</th>
+        <th>SH</th>
+        <th>S%</th>
+        <th>TOI</th>
+        <th>P/60</th>
+      </tr>
+    </thead>
+    <tbody id="forwards-tbody">
+      <tr><td colspan="13">Loading...</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Defensemen</h3>
+  <table id="defensemen-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Pos</th>
+        <th>GP</th>
+        <th>G</th>
+        <th>A</th>
+        <th>PTS</th>
+        <th>+/-</th>
+        <th>PIM</th>
+        <th>PPG</th>
+        <th>SH</th>
+        <th>S%</th>
+        <th>TOI</th>
+        <th>P/60</th>
+      </tr>
+    </thead>
+    <tbody id="defensemen-tbody">
+      <tr><td colspan="13">Loading...</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Goalies</h3>
+  <table id="goalies-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>GP</th>
+        <th>W</th>
+        <th>L</th>
+        <th>OTL</th>
+        <th>SO</th>
+        <th>GAA</th>
+        <th>SV%</th>
+        <th>SA</th>
+      </tr>
+    </thead>
+    <tbody id="goalies-tbody">
+      <tr><td colspan="9">Loading...</td></tr>
+    </tbody>
+  </table>
+
+  <p id="footer">Last updated: —</p>
 
 </div>
+
+<script src="js/utils.js"></script>
+<script src="js/nhl-schedule.js"></script>
+<script src="js/stats.js"></script>
 
 </body>
 </html>
