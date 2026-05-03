@@ -635,10 +635,12 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
   var wentToOT = ((boxscore.periodDescriptor || {}).number || 0) > 3;
 
   // Away is always left column, home is always right column — consistent with header.
+  var nyiIsHome = home.abbrev === 'NYI';
   return buildLiveHeader(boxscore, plays) +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays) +
+    buildLiveGraph(boxscore, playByPlay, nyiIsHome) +
     buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, nyiGameNum, nhlGameNum);
 }
