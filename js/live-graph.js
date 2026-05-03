@@ -145,7 +145,7 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
 
   // --- SVG ---
 
-  var SVG_W = 600, SVG_H = 160;
+  var SVG_W = 600, SVG_H = 200;
   var PAD_L = 10,  PAD_R = 10, PAD_T = 14, PAD_B = 14;
   var plotW = SVG_W - PAD_L - PAD_R;
   var plotH = SVG_H - PAD_T - PAD_B;
@@ -164,7 +164,7 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
     ea_opp:    'rgba(255,80,200,0.30)',
   };
 
-  var svg = ['<svg viewBox="0 0 ' + SVG_W + ' ' + SVG_H + '" width="100%" height="' + SVG_H + '" style="display:block;background:#111;border:1px solid #333;">'];
+  var svg = ['<svg viewBox="0 0 ' + SVG_W + ' ' + SVG_H + '" width="100%" style="display:block;background:#111;border:1px solid #333;">'];
 
   // Situation strip rects (drawn first, behind everything)
   segments.forEach(function (seg) {
@@ -373,11 +373,9 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
       '<div style="margin-top:4px;opacity:0.6;">' + legend + '</div>' +
     '</div>';
 
-  return '<details style="margin-top:16px;">' +
-    '<summary style="cursor:pointer;font-size:9pt;opacity:0.7;user-select:none;">Situation Graph</summary>' +
-    '<div style="margin-top:8px;">' +
+  return '<h3 style="margin-top:20px;margin-bottom:4px;">SITUATION GRAPH</h3>' +
+    '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
     svg.join('') +
     summaryHtml +
-    '</div>' +
-    '</details>';
+    '</td></tr></table>';
 }

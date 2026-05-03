@@ -264,6 +264,49 @@ function formatGoalLine(g, rosterMap, homeTeamId) {
   return time + ': ' + scorer + assists + sitTag;
 }
 
+/* --- Team primary colors + series game cells (disabled — bracket API has no per-game data) ---
+
+var TEAM_PRIMARY_COLORS = {
+  ANA: '#F47A38', ARI: '#8C2633', ATL: '#4B82C3',
+  BOS: '#FFB81C', BUF: '#003087', CAR: '#CE1126',
+  CBJ: '#002654', CGY: '#C8102E', CHI: '#CF0A2C',
+  COL: '#6F263D', DAL: '#006847', DET: '#CE1126',
+  EDM: '#FF4C00', FLA: '#C8102E', LAK: '#A2AAAD',
+  MIN: '#154734', MTL: '#AF1E2D', NSH: '#FFB81C',
+  NJD: '#CE1126', NYI: '#00539B', NYR: '#0038A8',
+  OTT: '#C52032', PHI: '#F74902', PHX: '#8C2633',
+  PIT: '#FCB514', SEA: '#99D9D9', SJS: '#006D75',
+  STL: '#002F87', TBL: '#002868', TOR: '#00205B',
+  UTA: '#6CACE4', VAN: '#00843D', VGK: '#B4975A',
+  WPG: '#041E42', WSH: '#C8102E',
+};
+
+function buildSeriesGameCells(series) {
+  var topAbbrev    = (series.topSeedTeam    || {}).abbrev || '';
+  var bottomAbbrev = (series.bottomSeedTeam || {}).abbrev || '';
+  var topWins      = series.topSeedWins    || 0;
+  var bottomWins   = series.bottomSeedWins || 0;
+
+  if (!topAbbrev || !bottomAbbrev || (topWins === 0 && bottomWins === 0)) return '';
+
+  var topBg    = TEAM_PRIMARY_COLORS[topAbbrev]    || '#555';
+  var bottomBg = TEAM_PRIMARY_COLORS[bottomAbbrev] || '#555';
+  var CELL     = 'width:26px;height:15px;border:none;';
+
+  var cells = [];
+  for (var i = 0; i < topWins;    i++) cells.push('<td style="' + CELL + 'background:' + topBg    + ';"></td>');
+  for (var i = 0; i < bottomWins; i++) cells.push('<td style="' + CELL + 'background:' + bottomBg + ';"></td>');
+  for (var i = topWins + bottomWins; i < 7; i++) cells.push('<td style="' + CELL + 'background:#1a1a1a;"></td>');
+
+  return '<tr><td colspan="5" align="center" ' +
+    'style="border-top:1px solid rgba(255,255,255,0.15);border-left:none;border-right:none;border-bottom:none;padding:4px 4px 5px;">' +
+    '<table style="border-collapse:separate;border-spacing:2px;display:inline-table;"><tr>' +
+    cells.join('') +
+    '</tr></table></td></tr>';
+}
+
+--- end disabled block --- */
+
 // --- Series card (used in bracket) ---
 
 function buildSeriesCard(series, seedLabels) {
