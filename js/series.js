@@ -48,22 +48,61 @@ let TEAM_NAMES = {
 };
 
 // Patch DIVISIONS and TEAM_NAMES for seasons where teams didn't exist yet or used different names.
-// ATL (Atlanta Thrashers) → WPG (Winnipeg Jets) starting 2011-12
+// The Metro/Atlantic/Central/Pacific alignment began in 2013-14.
+// Pre-2013: East had Atlantic/Northeast/Southeast; West had Central/Northwest/Pacific.
+// ATL (Atlanta Thrashers) → WPG (Winnipeg Jets) starting 2011-12 (stayed in Southeast)
 // PHX (Phoenix Coyotes) → ARI (Arizona Coyotes) starting 2014-15
 // ARI moved from Pacific to Central when SEA joined 2021-22
 // UTA replaced ARI starting 2024-25; VGK joined 2017-18; SEA joined 2021-22
 function applySeasonTeamConfig(startYear) {
+  if (startYear <= 2012) {
+    // Pre-realignment: 6 divisions, grouped into 4 display blocks.
+    // nyiDiv:true marks the block where the NYI "self" row is inserted.
+    // Eastern Conference:
+    //   Atlantic:   NJD, NYI, NYR, PHI, PIT   ← NYI is here
+    //   Northeast:  BOS, BUF, MTL, OTT, TOR
+    //   Southeast:  CAR, FLA, TBL, WSH + ATL(2010-11) or WPG(2011-13)
+    // Western Conference:
+    //   Central:    CBJ, CHI, DET, NSH, STL
+    //   Northwest:  CGY, COL, EDM, MIN, VAN
+    //   Pacific:    ANA, DAL, LAK, PHX, SJS
+    var southeast = ['CAR','FLA','TBL','WSH'];
+    southeast.push(startYear >= 2011 ? 'WPG' : 'ATL');
+
+    DIVISIONS = [
+      { name: 'ATLANTIC',   nyiDiv: true, teams: ['NJD','NYR','PHI','PIT'] },
+      { name: 'NORTHEAST',               teams: ['BOS','BUF','MTL','OTT','TOR'] },
+      { name: 'SOUTHEAST',               teams: southeast },
+      { name: 'CENTRAL',                 teams: ['CBJ','CHI','DET','NSH','STL'] },
+      { name: 'NORTHWEST',               teams: ['CGY','COL','EDM','MIN','VAN'] },
+      { name: 'PACIFIC',                 teams: ['ANA','DAL','LAK','PHX','SJS'] },
+    ];
+
+    TEAM_NAMES = {
+      NJD: 'New Jersey',   NYR: 'NY Rangers',   PHI: 'Philadelphia', PIT: 'Pittsburgh',
+      BOS: 'Boston',       BUF: 'Buffalo',       MTL: 'Montreal',     OTT: 'Ottawa',
+      TOR: 'Toronto',      CAR: 'Carolina',      FLA: 'Florida',      TBL: 'Tampa Bay',
+      WSH: 'Washington',   ATL: 'Atlanta',       WPG: 'Winnipeg',
+      CBJ: 'Columbus',     CHI: 'Chicago',       DET: 'Detroit',      NSH: 'Nashville',
+      STL: 'St. Louis',    CGY: 'Calgary',       COL: 'Colorado',     EDM: 'Edmonton',
+      MIN: 'Minnesota',    VAN: 'Vancouver',     ANA: 'Anaheim',      DAL: 'Dallas',
+      LAK: 'Los Angeles',  PHX: 'Phoenix',       SJS: 'San Jose',
+    };
+    return;
+  }
+
+  // 2013-14 onward: Metro/Atlantic/Central/Pacific with per-season adjustments.
   var central = ['CHI','COL','DAL','MIN','NSH','STL'];
   var pacific  = ['ANA','CGY','EDM','LAK','SJS','VAN'];
 
-  // Winnipeg Jets / Atlanta Thrashers
+  // Winnipeg Jets / Atlanta Thrashers (WPG in Central from 2013-14 onward)
   central.push(startYear >= 2011 ? 'WPG' : 'ATL');
 
-  // Utah / Arizona / Phoenix — and which division they belong to
+  // Utah / Arizona / Phoenix and their division
   if (startYear >= 2024)      { central.push('UTA'); }
   else if (startYear >= 2021) { central.push('ARI'); }  // ARI moved to Central when SEA joined
   else if (startYear >= 2014) { pacific.push('ARI'); }  // Arizona Coyotes in Pacific
-  else                        { pacific.push('PHX'); }  // Phoenix Coyotes in Pacific
+  else                        { pacific.push('PHX'); }  // Phoenix Coyotes in Pacific (2013-14)
 
   if (startYear >= 2017) { pacific.push('VGK'); }
   if (startYear >= 2021) { pacific.push('SEA'); }
@@ -247,7 +286,7 @@ function renderBar(games, groupBy) {
 var COVID_EAST_DIV = { name: 'EAST', teams: ['BOS','BUF','NJD','NYR','PHI','PIT','WSH'] };
 
 function renderDivisionSection(div, byOpp, groupBy, teamStandings, sortBy, padToRows) {
-  const isMetro = div.name === 'METROPOLITAN' || div.name === 'EAST';
+  const isMetro = div.name === 'METROPOLITAN' || div.name === 'EAST' || !!div.nyiDiv;
 
   // Build the ordered list of entries, inserting NYI when sorting by standing
   let entries = div.teams.map(function (abbrev) {
@@ -797,7 +836,8 @@ async function loadSeriesData() {
     });
 
     var startYear = parseInt(season.slice(0, 4), 10);
-    var isCovid = (startYear === 2020);
+    var isCovid   = (startYear === 2020);
+    var isLockout = (startYear === 2012); // conference-only schedule, no inter-conference games
     applySeasonTeamConfig(startYear);
     var seasonLabel = startYear + '–' + String(startYear + 1).slice(2);
     document.getElementById('series-subtitle').textContent = seasonLabel + ' Regular Season';
@@ -812,22 +852,44 @@ async function loadSeriesData() {
     function refresh() {
       var gbVal = groupBy();
       var sbVal = sortBy();
-      var metroCount = DIVISIONS[0].teams.length + (sbVal === 'standing' ? 1 : 0);
-      var topRows    = Math.max(metroCount, DIVISIONS[2].teams.length);
-      var bottomRows = Math.max(DIVISIONS[1].teams.length, DIVISIONS[3].teams.length);
+
       document.getElementById('total-bar').innerHTML = renderTotalBar(byOpp);
-      document.getElementById('col-left').innerHTML =
-        renderDivisionSection(DIVISIONS[0], byOpp, gbVal, teamStandings, sbVal, topRows) +
-        renderDivisionSection(DIVISIONS[1], byOpp, gbVal, teamStandings, sbVal, bottomRows);
+
       if (isCovid) {
         document.getElementById('col-left').innerHTML =
           renderDivisionSection(COVID_EAST_DIV, byOpp, gbVal, teamStandings, sbVal);
         document.getElementById('col-right').innerHTML = '';
+      } else if (isLockout) {
+        // 2012-13: conference-only schedule — only show Eastern Conference divisions
+        var lockoutHtml = '';
+        DIVISIONS.slice(0, Math.floor(DIVISIONS.length / 2)).forEach(function (div) {
+          lockoutHtml += renderDivisionSection(div, byOpp, gbVal, teamStandings, sbVal);
+        });
+        document.getElementById('col-left').innerHTML  = lockoutHtml;
+        document.getElementById('col-right').innerHTML = '';
       } else {
-        document.getElementById('col-right').innerHTML =
-          renderDivisionSection(DIVISIONS[2], byOpp, gbVal, teamStandings, sbVal, topRows) +
-          renderDivisionSection(DIVISIONS[3], byOpp, gbVal, teamStandings, sbVal, bottomRows);
+        var mid       = Math.floor(DIVISIONS.length / 2);
+        var leftDivs  = DIVISIONS.slice(0, mid);
+        var rightDivs = DIVISIONS.slice(mid);
+
+        function divRowCount(div) {
+          var isNYI = div.name === 'METROPOLITAN' || div.name === 'EAST' || !!div.nyiDiv;
+          return div.teams.length + (sbVal === 'standing' && isNYI ? 1 : 0);
+        }
+
+        var leftHtml = '', rightHtml = '';
+        for (var i = 0; i < leftDivs.length; i++) {
+          var ld      = leftDivs[i];
+          var rd      = rightDivs[i];
+          var padRows = Math.max(divRowCount(ld), rd ? divRowCount(rd) : 0);
+          leftHtml  += renderDivisionSection(ld, byOpp, gbVal, teamStandings, sbVal, padRows);
+          rightHtml += rd ? renderDivisionSection(rd, byOpp, gbVal, teamStandings, sbVal, padRows) : '';
+        }
+
+        document.getElementById('col-left').innerHTML  = leftHtml;
+        document.getElementById('col-right').innerHTML = rightHtml;
       }
+
       document.getElementById('postseason').innerHTML = renderPostseason(playoff.byOpp, playoff.order);
     }
 
