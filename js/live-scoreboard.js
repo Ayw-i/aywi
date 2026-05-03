@@ -261,28 +261,71 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
       '</span>' +
     '</span>';
 
-  function penaltyRow(p) {
-    var d          = p.details || {};
-    var periodNum  = (p.periodDescriptor || {}).number;
-    var time       = p.timeInPeriod || '?';
-    var player     = d.committedByPlayerId
-      ? (rosterMap[d.committedByPlayerId] || '?')
-      : d.servedByPlayerId
-        ? 'Bench (served by ' + (rosterMap[d.servedByPlayerId] || '?') + ')'
+  // Group same-player same-time penalties into one row (e.g. boarding + game misconduct).
+  function groupPenalties(pens) {
+    var groups = [], keyMap = {};
+    pens.forEach(function (p) {
+      var d   = p.details || {};
+      var per = (p.periodDescriptor || {}).number || 0;
+      var id  = d.committedByPlayerId || d.servedByPlayerId || 'bench';
+      var key = per + ':' + (p.timeInPeriod || '') + ':' + id;
+      if (keyMap[key] !== undefined) {
+        groups[keyMap[key]].push(p);
+      } else {
+        keyMap[key] = groups.length;
+        groups.push([p]);
+      }
+    });
+    return groups;
+  }
+
+  function penaltyRow(group) {
+    var first     = group[0];
+    var d0        = first.details || {};
+    var periodNum = (first.periodDescriptor || {}).number;
+    var time      = first.timeInPeriod || '?';
+
+    var player = d0.committedByPlayerId
+      ? (rosterMap[d0.committedByPlayerId] || '?')
+      : d0.servedByPlayerId
+        ? 'Bench (served by ' + (rosterMap[d0.servedByPlayerId] || '?') + ')'
         : 'Bench';
-    var drawnBy    = d.drawnByPlayerId
-      ? (rosterMap[d.drawnByPlayerId] || '?')
+
+    var drawnBy = '';
+    group.forEach(function (p) {
+      if (!drawnBy && (p.details || {}).drawnByPlayerId)
+        drawnBy = rosterMap[p.details.drawnByPlayerId] || '?';
+    });
+
+    var isFirstMin  = periodNum === 1 && parseTOISecs(time) < 60;
+    var isEjection  = false;
+    var infractions = group.map(function (p) {
+      var dk = (p.details || {}).descKey || '?';
+      if (dk.indexOf('game-misconduct') !== -1 ||
+          dk.indexOf('gross-misconduct') !== -1 ||
+          dk.indexOf('match') !== -1) isEjection = true;
+      var isFighting = dk.indexOf('fighting') !== -1;
+      return (isFighting && isFirstMin)
+        ? 'illegal ' + TONE_TOOLTIP
+        : dk.replace(/-/g, ' ');
+    }).join(' + ');
+
+    var duration = group.map(function (p) {
+      var dur = (p.details || {}).duration;
+      return dur ? dur + '\'' : '';
+    }).filter(Boolean).join(' + ');
+
+    var EJECT = '&#128683;'; // 🚫
+    var ejectBadge = isEjection
+      ? '<br><span style="font-size:10pt;color:gray;">' + EJECT +
+        '<span style="font-style:italic;"> Ejected.</span></span>'
       : '';
-    var duration   = d.duration ? d.duration + '\'' : '';
-    var isFighting = d.descKey && d.descKey.indexOf('fighting') !== -1;
-    var isFirstMin = periodNum === 1 && parseTOISecs(time) < 60;
-    var infraction = (isFighting && isFirstMin)
-      ? 'illegal ' + TONE_TOOLTIP
-      : (d.descKey ? d.descKey.replace(/-/g, ' ') : '?');
-    return '<tr>' +
+    var rowStyle = isEjection ? ' style="background-color:#3a0000;"' : '';
+
+    return '<tr' + rowStyle + '>' +
       '<td>' + liveGamePeriodLabel(periodNum || '?') + ' ' + time + '</td>' +
-      '<td>' + player + '</td>' +
-      '<td>' + infraction + '</td>' +
+      '<td>' + player + ejectBadge + '</td>' +
+      '<td>' + infractions + '</td>' +
       '<td style="font-size:9pt;opacity:0.7;">' + drawnBy + '</td>' +
       '<td>' + duration + '</td>' +
       '</tr>';
@@ -290,7 +333,7 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
 
   function penaltyTable(pens, label) {
     var rows = pens.length
-      ? pens.map(penaltyRow).join('')
+      ? groupPenalties(pens).map(penaltyRow).join('')
       : '<tr><td colspan="5" style="opacity:0.5;">None</td></tr>';
     return '<table width="100%" style="font-size:9pt;">' +
       '<thead>' +

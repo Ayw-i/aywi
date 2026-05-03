@@ -5,7 +5,8 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
   // Build per-player data from play-by-play: goals, primary/secondary assists,
   // penalties drawn, and fighting vs non-fighting PIM.
   // Play-by-play is more up-to-date than playerByGameStats during live games.
-  var pbp = {};
+  var pbp     = {};
+  var ejected = {};
   function initPbp(id) {
     if (id && !pbp[id]) pbp[id] = { goals: 0, a1: 0, a2: 0, pd: 0, fightPIM: 0, nonFightPIM: 0, missedShots: 0 };
   }
@@ -21,13 +22,22 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
     }
     if (play.typeDescKey === 'penalty') {
       var pim     = d.duration || 0;
-      var isFight = d.descKey && d.descKey.indexOf('fighting') !== -1;
+      var descKey = d.descKey  || '';
+      var isFight = descKey.indexOf('fighting') !== -1;
+      // Ejection: game misconduct, gross misconduct, or match penalty
+      var isEject = descKey.indexOf('game-misconduct') !== -1 ||
+                    descKey.indexOf('gross-misconduct') !== -1 ||
+                    descKey.indexOf('match')            !== -1;
       if (d.committedByPlayerId) {
         initPbp(d.committedByPlayerId);
-        if (isFight) pbp[d.committedByPlayerId].fightPIM    += pim;
-        else         pbp[d.committedByPlayerId].nonFightPIM += pim;
+        if (isEject) ejected[d.committedByPlayerId] = true;
+        // Only count PIM that creates a man-disadvantage (minors/majors, not misconducts)
+        if (pim > 0 && pim < 10) {
+          if (isFight) pbp[d.committedByPlayerId].fightPIM    += pim;
+          else         pbp[d.committedByPlayerId].nonFightPIM += pim;
+        }
       }
-      if (d.drawnByPlayerId) {
+      if (d.drawnByPlayerId && pim > 0 && pim < 10) {
         initPbp(d.drawnByPlayerId);
         pbp[d.drawnByPlayerId].pd += pim;
       }
@@ -142,8 +152,16 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       pmCell = '<span style="color:' + pmColor + ';">' + pmStr + '</span>';
     }
 
-    return '<tr>' +
-      '<td>' + ((p.name && p.name.default) || '?') + '</td>' +
+    var EJECT    = '&#128683;'; // 🚫
+    var isEjected = !!ejected[p.playerId];
+    var ejectBadge = isEjected
+      ? '<br><span style="font-size:10pt;color:gray;">' + EJECT +
+        '<span style="font-style:italic;"> Ejected.</span></span>'
+      : '';
+    var rowStyle = isEjected ? ' style="background-color:#3a0000;"' : '';
+
+    return '<tr' + rowStyle + '>' +
+      '<td>' + ((p.name && p.name.default) || '?') + ejectBadge + '</td>' +
       '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A</td>' +
       '<td>' + (p.toi || '&mdash;') + '</td>' +
       '<td>' + pmCell + '</td>' +
