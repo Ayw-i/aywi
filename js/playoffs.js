@@ -44,35 +44,22 @@ var HISTORICAL_REVERSE_SWEEPS = [
 
 // Returns the abbrev of the team that led 3-0 but is now tied 3-3 (reverse sweep watch), or null.
 function detectReverseSweptWatch(series) {
-  var games = series.games;
+  var games = series.computedGames;
   if (!games || games.length < 6) return null;
-  var topAbbrev = (series.topSeedTeam || {}).abbrev;
-  var winners = [];
-  for (var i = 0; i < 6; i++) {
-    var g = games[i];
-    if (!g) return null;
-    var winner = null;
-    if (g.topSeedScore !== undefined && g.bottomSeedScore !== undefined) {
-      winner = g.topSeedScore > g.bottomSeedScore ? 'top' : 'bottom';
-    } else if (g.homeScore !== undefined && g.visitingScore !== undefined && g.homeTeamAbbrev) {
-      var homeIsTop = g.homeTeamAbbrev === topAbbrev;
-      winner = (g.homeScore > g.visitingScore) === homeIsTop ? 'top' : 'bottom';
-    } else {
-      return null;
-    }
-    winners.push(winner);
-  }
-  var first3 = winners.slice(0, 3);
-  if (first3.every(function (w) { return w === 'top'; }))    return topAbbrev;
-  if (first3.every(function (w) { return w === 'bottom'; })) return (series.bottomSeedTeam || {}).abbrev;
+  var first3TopSweep = games[0].topWon && games[1].topWon && games[2].topWon;
+  var first3BotSweep = !games[0].topWon && !games[1].topWon && !games[2].topWon;
+  if (!first3TopSweep && !first3BotSweep) return null;
+  var topWinsIn6 = games.slice(0, 6).filter(function (g) { return g.topWon; }).length;
+  if (first3TopSweep && topWinsIn6 === 3) return (series.topSeedTeam    || {}).abbrev;
+  if (first3BotSweep && topWinsIn6 === 3) return (series.bottomSeedTeam || {}).abbrev;
   return null;
 }
 
 // Returns the abbrev of the team that was reverse-swept (led 3-0 then lost 4-3), or null.
 function detectReverseSwept(series) {
-  var games = series.games;
+  var games = series.computedGames;
   if (!games || games.length < 7) {
-    // Fall back to hard-coded list for historical seasons
+    // Fall back to hard-coded list for historical seasons where per-game data may be unavailable
     if (!_bracketYear) return null;
     var tAbbrev = (series.topSeedTeam    || {}).abbrev;
     var bAbbrev = (series.bottomSeedTeam || {}).abbrev;
@@ -84,37 +71,11 @@ function detectReverseSwept(series) {
     }
     return null;
   }
-  var topAbbrev = (series.topSeedTeam || {}).abbrev;
-
-  var winners = [];
-  for (var i = 0; i < 7; i++) {
-    var g = games[i];
-    if (!g) return null;
-    var winner = null;
-    if (g.topSeedScore !== undefined && g.bottomSeedScore !== undefined) {
-      winner = g.topSeedScore > g.bottomSeedScore ? 'top' : 'bottom';
-    } else if (g.homeScore !== undefined && g.visitingScore !== undefined && g.homeTeamAbbrev) {
-      var homeIsTop = g.homeTeamAbbrev === topAbbrev;
-      var homeWon   = g.homeScore > g.visitingScore;
-      winner = (homeWon === homeIsTop) ? 'top' : 'bottom';
-    } else {
-      return null;
-    }
-    winners.push(winner);
-  }
-
-  var first3 = winners.slice(0, 3);
-  if (first3.every(function (w) { return w === 'top'; })) {
-    // Top won first 3; if total top wins = 3 they lost the series → reverse swept
-    if (winners.filter(function (w) { return w === 'top'; }).length === 3) {
-      return topAbbrev;
-    }
-  }
-  if (first3.every(function (w) { return w === 'bottom'; })) {
-    if (winners.filter(function (w) { return w === 'bottom'; }).length === 3) {
-      return (series.bottomSeedTeam || {}).abbrev;
-    }
-  }
+  var first3TopSweep = games[0].topWon && games[1].topWon && games[2].topWon;
+  var first3BotSweep = !games[0].topWon && !games[1].topWon && !games[2].topWon;
+  var topWins = games.filter(function (g) { return g.topWon; }).length;
+  if (first3TopSweep && topWins === 3) return (series.topSeedTeam    || {}).abbrev;
+  if (first3BotSweep && topWins === 4) return (series.bottomSeedTeam || {}).abbrev;
   return null;
 }
 
@@ -204,6 +165,210 @@ function hideRevSwHover() {
   getRevSwEl().style.display = 'none';
 }
 
+// --- Game cell tooltip (bracket) ---
+
+var _playoffExpandedCell = null;
+var _playoffBsCache      = {};
+var _playoffPbpCache     = {};
+
+// Shared: update tooltip score line from a fetched boxscore.
+function _applyBsScore(bs) {
+  var bsAway = bs.awayTeam || {}, bsHome = bs.homeTeam || {};
+  var bsGo   = bs.gameOutcome || {}, bsPd = bs.periodDescriptor || {};
+  var otLbl  = '';
+  if (bsGo.lastPeriodType === 'OT') {
+    var n = bsPd.number || 4;
+    otLbl = ' (' + (n === 4 ? 'OT' : (n - 3) + 'OT') + ')';
+  }
+  document.getElementById('playoff-tt-score').textContent =
+    (bsAway.abbrev || '') + ' ' + (bsAway.score || 0) + ' – ' +
+    (bsHome.score  || 0) + ' ' + (bsHome.abbrev || '') + otLbl;
+}
+
+function showPlayoffTooltip(el, event) {
+  if (_playoffExpandedCell && _playoffExpandedCell !== el) return;
+  var tt   = document.getElementById('playoff-tt');
+  var away = el.dataset.away, home = el.dataset.home;
+  var as_  = el.dataset.ascore, hs = el.dataset.hscore;
+  var ot   = el.dataset.ot,  date  = el.dataset.date;
+
+  var score = away + ' ' + as_ + ' – ' + hs + ' ' + home + (ot ? ' (' + ot + ')' : '');
+  document.getElementById('playoff-tt-score').textContent = score;
+  document.getElementById('playoff-tt-date').textContent  = date ? date.slice(0, 10) : '';
+  tt.style.display = 'block';
+  if (!_playoffExpandedCell) movePlayoffTooltip(event);
+}
+
+function movePlayoffTooltip(event) {
+  if (_playoffExpandedCell) return;
+  var tt = document.getElementById('playoff-tt');
+  tt.style.left = '-9999px';
+  tt.style.top  = '-9999px';
+  tt.style.display = 'block';
+  var ttW = tt.offsetWidth, ttH = tt.offsetHeight;
+  var vw  = window.innerWidth,  vh  = window.innerHeight;
+  var x = (event.clientX + 14 + ttW > vw) ? event.clientX - 14 - ttW : event.clientX + 14;
+  var y = (event.clientY + 14 + ttH > vh) ? event.clientY - 14 - ttH : event.clientY + 14;
+  tt.style.left = x + 'px';
+  tt.style.top  = y + 'px';
+}
+
+function hidePlayoffTooltip() {
+  if (_playoffExpandedCell) return;
+  document.getElementById('playoff-tt').style.display = 'none';
+}
+
+function clampPlayoffTooltip() {
+  var tt   = document.getElementById('playoff-tt');
+  var top  = parseInt(tt.style.top,  10) || 0;
+  var left = parseInt(tt.style.left, 10) || 0;
+  var vh   = window.innerHeight, vw = window.innerWidth;
+  if (top  + tt.offsetHeight > vh) tt.style.top  = Math.max(0, vh - tt.offsetHeight - 4) + 'px';
+  if (left + tt.offsetWidth  > vw) tt.style.left = Math.max(0, vw - tt.offsetWidth  - 4) + 'px';
+}
+
+async function togglePlayoffExpand(el, event) {
+  event.stopPropagation();
+  var expandEl = document.getElementById('playoff-tt-expand');
+
+  if (_playoffExpandedCell === el) {
+    el.style.outline      = '';
+    _playoffExpandedCell  = null;
+    expandEl.style.display = 'none';
+    expandEl.innerHTML    = '';
+    document.getElementById('playoff-tt').style.display = 'none';
+    return;
+  }
+
+  if (_playoffExpandedCell) {
+    _playoffExpandedCell.style.outline = '';
+    expandEl.style.display = 'none';
+    expandEl.innerHTML = '';
+  }
+
+  _playoffExpandedCell = null;
+  showPlayoffTooltip(el, event);
+  _playoffExpandedCell  = el;
+  el.style.outline = '2px solid #FFD700';
+
+  var gameId = el.dataset.gameid;
+  if (!gameId) return;
+
+  expandEl.innerHTML     = '<div style="color:#888;font-size:9pt;margin-top:6px;">Loading...</div>';
+  expandEl.style.display = 'block';
+
+  try {
+    var fetches = [];
+    if (!_playoffBsCache[gameId]) {
+      fetches.push(
+        fetch(WORKER + '/v1/gamecenter/' + gameId + '/boxscore')
+          .then(function (r) { return r.json(); })
+          .then(function (d) { _playoffBsCache[gameId] = d; })
+      );
+    }
+    if (!_playoffPbpCache[gameId]) {
+      fetches.push(
+        fetch(WORKER + '/v1/gamecenter/' + gameId + '/play-by-play')
+          .then(function (r) { return r.json(); })
+          .then(function (d) { _playoffPbpCache[gameId] = d; })
+          .catch(function ()  { _playoffPbpCache[gameId] = null; })
+      );
+    }
+    await Promise.all(fetches);
+    var bs = _playoffBsCache[gameId];
+    _applyBsScore(bs);
+    expandEl.innerHTML     = buildPlayoffExpandHTML(bs, _playoffPbpCache[gameId]);
+    expandEl.style.display = 'block';
+    clampPlayoffTooltip();
+  } catch (err) {
+    expandEl.innerHTML = '<div style="color:#f66;font-size:9pt;margin-top:6px;">Could not load stats.</div>';
+  }
+}
+
+function buildPlayoffExpandHTML(bs, pbp) {
+  var gameStats = (bs || {}).playerByGameStats || {};
+  var homeStats = gameStats.homeTeam || {};
+  var awayStats = gameStats.awayTeam || {};
+
+  var rosterMap = {};
+  ((pbp || {}).rosterSpots || []).forEach(function (p) {
+    var first = (p.firstName && p.firstName.default) || '';
+    var last  = (p.lastName  && p.lastName.default)  || '';
+    rosterMap[p.playerId] = (first + ' ' + last).trim();
+  });
+
+  var otWinnerId = null;
+  if (pbp && pbp.plays) {
+    var otGoals = pbp.plays.filter(function (p) {
+      var pd = p.periodDescriptor || {};
+      return p.typeDescKey === 'goal' && (pd.periodType === 'OT' || (pd.number || 0) > 3);
+    });
+    if (otGoals.length) otWinnerId = (otGoals[otGoals.length - 1].details || {}).scoringPlayerId;
+  }
+
+  function teamCol(stats) {
+    var skaters = (stats.forwards || []).concat(stats.defense || []);
+    var scorers = skaters.filter(function (p) {
+      return (p.goals || 0) + (p.assists || 0) > 0;
+    }).sort(function (a, b) {
+      if ((b.goals || 0) !== (a.goals || 0)) return (b.goals || 0) - (a.goals || 0);
+      return ((b.goals||0)+(b.assists||0)) - ((a.goals||0)+(a.assists||0));
+    });
+    var goalies = (stats.goalies || []).filter(function (g) { return (g.shotsAgainst || 0) > 0; });
+
+    var html = '';
+    if (!scorers.length) {
+      html += '<div style="color:#888;font-style:italic;font-size:9pt;">No points</div>';
+    } else {
+      html += scorers.map(function (p) {
+        var name  = (p.name && p.name.default) || '?';
+        var g = p.goals || 0, a = p.assists || 0;
+        var isOTW = otWinnerId !== null && p.playerId === otWinnerId;
+        var parts = [];
+        if (isOTW) parts.push('OTW');
+        parts.push(g + 'G'); parts.push(a + 'A');
+        var ns = (isOTW || g >= 3) ? 'color:#FFD700;font-weight:bold;' : '';
+        return '<div style="font-size:9pt;"><span style="' + ns + '">' + name + '</span>' +
+          ' <span style="color:#aaa;">(' + parts.join(', ') + ')</span></div>';
+      }).join('');
+    }
+    if (goalies.length) {
+      html += '<div style="margin-top:4px;border-top:1px solid #222;padding-top:3px;">';
+      html += goalies.map(function (g) {
+        var name = (g.name && g.name.default) || '?';
+        var ga = g.goalsAgainst !== undefined ? g.goalsAgainst : '?';
+        var sa = g.shotsAgainst !== undefined ? g.shotsAgainst : '?';
+        return '<div style="font-size:9pt;">' + name +
+          ' <span style="color:#aaa;">(' + ga + 'GA/' + sa + 'SA)</span></div>';
+      }).join('');
+      html += '</div>';
+    }
+    return html;
+  }
+
+  return '<table width="100%" style="border:none;margin-top:8px;border-top:1px solid #333;padding-top:6px;">' +
+    '<tr>' +
+    '<td style="font-size:8pt;font-weight:bold;color:#aaa;border:none;padding-bottom:3px;">' +
+      ((bs && bs.awayTeam && bs.awayTeam.abbrev) || 'Away') + '</td>' +
+    '<td style="font-size:8pt;font-weight:bold;color:#aaa;border:none;padding-bottom:3px;border-left:1px solid #333;padding-left:6px;">' +
+      ((bs && bs.homeTeam && bs.homeTeam.abbrev) || 'Home') + '</td>' +
+    '</tr><tr>' +
+    '<td valign="top" style="border:none;padding-right:6px;">'                              + teamCol(awayStats) + '</td>' +
+    '<td valign="top" style="border:none;border-left:1px solid #333;padding-left:6px;">' + teamCol(homeStats) + '</td>' +
+    '</tr></table>';
+}
+
+document.addEventListener('click', function () {
+  if (_playoffExpandedCell) {
+    _playoffExpandedCell.style.outline = '';
+    _playoffExpandedCell = null;
+    var expandEl = document.getElementById('playoff-tt-expand');
+    expandEl.style.display = 'none';
+    expandEl.innerHTML = '';
+    document.getElementById('playoff-tt').style.display = 'none';
+  }
+});
+
 // --- Goal helpers ---
 
 function playoffsBuildRosterMap(rosterSpots) {
@@ -264,8 +429,6 @@ function formatGoalLine(g, rosterMap, homeTeamId) {
   return time + ': ' + scorer + assists + sitTag;
 }
 
-/* --- Team primary colors + series game cells (disabled — bracket API has no per-game data) ---
-
 var TEAM_PRIMARY_COLORS = {
   ANA: '#F47A38', ARI: '#8C2633', ATL: '#4B82C3',
   BOS: '#FFB81C', BUF: '#003087', CAR: '#CE1126',
@@ -273,7 +436,7 @@ var TEAM_PRIMARY_COLORS = {
   COL: '#6F263D', DAL: '#006847', DET: '#CE1126',
   EDM: '#FF4C00', FLA: '#C8102E', LAK: '#A2AAAD',
   MIN: '#154734', MTL: '#AF1E2D', NSH: '#FFB81C',
-  NJD: '#CE1126', NYI: '#00539B', NYR: '#0038A8',
+  NJD: '#CE1126', NYR: '#0038A8',
   OTT: '#C52032', PHI: '#F74902', PHX: '#8C2633',
   PIT: '#FCB514', SEA: '#99D9D9', SJS: '#006D75',
   STL: '#002F87', TBL: '#002868', TOR: '#00205B',
@@ -281,22 +444,40 @@ var TEAM_PRIMARY_COLORS = {
   WPG: '#041E42', WSH: '#C8102E',
 };
 
+// Chronological game cells — one cell per completed game, colored by winning team.
+// OT win: bright-yellow→amber gradient stripe across the top (layered above team color).
+// Away win: small white diagonal triangle notched into the bottom-right corner.
+// Both can appear on the same cell via stacked CSS background layers.
 function buildSeriesGameCells(series) {
-  var topAbbrev    = (series.topSeedTeam    || {}).abbrev || '';
-  var bottomAbbrev = (series.bottomSeedTeam || {}).abbrev || '';
-  var topWins      = series.topSeedWins    || 0;
-  var bottomWins   = series.bottomSeedWins || 0;
+  var games = series.computedGames;
+  if (!games || !games.length) return '';
 
-  if (!topAbbrev || !bottomAbbrev || (topWins === 0 && bottomWins === 0)) return '';
-
-  var topBg    = TEAM_PRIMARY_COLORS[topAbbrev]    || '#555';
-  var bottomBg = TEAM_PRIMARY_COLORS[bottomAbbrev] || '#555';
-  var CELL     = 'width:26px;height:15px;border:none;';
-
-  var cells = [];
-  for (var i = 0; i < topWins;    i++) cells.push('<td style="' + CELL + 'background:' + topBg    + ';"></td>');
-  for (var i = 0; i < bottomWins; i++) cells.push('<td style="' + CELL + 'background:' + bottomBg + ';"></td>');
-  for (var i = topWins + bottomWins; i < 7; i++) cells.push('<td style="' + CELL + 'background:#1a1a1a;"></td>');
+  var cells = games.map(function (g) {
+    var bg = TEAM_PRIMARY_COLORS[g.winnerAbbrev] || '#555';
+    var baseBg = g.awayWon
+      ? 'linear-gradient(135deg,' + bg + ' 78%,rgba(255,255,255,0.9) 78%)'
+      : bg;
+    var background = g.isOT
+      ? 'linear-gradient(to bottom,#FFFF44 0px,#FFA500 3px,transparent 3px),' + baseBg
+      : baseBg;
+    return '<td' +
+      ' data-gameid="' + g.id + '"' +
+      ' data-home="'   + g.homeAbbrev + '"' +
+      ' data-away="'   + g.awayAbbrev + '"' +
+      ' data-hscore="' + g.homeScore  + '"' +
+      ' data-ascore="' + g.awayScore  + '"' +
+      ' data-date="'   + g.gameDate   + '"' +
+      ' data-ot="'     + g.otLabel    + '"' +
+      ' onmouseover="showPlayoffTooltip(this,event)"' +
+      ' onmousemove="movePlayoffTooltip(event)"' +
+      ' onmouseout="hidePlayoffTooltip()"' +
+      ' onclick="togglePlayoffExpand(this,event)"' +
+      ' style="cursor:pointer;width:22px;height:16px;border:none;background:' + background + ';"></td>';
+  });
+  // Remaining possible games as dark placeholders
+  for (var i = games.length; i < 7; i++) {
+    cells.push('<td style="width:22px;height:16px;border:none;background:#1a1a1a;"></td>');
+  }
 
   return '<tr><td colspan="5" align="center" ' +
     'style="border-top:1px solid rgba(255,255,255,0.15);border-left:none;border-right:none;border-bottom:none;padding:4px 4px 5px;">' +
@@ -304,8 +485,6 @@ function buildSeriesGameCells(series) {
     cells.join('') +
     '</tr></table></td></tr>';
 }
-
---- end disabled block --- */
 
 // --- Series card (used in bracket) ---
 
@@ -475,6 +654,7 @@ function buildSeriesCard(series, seedLabels) {
     '<td colspan="5" align="center" style="border-top:1px solid rgba(255,255,255,0.25);border-left:none;border-right:none;border-bottom:none;font-size:8pt;opacity:0.7;padding:3px 4px;">' +
     status + '</td>' +
     '</tr>' +
+    buildSeriesGameCells(series) +
     '</table>';
 }
 
@@ -641,6 +821,74 @@ function buildConferenceRounds(allSeries, r1Letters, r2Letters, cfLetter, confNa
   };
 }
 
+// --- Per-game series data ---
+// Fetches club-schedule-season for one team per started series, cross-references
+// the two opponents to extract completed playoff games in chronological order,
+// and attaches them as series.computedGames for detection and cell rendering.
+
+async function fetchSeriesGames(allSeries, season) {
+  var started = allSeries.filter(function (s) {
+    return (s.topSeedWins || 0) + (s.bottomSeedWins || 0) > 0;
+  });
+  if (!started.length) return;
+
+  // One schedule fetch per unique top-seed abbrev
+  var abbrevs = [], seen = {};
+  started.forEach(function (s) {
+    var a = (s.topSeedTeam || {}).abbrev;
+    if (a && !seen[a]) { abbrevs.push(a); seen[a] = true; }
+  });
+
+  var scheduleMap = {};
+  await Promise.all(abbrevs.map(function (abbrev) {
+    return fetch(WORKER + '/v1/club-schedule-season/' + abbrev + '/' + season)
+      .then(function (r) { return r.json(); })
+      .then(function (d) { scheduleMap[abbrev] = d.games || []; })
+      .catch(function ()  { scheduleMap[abbrev] = []; });
+  }));
+
+  started.forEach(function (s) {
+    var topAbbrev    = (s.topSeedTeam    || {}).abbrev || '';
+    var bottomAbbrev = (s.bottomSeedTeam || {}).abbrev || '';
+    var allGames     = scheduleMap[topAbbrev] || [];
+
+    s.computedGames = allGames.filter(function (g) {
+      if (g.gameType !== 3) return false;
+      if (g.gameState !== 'OFF' && g.gameState !== 'FINAL') return false;
+      var ha = (g.homeTeam || {}).abbrev;
+      var aa = (g.awayTeam || {}).abbrev;
+      return (ha === topAbbrev && aa === bottomAbbrev) ||
+             (ha === bottomAbbrev && aa === topAbbrev);
+    }).sort(function (a, b) {
+      return (a.id || 0) - (b.id || 0);
+    }).map(function (g) {
+      var ha  = (g.homeTeam || {}).abbrev;
+      var aa  = (g.awayTeam || {}).abbrev;
+      var hs  = (g.homeTeam || {}).score || 0;
+      var as_ = (g.awayTeam || {}).score || 0;
+      var winnerAbbrev = hs > as_ ? ha : aa;
+      var outc      = g.gameOutcome || {};
+      var isOT      = outc.lastPeriodType === 'OT';
+      // lastPeriodNumber (gameOutcome) is more reliable than periodDescriptor.number for past games
+      var pdNum     = outc.lastPeriodNumber || (g.periodDescriptor || {}).number || 4;
+      var otLabel   = isOT ? (pdNum === 4 ? 'OT' : (pdNum - 3) + 'OT') : '';
+      return {
+        id:          g.id || '',
+        gameDate:    g.gameDate || '',
+        homeAbbrev:  ha,
+        awayAbbrev:  aa,
+        homeScore:   hs,
+        awayScore:   as_,
+        otLabel:     otLabel,
+        winnerAbbrev: winnerAbbrev,
+        topWon:  winnerAbbrev === topAbbrev,
+        isOT:    isOT,
+        awayWon: winnerAbbrev === aa,
+      };
+    });
+  });
+}
+
 // --- Main ---
 
 async function loadPlayoffsPage() {
@@ -715,6 +963,8 @@ async function loadPlayoffsPage() {
       bracketEl.innerHTML = '<p style="opacity:0.5;font-size:10pt;">Bracket not yet available.</p>';
       return;
     }
+
+    await fetchSeriesGames(allSeries, season);
 
     var isCovid21   = (year === 2021);
     var east        = buildConferenceRounds(allSeries, ['A','B','C','D'], ['I','J'], 'M', isCovid21 ? 'East / Central' : 'Eastern Conference', seedLabels);
