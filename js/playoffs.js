@@ -495,7 +495,11 @@ function buildTodayGameCard(game, pbp) {
     centerScore = (away.score || 0) + ' – ' + (home.score || 0);
     centerSub   = 'Final';
     if (game.gameOutcome) {
-      if (game.gameOutcome.lastPeriodType === 'OT') centerSub = 'Final/OT';
+      if (game.gameOutcome.lastPeriodType === 'OT') {
+        var otPd  = (game.periodDescriptor || {}).number || 4;
+        var otLbl = otPd === 4 ? 'OT' : (otPd - 3) + 'OT';
+        centerSub = 'Final/' + otLbl;
+      }
       if (game.gameOutcome.lastPeriodType === 'SO') centerSub = 'Final/SO';
     }
   } else if (isLive) {

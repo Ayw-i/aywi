@@ -324,7 +324,31 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
   var nyiGoalieName = primaryGoalieLastName(nyiIsHome ? homeStats.goalies : awayStats.goalies);
   var oppGoalieName = primaryGoalieLastName(nyiIsHome ? awayStats.goalies : homeStats.goalies);
 
-  var eaLines = mergedEA.map(function (seg) {
+  // Delayed penalty: the non-penalized team pulls their goalie for an extra attacker
+  // while the ref's arm is up. The NHL API records the penalty event at the stoppage
+  // (when the penalized team touches the puck), which is at or just after the EA
+  // segment ends — so the search window spans from 30s before the segment start
+  // through 30s after the segment end.
+  function isDelayedPenaltyEA(seg) {
+    var isNYISeg = seg.type === 'ea_nyi' || seg.type === 'ea_nyi_pp';
+    var BUFFER   = 0.5; // 30 seconds in game-minutes
+    return plays.some(function (p) {
+      if (p.typeDescKey !== 'penalty') return false;
+      var per = (p.periodDescriptor || {}).number || 0;
+      var pt  = toGameMin(per, p.timeInPeriod || '0:00');
+      if (pt < seg.startMin - BUFFER || pt > seg.endMin + BUFFER) return false;
+      var d = p.details || {};
+      var isNYIPenalty = nyiIsHome
+        ? d.eventOwnerTeamId === homeId
+        : d.eventOwnerTeamId !== homeId;
+      // NYI pulled goalie → look for opponent penalty; opp pulled → look for NYI penalty
+      return isNYISeg ? !isNYIPenalty : isNYIPenalty;
+    });
+  }
+
+  var eaLines = mergedEA.filter(function (seg) {
+    return !isDelayedPenaltyEA(seg);
+  }).map(function (seg) {
     var isNYISeg = seg.type === 'ea_nyi' || seg.type === 'ea_nyi_pp';
     var sc       = getScoreAt(seg.startMin);
     // trailingDiff > 0 means the pulling team is losing
