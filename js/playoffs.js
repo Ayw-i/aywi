@@ -523,12 +523,17 @@ var TEAM_PRIMARY_COLORS = {
   COL: '#6F263D', DAL: '#006847', DET: '#CE1126',
   EDM: '#FF4C00', FLA: '#C8102E', LAK: '#A2AAAD',
   MIN: '#154734', MTL: '#AF1E2D', NSH: '#FFB81C',
-  NJD: '#CE1126', NYR: '#0038A8',
+  NJD: '#CE1126', NYI: '#003087', NYR: '#0038A8',
   OTT: '#C52032', PHI: '#F74902', PHX: '#8C2633',
   PIT: '#FCB514', SEA: '#99D9D9', SJS: '#006D75',
   STL: '#002F87', TBL: '#002868', TOR: '#00205B',
   UTA: '#6CACE4', VAN: '#00843D', VGK: '#B4975A',
   WPG: '#041E42', WSH: '#C8102E',
+};
+
+// Teams with a two-color gradient instead of a solid primary color.
+var TEAM_ACCENT_COLORS = {
+  NYI: '#FC4C02',
 };
 
 // Chronological game cells — one cell per completed game, colored by winning team.
@@ -540,10 +545,16 @@ function buildSeriesGameCells(series) {
   if (!games || !games.length) return '';
 
   var cells = games.map(function (g) {
-    var bg = TEAM_PRIMARY_COLORS[g.winnerAbbrev] || '#555';
+    var primary = TEAM_PRIMARY_COLORS[g.winnerAbbrev] || '#555';
+    var accent  = TEAM_ACCENT_COLORS[g.winnerAbbrev];
+    var fill    = accent
+      ? 'linear-gradient(to right,' + primary + ',' + accent + ')'
+      : primary;
     var baseBg = g.awayWon
-      ? 'linear-gradient(135deg,' + bg + ' 78%,rgba(255,255,255,0.9) 78%)'
-      : bg;
+      ? (accent
+          ? 'linear-gradient(135deg,transparent 78%,rgba(255,255,255,0.9) 78%),' + fill
+          : 'linear-gradient(135deg,' + primary + ' 78%,rgba(255,255,255,0.9) 78%)')
+      : fill;
     var background = g.isOT
       ? 'linear-gradient(to bottom,#FFFF44 0px,#FFA500 3px,transparent 3px),' + baseBg
       : baseBg;
@@ -675,24 +686,24 @@ function buildSeriesCard(series, seedLabels) {
 
     var leftEmoji = '', rightEmoji = '';
     if (isRevSw) {
-      leftEmoji  = '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
-      rightEmoji = '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+      leftEmoji  = '<span style="opacity:0.4;display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+      rightEmoji = '<span style="opacity:0.4;display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
     } else if (isSwept) {
-      leftEmoji  = '🧹';
-      rightEmoji = '🧹';
+      leftEmoji  = '<span style="opacity:0.4;">🧹</span>';
+      rightEmoji = '<span style="opacity:0.4;">🧹</span>';
     } else if (isGent) {
       // isTop = higher seed was the loser → lower seed won W W W L W → non-gentleman's, invert hat
       // !isTop = lower seed was the loser → higher seed won W W W L W → proper gentleman's sweep
       leftEmoji  = isTop
-        ? '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🎩</span>'
-        : '🎩';
-      rightEmoji = '🧹';
+        ? '<span style="opacity:0.4;display:inline-block;transform:rotate(180deg);line-height:1;">🎩</span>'
+        : '<span style="opacity:0.4;">🎩</span>';
+      rightEmoji = '<span style="opacity:0.4;">🧹</span>';
     } else if (isGentRevSw) {
-      leftEmoji  = '🎩';
-      rightEmoji = '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+      leftEmoji  = '<span style="opacity:0.4;">🎩</span>';
+      rightEmoji = '<span style="opacity:0.4;display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
     } else if (isBackdoorSw) {
-      leftEmoji  = '🚪';
-      rightEmoji = '🧹';
+      leftEmoji  = '<span style="opacity:0.4;">🚪</span>';
+      rightEmoji = '<span style="opacity:0.4;">🧹</span>';
     } else if (isRevSwW) {
       leftEmoji  = '<span style="opacity:0.3;">👀</span>';
       rightEmoji = '<span style="opacity:0.3;display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
