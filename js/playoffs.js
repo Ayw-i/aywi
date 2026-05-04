@@ -364,7 +364,7 @@ async function togglePlayoffExpand(el, event) {
     await Promise.all(fetches);
     var bs = _playoffBsCache[gameId];
     _applyBsScore(bs);
-    expandEl.innerHTML     = buildPlayoffExpandHTML(bs, _playoffPbpCache[gameId]);
+    expandEl.innerHTML     = buildPlayoffExpandHTML(bs, _playoffPbpCache[gameId], gameId);
     expandEl.style.display = 'block';
     clampPlayoffTooltip();
   } catch (err) {
@@ -372,7 +372,7 @@ async function togglePlayoffExpand(el, event) {
   }
 }
 
-function buildPlayoffExpandHTML(bs, pbp) {
+function buildPlayoffExpandHTML(bs, pbp, gameId) {
   var gameStats = (bs || {}).playerByGameStats || {};
   var homeStats = gameStats.homeTeam || {};
   var awayStats = gameStats.awayTeam || {};
@@ -442,7 +442,13 @@ function buildPlayoffExpandHTML(bs, pbp) {
     '</tr><tr>' +
     '<td valign="top" style="border:none;padding-right:6px;">'                              + teamCol(awayStats) + '</td>' +
     '<td valign="top" style="border:none;border-left:1px solid #333;padding-left:6px;">' + teamCol(homeStats) + '</td>' +
-    '</tr></table>';
+    '</tr>' +
+    (gameId
+      ? '<tr><td colspan="2" align="center" style="border:none;padding-top:5px;border-top:1px solid #222;">' +
+        '<a href="game.html?id=' + gameId + '" style="font-size:8pt;opacity:0.6;font-style:italic;">Full game &rarr;</a>' +
+        '</td></tr>'
+      : '') +
+    '</table>';
 }
 
 document.addEventListener('click', function () {
@@ -937,6 +943,12 @@ function buildTodayGameCard(game, pbp) {
     }
   }
 
+  var fullGameLink = game.id && !isFut
+    ? '<tr><td colspan="3" align="center" style="border-top:1px solid rgba(255,255,255,0.15);border-left:none;border-right:none;border-bottom:none;padding:5px 8px;">' +
+      '<a href="game.html?id=' + game.id + '" style="font-size:8pt;opacity:0.6;font-style:italic;">Full game &rarr;</a>' +
+      '</td></tr>'
+    : '';
+
   return '<table width="100%" style="' + borderStyle + 'border-collapse:collapse;margin-bottom:14px;">' +
     '<tr>' +
     teamCell(away) +
@@ -950,6 +962,7 @@ function buildTodayGameCard(game, pbp) {
       ? '<tr><td colspan="3" align="center" style="border-top:1px solid rgba(255,255,255,0.25);border-left:none;border-right:none;border-bottom:none;font-size:9pt;opacity:0.7;padding:5px 8px;">' + seriesLine + '</td></tr>'
       : '') +
     goalsHTML +
+    fullGameLink +
     '</table>';
 }
 

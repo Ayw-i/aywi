@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game — Are Ya Winning, Isles?</title>
+  <style>
+    body {
+      background-color: #000000;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 60px 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      text-align: left;
+    }
+
+    th, td {
+      border: 1px solid white;
+      padding: 4px 8px;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    a {
+      color: white;
+    }
+
+    h3 {
+      margin-top: 20px;
+      margin-bottom: 4px;
+    }
+
+    nav {
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: underline;
+      margin: 0 8px;
+      font-size: 11pt;
+    }
+  </style>
+</head>
+<body>
+
+<div id="main">
+
+  <div id="nav"></div>
+  <script src="js/nav.js"></script>
+
+  <div id="game-container" style="margin-top:20px;">
+    <p style="opacity:0.5;">Loading...</p>
+  </div>
+
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/live-scoreboard.js"></script>
+<script src="js/live-skaters.js"></script>
+<script src="js/live-graph.js"></script>
+<script>
+var WORKER = 'https://nhl-proxy.aywi.workers.dev';
+
+async function initGamePage() {
+  var params    = new URLSearchParams(window.location.search);
+  var gameId    = params.get('id');
+  var container = document.getElementById('game-container');
+
+  // NHL game IDs are always numeric (typically 10 digits). Reject anything else
+  // before gameId touches innerHTML or fetch URLs.
+  if (!gameId || !/^\d{1,12}$/.test(gameId)) {
+    container.innerHTML = '<p style="opacity:0.5;">Invalid game ID.</p>';
+    return;
+  }
+
+  container.innerHTML = '<p style="opacity:0.5;">Loading...</p>';
+
+  try {
+    var results = await Promise.all([
+      fetch(WORKER + '/v1/gamecenter/' + gameId + '/boxscore').then(function (r) { return r.json(); }),
+      fetch(WORKER + '/v1/gamecenter/' + gameId + '/play-by-play').then(function (r) { return r.json(); }),
+    ]);
+    var boxscore   = results[0];
+    var playByPlay = results[1];
+
+    var home = (boxscore.homeTeam || {}).abbrev || '';
+    var away = (boxscore.awayTeam || {}).abbrev || '';
+    if (home || away) document.title = away + ' @ ' + home + ' — Are Ya Winning, Isles?';
+
+    container.innerHTML = buildScoreboardHTML(boxscore, playByPlay, parseInt(gameId, 10), null);
+  } catch (err) {
+    console.error('Game page fetch failed:', err);
+    container.innerHTML = '<p style="opacity:0.5;">Could not load game data.</p>';
+  }
+}
+
+initGamePage();
+</script>
+
+</body>
+</html>

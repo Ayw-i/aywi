@@ -621,7 +621,8 @@ async function toggleSeriesExpand(el, event) {
       _seriesPbpCache[gameId] || null,
       el.dataset.home === '1',
       gameType,
-      nyiShutout
+      nyiShutout,
+      gameId
     );
     expandEl.style.display = 'block';
     clampSeriesTooltip();
@@ -630,7 +631,7 @@ async function toggleSeriesExpand(el, event) {
   }
 }
 
-function buildSeriesExpandHTML(bs, pbp, isNYIHome, gameType, nyiShutout) {
+function buildSeriesExpandHTML(bs, pbp, isNYIHome, gameType, nyiShutout, gameId) {
   const nyiStats = isNYIHome
     ? (bs.playerByGameStats || {}).homeTeam
     : (bs.playerByGameStats || {}).awayTeam;
@@ -729,6 +730,12 @@ function buildSeriesExpandHTML(bs, pbp, isNYIHome, gameType, nyiShutout) {
       return '<div style="font-size:9pt;">' + jafares(name) + ' &#10004;</div>';
     }).join('');
     html += '</div>';
+  }
+
+  if (gameId) {
+    html += '<div style="margin-top:5px;border-top:1px solid #222;padding-top:4px;text-align:center;">' +
+      '<a href="game.html?id=' + gameId + '" style="font-size:8pt;opacity:0.6;font-style:italic;color:inherit;">Full game &rarr;</a>' +
+      '</div>';
   }
 
   html += '</div>';

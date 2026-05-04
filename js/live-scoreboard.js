@@ -168,8 +168,14 @@ function buildLiveHeader(boxscore, plays) {
 
   var clockStr;
   if (isFinal) {
+    var wentToSO = (plays || []).some(function (p) {
+      return (p.periodDescriptor || {}).periodType === 'SO';
+    });
     var otLabel     = pd.number === 4 ? 'OT' : (pd.number > 4 ? (pd.number - 3) + 'OT' : 'OT');
-    var finalSuffix = pd.periodType === 'OT' ? '/' + otLabel : pd.periodType === 'SO' ? '/SO' : '';
+    var finalSuffix = wentToSO ? '/SO'
+                    : pd.periodType === 'OT' ? '/' + otLabel
+                    : pd.periodType === 'SO' ? '/SO'
+                    : '';
     clockStr = 'Final' + finalSuffix;
   } else if (clock.inIntermission) {
     var isPlayoff = boxscore.gameType === 3;
@@ -222,7 +228,9 @@ function buildLiveHeader(boxscore, plays) {
 }
 
 function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev, isFinal, awayShutoutImg, homeShutoutImg) {
-  var goals     = plays.filter(function (p) { return p.typeDescKey === 'goal'; });
+  var goals     = plays.filter(function (p) {
+    return p.typeDescKey === 'goal' && (p.periodDescriptor || {}).periodType !== 'SO';
+  });
   var homeGoals = goals.filter(function (g) { return (g.details || {}).eventOwnerTeamId === homeTeamId; });
   var awayGoals = goals.filter(function (g) { return (g.details || {}).eventOwnerTeamId !== homeTeamId; });
 
@@ -805,11 +813,18 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
   var awayPullShutout = hadShutoutUntilGoaliePull(plays, away.id, home.id);
   var homePullShutout = hadShutoutUntilGoaliePull(plays, home.id, home.id);
   var wentToOT = ((boxscore.periodDescriptor || {}).number || 0) > 3;
+  var wentToSO = plays.some(function (p) {
+    return (p.periodDescriptor || {}).periodType === 'SO';
+  });
 
   // Away is always left column, home is always right column — consistent with header.
   var nyiIsHome = home.abbrev === 'NYI';
+  var shootoutSection = (isFinal && wentToSO && boxscore.gameType === 2)
+    ? buildShootoutBoard(boxscore, playByPlay)
+    : '';
   return buildHighScoringBanner(plays, homeStats, awayStats) +
     buildLiveHeader(boxscore, plays) +
+    shootoutSection +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
