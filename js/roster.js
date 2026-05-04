@@ -63,9 +63,10 @@ function renderGoalieTable(goalies) {
     }
     row.innerHTML =
       '<td>' + goalieName + '</td>' +
-      '<td>' + g.gamesPlayed + '</td>' +
+      '<td>' + (g.gamesStarted != null ? g.gamesStarted : g.gamesPlayed) + '</td>' +
       '<td>' + g.wins + '</td>' +
       '<td>' + g.losses + '</td>' +
+      '<td>' + (g.shutouts != null ? g.shutouts : '&mdash;') + '</td>' +
       '<td>' + formatGAA(g.goalsAgainstAverage) + '</td>' +
       '<td>' + formatSVP(g.savePercentage) + '</td>';
     tbody.appendChild(row);
@@ -103,7 +104,7 @@ async function loadRosterStats() {
     console.error('Failed to load roster stats:', err);
     ['forwards-tbody', 'defensemen-tbody', 'goalies-tbody'].forEach(function (id) {
       document.getElementById(id).innerHTML =
-        '<tr><td colspan="6">Could not load data.</td></tr>';
+        '<tr><td colspan="7">Could not load data.</td></tr>';
     });
   }
 }
