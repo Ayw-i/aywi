@@ -531,9 +531,41 @@ var TEAM_PRIMARY_COLORS = {
   WPG: '#041E42', WSH: '#C8102E',
 };
 
-// Teams with a two-color gradient instead of a solid primary color.
-var TEAM_ACCENT_COLORS = {
-  NYI: '#FC4C02',
+// Used as the gradient target when two same-group teams meet, or always for NYI.
+var TEAM_SECONDARY_COLORS = {
+  ANA: '#B9975B', BOS: '#000000', BUF: '#FCB514', CAR: '#000000',
+  CBJ: '#CE1126', CGY: '#F4BC43', CHI: '#FFFFFF', COL: '#236192',
+  DAL: '#C8102E', DET: '#FFFFFF', EDM: '#003DA5', FLA: '#C4903A',
+  LAK: '#000000', MIN: '#DDCBA4', MTL: '#003DA5', NJD: '#FFFFFF',
+  NSH: '#002654', NYI: '#FC4C02', NYR: '#CE1126', OTT: '#C69214',
+  PHI: '#000000', PIT: '#000000', SEA: '#355464', SJS: '#EA7200',
+  STL: '#FCB514', TBL: '#000000', TOR: '#FFFFFF', UTA: '#010101',
+  VAN: '#008852', VGK: '#333F42', WPG: '#004C97', WSH: '#041E42',
+};
+
+// Teams grouped by primary color family. When both teams in a series share a group,
+// each team's game cells use a primary→secondary gradient instead of a solid color.
+// NYI always gets a gradient regardless.
+var COLOR_GROUPS = {
+  // Bright red (#C8–CF range)
+  CAR: 'red',    CGY: 'red',    CHI: 'red',    DET: 'red',
+  FLA: 'red',    MTL: 'red',    NJD: 'red',    OTT: 'red',   WSH: 'red',
+  // Dark maroon/burgundy
+  ARI: 'maroon', COL: 'maroon', PHX: 'maroon',
+  // Royal/medium blue
+  BUF: 'blue',   NYI: 'blue',   NYR: 'blue',   STL: 'blue',
+  // Dark navy
+  CBJ: 'navy',   TBL: 'navy',   TOR: 'navy',   WPG: 'navy',
+  // Light/medium blue
+  ATL: 'blue-light', UTA: 'blue-light',
+  // Gold/yellow
+  BOS: 'gold',   NSH: 'gold',   PIT: 'gold',
+  // Dark green
+  DAL: 'green',  MIN: 'green',  SJS: 'green',  VAN: 'green',
+  // Bright orange
+  EDM: 'orange', PHI: 'orange',
+  // Burnt orange (distinct from bright — won't match EDM/PHI)
+  ANA: 'orange-dark',
 };
 
 // Chronological game cells — one cell per completed game, colored by winning team.
@@ -544,9 +576,14 @@ function buildSeriesGameCells(series) {
   var games = series.computedGames;
   if (!games || !games.length) return '';
 
+  var topAbbrev = (series.topSeedTeam    || {}).abbrev;
+  var botAbbrev = (series.bottomSeedTeam || {}).abbrev;
+  var sameGroup = COLOR_GROUPS[topAbbrev] && COLOR_GROUPS[topAbbrev] === COLOR_GROUPS[botAbbrev];
+
   var cells = games.map(function (g) {
-    var primary = TEAM_PRIMARY_COLORS[g.winnerAbbrev] || '#555';
-    var accent  = TEAM_ACCENT_COLORS[g.winnerAbbrev];
+    var primary     = TEAM_PRIMARY_COLORS[g.winnerAbbrev] || '#555';
+    var useGradient = g.winnerAbbrev === 'NYI' || sameGroup;
+    var accent      = useGradient ? TEAM_SECONDARY_COLORS[g.winnerAbbrev] : null;
     var fill    = accent
       ? 'linear-gradient(to right,' + primary + ',' + accent + ')'
       : primary;
@@ -681,8 +718,8 @@ function buildSeriesCard(series, seedLabels) {
                   : '';
     // For swept/reverse-swept teams: fade logo+name individually so emojis stay at full opacity.
     // For all other eliminated teams: fade the whole cell.
-    var cellOpacity  = (isFaded && !isSwept && !isRevSw && !isGentRevSw && !isBackdoorSw) ? 'opacity:0.4;' : '';
-    var innerOpacity = (isSwept || isRevSw || isGentRevSw || isBackdoorSw) ? 'opacity:0.4;' : '';
+    var cellOpacity  = (isFaded && !isSwept && !isGent && !isRevSw && !isGentRevSw && !isBackdoorSw) ? 'opacity:0.4;' : '';
+    var innerOpacity = (isSwept || isGent || isRevSw || isGentRevSw || isBackdoorSw) ? 'opacity:0.4;' : '';
 
     var leftEmoji = '', rightEmoji = '';
     if (isRevSw) {
@@ -699,8 +736,8 @@ function buildSeriesCard(series, seedLabels) {
         : '<span style="opacity:0.4;">🎩</span>';
       rightEmoji = '<span style="opacity:0.4;">🧹</span>';
     } else if (isGentRevSw) {
-      leftEmoji  = '<span style="opacity:0.4;">🎩</span>';
-      rightEmoji = '<span style="opacity:0.4;display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+      leftEmoji  = '<span style="opacity:0.4;">😱</span>';
+      rightEmoji = '<span style="opacity:0.4;">😵</span>';
     } else if (isBackdoorSw) {
       leftEmoji  = '<span style="opacity:0.4;">🚪</span>';
       rightEmoji = '<span style="opacity:0.4;">🧹</span>';
