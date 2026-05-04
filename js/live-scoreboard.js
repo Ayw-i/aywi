@@ -127,6 +127,37 @@ function buildSkaterSituation(boxscore, plays) {
   return '<div style="font-size:9pt;color:#FFD700;margin-top:4px;">' + text + '</div>';
 }
 
+function buildHighScoringBanner(plays, homeStats, awayStats) {
+  var totalGoals = plays.filter(function (p) { return p.typeDescKey === 'goal'; }).length;
+  if (totalGoals < 10) return '';
+
+  var label = totalGoals > 10 ? '10+ goal game!' : '10 goal game!';
+
+  var badGoalies = [];
+  function checkGoalies(goalies) {
+    (goalies || []).forEach(function (g) {
+      if ((g.goalsAgainst || 0) >= 5) {
+        var name = (g.name && g.name.default) || '';
+        badGoalies.push(name.split(' ').pop() || name);
+      }
+    });
+  }
+  checkGoalies((homeStats || {}).goalies);
+  checkGoalies((awayStats || {}).goalies);
+
+  var pourText = '';
+  if (badGoalies.length === 1) {
+    pourText = 'Pour one out for ' + badGoalies[0];
+  } else if (badGoalies.length >= 2) {
+    pourText = 'Pour two out for ' + badGoalies[0] + ' and ' + badGoalies[1];
+  }
+
+  return '<div style="text-align:center;margin-bottom:8px;">' +
+    '<div style="font-size:12pt;font-weight:bold;">&#128680; ' + label + ' &#128680;</div>' +
+    (pourText ? '<div style="font-size:9pt;opacity:0.8;">' + pourText + '</div>' : '') +
+    '</div>';
+}
+
 function buildLiveHeader(boxscore, plays) {
   var home  = boxscore.homeTeam || {};
   var away  = boxscore.awayTeam || {};
@@ -196,17 +227,20 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev, is
   var awayGoals = goals.filter(function (g) { return (g.details || {}).eventOwnerTeamId !== homeTeamId; });
 
   function goalRow(g) {
-    var d       = g.details || {};
-    var scorer  = rosterMap[d.scoringPlayerId] || '?';
-    var a1      = rosterMap[d.assist1PlayerId];
-    var a2      = rosterMap[d.assist2PlayerId];
-    var assists = [a1, a2].filter(Boolean).join(', ') || 'Unassisted';
-    var period  = (g.periodDescriptor || {}).number || '?';
-    var time    = g.timeInPeriod || '?';
-    var sit     = getSituationLabel(g, homeTeamId);
+    var d        = g.details || {};
+    var scorer   = rosterMap[d.scoringPlayerId] || '?';
+    var a1       = rosterMap[d.assist1PlayerId];
+    var a2       = rosterMap[d.assist2PlayerId];
+    var assists  = [a1, a2].filter(Boolean).join(', ') || 'Unassisted';
+    var period   = (g.periodDescriptor || {}).number || '?';
+    var time     = g.timeInPeriod || '?';
+    var sit      = getSituationLabel(g, homeTeamId);
+    var shotType = d.shotType ? d.shotType.replace(/-/g, ' ') : null;
+    var scorerCell = scorer +
+      (shotType ? '<br><span style="font-size:8pt;opacity:0.65;font-style:italic;">' + shotType + '</span>' : '');
     return '<tr>' +
       '<td style="white-space:nowrap;font-size:9pt;">' + liveGamePeriodLabel(period) + ' ' + time + '</td>' +
-      '<td>' + scorer + '</td>' +
+      '<td>' + scorerCell + '</td>' +
       '<td style="font-size:9pt;opacity:0.8;">' + assists + '</td>' +
       '<td style="font-size:9pt;">' + sit + '</td>' +
       '</tr>';
@@ -604,6 +638,77 @@ function buildShootoutBoard(boxscore, playByPlay) {
     '</table>';
 }
 
+// --- Team stats ---
+
+function buildTeamStats(boxscore, awayStats, homeStats, plays, homeTeamId) {
+  var home = boxscore.homeTeam || {};
+  var away = boxscore.awayTeam || {};
+
+  // Sum a per-player stat across forwards + defense for one team
+  function sumStat(stats, field) {
+    return ((stats.forwards || []).concat(stats.defense || []))
+      .reduce(function (n, p) { return n + (p[field] || 0); }, 0);
+  }
+
+  // Derive hit, faceoff, PIM totals from play-by-play
+  var homeHits = 0, awayHits = 0;
+  var homeFOW = 0, awayFOW = 0, totalFO = 0;
+  var homePIM = 0, awayPIM = 0;
+  (plays || []).forEach(function (p) {
+    var d   = p.details || {};
+    var own = d.eventOwnerTeamId;
+    if (p.typeDescKey === 'hit') {
+      if (own === homeTeamId) homeHits++; else awayHits++;
+    } else if (p.typeDescKey === 'faceoff') {
+      totalFO++;
+      if (own === homeTeamId) homeFOW++; else awayFOW++;
+    } else if (p.typeDescKey === 'penalty') {
+      var dur = d.duration || 0;
+      if (dur > 0 && dur < 10) {
+        if (own === homeTeamId) homePIM += dur; else awayPIM += dur;
+      }
+    }
+  });
+
+  var homeFOPct = totalFO > 0 ? (homeFOW / totalFO * 100).toFixed(1) + '%' : null;
+  var awayFOPct = totalFO > 0 ? (awayFOW / totalFO * 100).toFixed(1) + '%' : null;
+  var homeBlk = sumStat(homeStats, 'blockedShots');
+  var awayBlk = sumStat(awayStats, 'blockedShots');
+
+  function row(label, aVal, hVal) {
+    if (aVal == null && hVal == null) return null;
+    var a = aVal != null && aVal !== '' ? aVal : '&mdash;';
+    var h = hVal != null && hVal !== '' ? hVal : '&mdash;';
+    return '<tr>' +
+      '<td>' + label + '</td>' +
+      '<td style="text-align:center;">' + a + '</td>' +
+      '<td style="text-align:center;">' + h + '</td>' +
+      '</tr>';
+  }
+
+  var rows = [
+    row('Shots',         away.sog,  home.sog),
+    row('Faceoff %',     awayFOPct, homeFOPct),
+    row('Blocked Shots', awayBlk || null, homeBlk || null),
+    row('Hits',          awayHits || null, homeHits || null),
+    (homePIM || awayPIM) ? row('PIM', awayPIM, homePIM) : null,
+  ].filter(Boolean);
+
+  if (!rows.length) return '';
+
+  return '<h3 style="margin-top:20px;margin-bottom:4px;">TEAM STATS</h3>' +
+    '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
+    '<table>' +
+    '<thead><tr>' +
+      '<th></th>' +
+      '<th style="text-align:center;">' + (away.abbrev || '') + '</th>' +
+      '<th style="text-align:center;">' + (home.abbrev || '') + '</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows.join('') + '</tbody>' +
+    '</table>' +
+    '</td></tr></table>';
+}
+
 // --- Live feed ---
 
 function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal, nyiGameNum, nhlGameNum) {
@@ -624,21 +729,27 @@ function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal
     var label, detail;
 
     if (t === 'goal') {
+      var shotType = d.shotType ? ' (' + d.shotType.replace(/-/g, ' ') + ')' : '';
       label  = '<b>GOAL</b>';
-      detail = teamAbbrev(d.eventOwnerTeamId) + ' — ' + lastName(d.scoringPlayerId);
+      detail = teamAbbrev(d.eventOwnerTeamId) + ' — ' + lastName(d.scoringPlayerId) + shotType;
     } else if (t === 'shot-on-goal') {
+      var shotType = d.shotType ? ' — ' + d.shotType.replace(/-/g, ' ') : '';
       label  = 'Shot';
-      detail = lastName(d.shootingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')';
+      detail = lastName(d.shootingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')' + shotType;
     } else if (t === 'blocked-shot') {
+      var shooter = d.shootingPlayerId ? lastName(d.shootingPlayerId) : null;
       label  = 'Block';
-      detail = lastName(d.blockingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')';
+      detail = lastName(d.blockingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')' +
+               (shooter ? ' blocks ' + shooter : '');
     } else if (t === 'hit') {
+      var hittee = d.hitteePlayerId ? lastName(d.hitteePlayerId) : null;
       label  = 'Hit';
-      detail = lastName(d.hittingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')';
+      detail = lastName(d.hittingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')' +
+               (hittee ? ' hits ' + hittee : '');
     } else if (t === 'penalty') {
       var pname = d.committedByPlayerId ? lastName(d.committedByPlayerId) : 'Bench';
       label  = 'Penalty';
-      detail = pname + ' (' + teamAbbrev(d.eventOwnerTeamId) + ') — ' + (d.descKey || '');
+      detail = pname + ' (' + teamAbbrev(d.eventOwnerTeamId) + ') — ' + (d.descKey || '').replace(/-/g, ' ');
     } else {
       return '';
     }
@@ -697,10 +808,12 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
 
   // Away is always left column, home is always right column — consistent with header.
   var nyiIsHome = home.abbrev === 'NYI';
-  return buildLiveHeader(boxscore, plays) +
+  return buildHighScoringBanner(plays, homeStats, awayStats) +
+    buildLiveHeader(boxscore, plays) +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
+    buildTeamStats(boxscore, awayStats, homeStats, plays, home.id) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays) +
     buildLiveGraph(boxscore, playByPlay, nyiIsHome) +
     buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, nyiGameNum, nhlGameNum);
