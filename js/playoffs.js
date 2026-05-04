@@ -540,9 +540,9 @@ var TEAM_PRIMARY_COLORS = {
 // Used as the gradient target when two same-group teams meet, or always for NYI.
 var TEAM_SECONDARY_COLORS = {
   ANA: '#B9975B', BOS: '#000000', BUF: '#FCB514', CAR: '#000000',
-  CBJ: '#CE1126', CGY: '#F4BC43', CHI: '#FFFFFF', COL: '#236192',
+  CBJ: '#CE1126', CGY: '#F4BC43', CHI: '#B8860B', COL: '#236192',
   DAL: '#C8102E', DET: '#FFFFFF', EDM: '#003DA5', FLA: '#C4903A',
-  LAK: '#000000', MIN: '#DDCBA4', MTL: '#003DA5', NJD: '#FFFFFF',
+  LAK: '#000000', MIN: '#DDCBA4', MTL: '#003DA5', NJD: '#006633',
   NSH: '#002654', NYI: '#FC4C02', NYR: '#CE1126', OTT: '#C69214',
   PHI: '#000000', PIT: '#000000', SEA: '#355464', SJS: '#EA7200',
   STL: '#FCB514', TBL: '#000000', TOR: '#FFFFFF', UTA: '#010101',
