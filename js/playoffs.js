@@ -55,6 +55,93 @@ function detectReverseSweptWatch(series) {
   return null;
 }
 
+// Returns the abbrev of the team that was gentleman's swept (led 3-0, lost game 4, won 4-1), or null.
+// Requires the loser's only win to be specifically game 4 (went 3-0 → 3-1 → 4-1).
+var HISTORICAL_GENT_SWEEPS = [
+  // Add historical instances here as needed.
+];
+
+function detectGentlemanSwept(series) {
+  var games = series.computedGames;
+  if (!games || games.length < 5) {
+    if (!_bracketYear) return null;
+    var tAbbrev = (series.topSeedTeam    || {}).abbrev;
+    var bAbbrev = (series.bottomSeedTeam || {}).abbrev;
+    for (var i = 0; i < HISTORICAL_GENT_SWEEPS.length; i++) {
+      var h = HISTORICAL_GENT_SWEEPS[i];
+      if (h.year === _bracketYear && (h.loser === tAbbrev || h.loser === bAbbrev)) {
+        return h.loser;
+      }
+    }
+    return null;
+  }
+  if (games.length !== 5) return null;
+  var topWins = games.filter(function(g) { return g.topWon; }).length;
+  // Top lost 4-1, and their only win was game 4 (index 3)
+  if (topWins === 1 && games[3].topWon)  return (series.topSeedTeam    || {}).abbrev;
+  // Bottom lost 4-1, and their only win was game 4 (index 3)
+  if (topWins === 4 && !games[3].topWon) return (series.bottomSeedTeam || {}).abbrev;
+  return null;
+}
+
+// Returns the abbrev of the team that was backdoor swept (lost game 1, lost 4-1), or null.
+// Pattern: L W W W W — the loser won only game 1.
+var HISTORICAL_BACKDOOR_SWEEPS = [
+  // Add historical instances here as needed.
+];
+
+function detectBackdoorSwept(series) {
+  var games = series.computedGames;
+  if (!games || games.length < 5) {
+    if (!_bracketYear) return null;
+    var tAbbrev = (series.topSeedTeam    || {}).abbrev;
+    var bAbbrev = (series.bottomSeedTeam || {}).abbrev;
+    for (var i = 0; i < HISTORICAL_BACKDOOR_SWEEPS.length; i++) {
+      var h = HISTORICAL_BACKDOOR_SWEEPS[i];
+      if (h.year === _bracketYear && (h.loser === tAbbrev || h.loser === bAbbrev)) {
+        return h.loser;
+      }
+    }
+    return null;
+  }
+  if (games.length !== 5) return null;
+  var topWins = games.filter(function(g) { return g.topWon; }).length;
+  // Top lost 4-1, and their only win was game 1 (index 0)
+  if (topWins === 1 && games[0].topWon)  return (series.topSeedTeam    || {}).abbrev;
+  // Bottom lost 4-1, and their only win was game 1 (index 0)
+  if (topWins === 4 && !games[0].topWon) return (series.bottomSeedTeam || {}).abbrev;
+  return null;
+}
+
+// Returns the abbrev of the team that led 3-1 then lost 4-3 (gentleman's reverse sweep), or null.
+var HISTORICAL_GENT_REVERSE_SWEEPS = [
+  // Add historical instances here as needed.
+];
+
+function detectGentlemanReverseSwept(series) {
+  var games = series.computedGames;
+  if (!games || games.length < 7) {
+    if (!_bracketYear) return null;
+    var tAbbrev = (series.topSeedTeam    || {}).abbrev;
+    var bAbbrev = (series.bottomSeedTeam || {}).abbrev;
+    for (var i = 0; i < HISTORICAL_GENT_REVERSE_SWEEPS.length; i++) {
+      var h = HISTORICAL_GENT_REVERSE_SWEEPS[i];
+      if (h.year === _bracketYear && (h.loser === tAbbrev || h.loser === bAbbrev)) {
+        return h.loser;
+      }
+    }
+    return null;
+  }
+  var topWinsFirst4 = games.slice(0, 4).filter(function(g) { return g.topWon; }).length;
+  var topWinsLast3  = games.slice(4).filter(function(g) { return g.topWon; }).length;
+  var topWins = topWinsFirst4 + topWinsLast3;
+  // Top led 3-1 after 4 games then lost 3 straight
+  if (topWins === 3 && topWinsFirst4 === 3 && topWinsLast3 === 0) return (series.topSeedTeam    || {}).abbrev;
+  // Bottom led 3-1 after 4 games then lost 3 straight
+  if (topWins === 4 && topWinsFirst4 === 1 && topWinsLast3 === 3) return (series.bottomSeedTeam || {}).abbrev;
+  return null;
+}
+
 // Returns the abbrev of the team that was reverse-swept (led 3-0 then lost 4-3), or null.
 function detectReverseSwept(series) {
   var games = series.computedGames;
@@ -517,9 +604,21 @@ function buildSeriesCard(series, seedLabels) {
   var topSwept    = seriesOver && loser === topAbbrev    && topWins === 0;
   var bottomSwept = seriesOver && loser === bottomAbbrev && bottomWins === 0;
 
-  // 6d: gentleman's swept (4-1)
-  var topGentSwept    = seriesOver && loser === topAbbrev    && topWins === 1;
-  var bottomGentSwept = seriesOver && loser === bottomAbbrev && bottomWins === 1;
+  // 6d: gentleman's swept (4-1, loser's only win was specifically game 4)
+  var topGentSwept = false, bottomGentSwept = false;
+  if (seriesOver && topWins + bottomWins === 5) {
+    var gsLoser = detectGentlemanSwept(series);
+    if (gsLoser === topAbbrev)    topGentSwept    = true;
+    if (gsLoser === bottomAbbrev) bottomGentSwept = true;
+  }
+
+  // 6d2: backdoor swept (4-1, loser's only win was specifically game 1)
+  var topBackdoorSwept = false, bottomBackdoorSwept = false;
+  if (seriesOver && topWins + bottomWins === 5 && !topGentSwept && !bottomGentSwept) {
+    var bdsLoser = detectBackdoorSwept(series);
+    if (bdsLoser === topAbbrev)    topBackdoorSwept    = true;
+    if (bdsLoser === bottomAbbrev) bottomBackdoorSwept = true;
+  }
 
   // 6e: reverse swept (won first 3, lost next 4)
   var topRevSwept = false, bottomRevSwept = false;
@@ -527,6 +626,14 @@ function buildSeriesCard(series, seedLabels) {
     var rsLoser = detectReverseSwept(series);
     if (rsLoser === topAbbrev)    topRevSwept    = true;
     if (rsLoser === bottomAbbrev) bottomRevSwept = true;
+  }
+
+  // 6e2: gentleman's reverse swept (led 3-1, lost 4-3)
+  var topGentRevSwept = false, bottomGentRevSwept = false;
+  if (seriesOver && topWins + bottomWins === 7 && !topRevSwept && !bottomRevSwept) {
+    var grsLoser = detectGentlemanReverseSwept(series);
+    if (grsLoser === topAbbrev)    topGentRevSwept    = true;
+    if (grsLoser === bottomAbbrev) bottomGentRevSwept = true;
   }
 
   // 6f: reverse sweep watch (led 3-0, now tied 3-3)
@@ -547,20 +654,24 @@ function buildSeriesCard(series, seedLabels) {
     var isFraud = isTop && topFraud && !isNYITeam;
     var isDown3   = (isTop ? topDown3      : bottomDown3)     && !isNYITeam;
     var isSwept   = (isTop ? topSwept      : bottomSwept)     && !isNYITeam;
-    var isGent    = (isTop ? topGentSwept  : bottomGentSwept) && !isNYITeam;
-    var isRevSw   = (isTop ? topRevSwept   : bottomRevSwept)  && !isNYITeam;
+    var isGent         = (isTop ? topGentSwept      : bottomGentSwept)      && !isNYITeam;
+    var isBackdoorSw   = (isTop ? topBackdoorSwept  : bottomBackdoorSwept)  && !isNYITeam;
+    var isRevSw      = (isTop ? topRevSwept      : bottomRevSwept)      && !isNYITeam;
+    var isGentRevSw  = (isTop ? topGentRevSwept  : bottomGentRevSwept)  && !isNYITeam;
     var isRevSwW  = (isTop ? topRevSwWatch : bottomRevSwWatch) && !isNYITeam;
 
     var textColor = isFraud   ? '#FF69B4'
                   : isRevSwW ? '#FF69B4'
                   : isSwept  ? '#880000'
-                  : isRevSw  ? '#660066'
+                  : isRevSw      ? '#660066'
+                  : isGentRevSw  ? '#664400'
+                  : isBackdoorSw ? '#1A4D1A'
                   : isDown3  ? '#CC2222'
                   : '';
     // For swept/reverse-swept teams: fade logo+name individually so emojis stay at full opacity.
     // For all other eliminated teams: fade the whole cell.
-    var cellOpacity  = (isFaded && !isSwept && !isRevSw) ? 'opacity:0.4;' : '';
-    var innerOpacity = (isSwept || isRevSw) ? 'opacity:0.4;' : '';
+    var cellOpacity  = (isFaded && !isSwept && !isRevSw && !isGentRevSw && !isBackdoorSw) ? 'opacity:0.4;' : '';
+    var innerOpacity = (isSwept || isRevSw || isGentRevSw || isBackdoorSw) ? 'opacity:0.4;' : '';
 
     var leftEmoji = '', rightEmoji = '';
     if (isRevSw) {
@@ -570,7 +681,17 @@ function buildSeriesCard(series, seedLabels) {
       leftEmoji  = '🧹';
       rightEmoji = '🧹';
     } else if (isGent) {
+      // isTop = higher seed was the loser → lower seed won W W W L W → non-gentleman's, invert hat
+      // !isTop = lower seed was the loser → higher seed won W W W L W → proper gentleman's sweep
+      leftEmoji  = isTop
+        ? '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🎩</span>'
+        : '🎩';
+      rightEmoji = '🧹';
+    } else if (isGentRevSw) {
       leftEmoji  = '🎩';
+      rightEmoji = '<span style="display:inline-block;transform:rotate(180deg);line-height:1;">🧹</span>';
+    } else if (isBackdoorSw) {
+      leftEmoji  = '🚪';
       rightEmoji = '🧹';
     } else if (isRevSwW) {
       leftEmoji  = '<span style="opacity:0.3;">👀</span>';
