@@ -300,11 +300,13 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
 
     var isFirstMin  = periodNum === 1 && parseTOISecs(time) < 60;
     var isEjection  = false;
+    var isTooManyMen = false;
     var infractions = group.map(function (p) {
       var dk = (p.details || {}).descKey || '?';
       if (dk.indexOf('game-misconduct') !== -1 ||
           dk.indexOf('gross-misconduct') !== -1 ||
           dk.indexOf('match') !== -1) isEjection = true;
+      if (dk.indexOf('too-many-men') !== -1) isTooManyMen = true;
       var isFighting = dk.indexOf('fighting') !== -1;
       return (isFighting && isFirstMin)
         ? 'illegal ' + TONE_TOOLTIP
@@ -322,6 +324,21 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
         '<span style="font-style:italic;"> Ejected.</span></span>'
       : '';
     var rowStyle = isEjection ? ' style="background-color:#3a0000;"' : '';
+
+    var penTeamAbbrev = d0.eventOwnerTeamId === homeTeamId ? homeAbbrev : awayAbbrev;
+    if (isTooManyMen && penTeamAbbrev === 'TBL') {
+      var jsError =
+        '<span style="color:#ff6b6b;font-family:monospace;font-size:8pt;display:block;margin-top:3px;">' +
+        'TypeError: TBL can\'t possibly have too many men!<br>' +
+        '&nbsp;&nbsp;&nbsp;&nbsp;at enforceRules (nhl-rulebook.js:1)<br>' +
+        '&nbsp;&nbsp;&nbsp;&nbsp;at GameState.validate (refs.js:' + (periodNum * 100 + 4) + ')' +
+        '</span>';
+      return '<tr' + rowStyle + '>' +
+        '<td>' + liveGamePeriodLabel(periodNum || '?') + ' ' + time + '</td>' +
+        '<td>' + player + ejectBadge + '</td>' +
+        '<td colspan="3">' + infractions + jsError + '</td>' +
+        '</tr>';
+    }
 
     return '<tr' + rowStyle + '>' +
       '<td>' + liveGamePeriodLabel(periodNum || '?') + ' ' + time + '</td>' +

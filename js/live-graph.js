@@ -111,9 +111,10 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
     var oppSk       = nyiIsHome ? awaySkaters : homeSkaters;
     var oppGoalie   = nyiIsHome ? awayGoalie  : homeGoalie;
     if (!nyiGoalie) return nyiSk - oppSk >= 2 ? 'ea_nyi_pp' : 'ea_nyi';
-    if (!oppGoalie) return 'ea_opp';
+    if (!oppGoalie) return oppSk - nyiSk >= 2 ? 'ea_opp_pp' : 'ea_opp';
     if (nyiSk > oppSk) return nyiSk - oppSk >= 2 ? 'pp_5v3' : 'pp';
     if (nyiSk < oppSk) return oppSk - nyiSk >= 2 ? 'pk_3v5' : 'pk';
+    if (nyiSk === 4)   return '4v4';
     return null; // 5v5
   }
 
@@ -159,9 +160,11 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
     pp_5v3:    'rgba(0,200,0,0.38)',
     pk:        'rgba(200,0,0,0.18)',
     pk_3v5:    'rgba(200,0,0,0.38)',
+    '4v4':     'rgba(210,190,130,0.28)',
     ea_nyi:    'rgba(80,180,255,0.30)',
-    ea_nyi_pp: 'rgba(80,180,255,0.30)',
+    ea_nyi_pp: 'rgba(60,100,255,0.50)',
     ea_opp:    'rgba(255,80,200,0.30)',
+    ea_opp_pp: 'rgba(220,30,160,0.50)',
   };
 
   var svg = ['<svg viewBox="0 0 ' + SVG_W + ' ' + SVG_H + '" width="100%" style="display:block;background:#111;border:1px solid #333;">'];
@@ -227,14 +230,22 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
 
   svg.push('</svg>');
 
-  // Strip color legend
+  // Strip color legend — extra situation types only shown if they appear in the graph
+  var segTypes = {};
+  segments.forEach(function(s) { segTypes[s.type] = true; });
+
   var legend = [
     '<span style="color:rgba(0,200,0,0.9);">&#9632;</span> PP',
+    segTypes['pp_5v3']    ? '<span style="color:rgba(0,200,0,0.9);">&#9632;&#9632;</span> 5v3 PP' : null,
     '<span style="color:rgba(200,0,0,0.9);">&#9632;</span> PK',
+    segTypes['pk_3v5']    ? '<span style="color:rgba(200,0,0,0.9);">&#9632;&#9632;</span> 3v5 PK' : null,
+    segTypes['4v4']       ? '<span style="color:rgba(210,190,130,0.9);">&#9632;</span> 4v4' : null,
     '<span style="color:rgba(80,180,255,0.9);">&#9632;</span> ' + nyiAbbrev + ' EA',
+    segTypes['ea_nyi_pp'] ? '<span style="color:rgba(60,100,255,0.9);">&#9632;</span> ' + nyiAbbrev + ' EA 6v4' : null,
     '<span style="color:rgba(255,80,200,0.9);">&#9632;</span> ' + oppAbbrev + ' EA',
+    segTypes['ea_opp_pp'] ? '<span style="color:rgba(220,30,160,0.9);">&#9632;</span> ' + oppAbbrev + ' EA 6v4' : null,
     '<span style="color:rgba(255,80,80,0.9);">&#9632;</span> Goal',
-  ].join(' &nbsp; ');
+  ].filter(Boolean).join(' &nbsp; ');
 
   // --- PP/PK records ---
   // ppOppsForNYI = opp penalties = NYI PP opps = NYI PK opps for opp
