@@ -257,6 +257,7 @@ function hideRevSwHover() {
 var _playoffExpandedCell = null;
 var _playoffBsCache      = {};
 var _playoffPbpCache     = {};
+var _playoffTooltip      = makeGameTooltip('playoff-tt', function() { return _playoffExpandedCell; });
 
 // Shared: update tooltip score line from a fetched boxscore.
 function _applyBsScore(bs) {
@@ -283,35 +284,7 @@ function showPlayoffTooltip(el, event) {
   document.getElementById('playoff-tt-score').textContent = score;
   document.getElementById('playoff-tt-date').textContent  = date ? date.slice(0, 10) : '';
   tt.style.display = 'block';
-  if (!_playoffExpandedCell) movePlayoffTooltip(event);
-}
-
-function movePlayoffTooltip(event) {
-  if (_playoffExpandedCell) return;
-  var tt = document.getElementById('playoff-tt');
-  tt.style.left = '-9999px';
-  tt.style.top  = '-9999px';
-  tt.style.display = 'block';
-  var ttW = tt.offsetWidth, ttH = tt.offsetHeight;
-  var vw  = window.innerWidth,  vh  = window.innerHeight;
-  var x = (event.clientX + 14 + ttW > vw) ? event.clientX - 14 - ttW : event.clientX + 14;
-  var y = (event.clientY + 14 + ttH > vh) ? event.clientY - 14 - ttH : event.clientY + 14;
-  tt.style.left = x + 'px';
-  tt.style.top  = y + 'px';
-}
-
-function hidePlayoffTooltip() {
-  if (_playoffExpandedCell) return;
-  document.getElementById('playoff-tt').style.display = 'none';
-}
-
-function clampPlayoffTooltip() {
-  var tt   = document.getElementById('playoff-tt');
-  var top  = parseInt(tt.style.top,  10) || 0;
-  var left = parseInt(tt.style.left, 10) || 0;
-  var vh   = window.innerHeight, vw = window.innerWidth;
-  if (top  + tt.offsetHeight > vh) tt.style.top  = Math.max(0, vh - tt.offsetHeight - 4) + 'px';
-  if (left + tt.offsetWidth  > vw) tt.style.left = Math.max(0, vw - tt.offsetWidth  - 4) + 'px';
+  if (!_playoffExpandedCell) _playoffTooltip.move(event);
 }
 
 async function togglePlayoffExpand(el, event) {
@@ -366,7 +339,7 @@ async function togglePlayoffExpand(el, event) {
     _applyBsScore(bs);
     expandEl.innerHTML     = buildPlayoffExpandHTML(bs, _playoffPbpCache[gameId], gameId);
     expandEl.style.display = 'block';
-    clampPlayoffTooltip();
+    _playoffTooltip.clamp();
   } catch (err) {
     expandEl.innerHTML = '<div style="color:#f66;font-size:9pt;margin-top:6px;">Could not load stats.</div>';
   }
@@ -610,8 +583,8 @@ function buildSeriesGameCells(series) {
       ' data-date="'   + g.gameDate   + '"' +
       ' data-ot="'     + g.otLabel    + '"' +
       ' onmouseover="showPlayoffTooltip(this,event)"' +
-      ' onmousemove="movePlayoffTooltip(event)"' +
-      ' onmouseout="hidePlayoffTooltip()"' +
+      ' onmousemove="_playoffTooltip.move(event)"' +
+      ' onmouseout="_playoffTooltip.hide()"' +
       ' onclick="togglePlayoffExpand(this,event)"' +
       ' style="cursor:pointer;width:22px;height:16px;border:none;background:' + background + ';"></td>';
   });

@@ -231,8 +231,8 @@ function renderGameCell(g) {
     ' data-gameid="'   + (g.gameId || '')          + '"' +
     ' style="background:' + bg + ';width:26px;height:15px;cursor:pointer;' + extra + '"' +
     ' onmouseover="showSeriesTooltip(this,event)"' +
-    ' onmousemove="moveSeriesTooltip(event)"' +
-    ' onmouseout="hideSeriesTooltip()"' +
+    ' onmousemove="_seriesTooltip.move(event)"' +
+    ' onmouseout="_seriesTooltip.hide()"' +
     ' onclick="toggleSeriesExpand(this,event)"' +
     '></td>';
 }
@@ -488,6 +488,7 @@ function hatTrickSuffix(goals) {
 var _seriesExpandedCell = null;
 var _seriesBsCache      = {};
 var _seriesPbpCache     = {};
+var _seriesTooltip      = makeGameTooltip('series-tt', function() { return _seriesExpandedCell; });
 
 function showSeriesTooltip(el, e) {
   if (_seriesExpandedCell && _seriesExpandedCell !== el) return;
@@ -514,40 +515,7 @@ function showSeriesTooltip(el, e) {
   shutoutEl.style.display = el.dataset.shutout === '1' ? 'block' : 'none';
 
   tt.style.display = 'block';
-  if (!_seriesExpandedCell) moveSeriesTooltip(e);
-}
-
-function moveSeriesTooltip(e) {
-  if (_seriesExpandedCell) return;
-  const tt = document.getElementById('series-tt');
-  tt.style.left = '-9999px';
-  tt.style.top  = '-9999px';
-  tt.style.display = 'block';
-  const ttW = tt.offsetWidth;
-  const ttH = tt.offsetHeight;
-  const vw  = window.innerWidth;
-  const vh  = window.innerHeight;
-  const x = (e.clientX + 14 + ttW > vw)  ? e.clientX - 14 - ttW : e.clientX + 14;
-  const y = (e.clientY + 14 + ttH > vh)  ? e.clientY - 14 - ttH : e.clientY + 14;
-  tt.style.left = x + 'px';
-  tt.style.top  = y + 'px';
-}
-
-function clampSeriesTooltip() {
-  const tt  = document.getElementById('series-tt');
-  const vh  = window.innerHeight;
-  const vw  = window.innerWidth;
-  const top  = parseInt(tt.style.top,  10) || 0;
-  const left = parseInt(tt.style.left, 10) || 0;
-  const h   = tt.offsetHeight;
-  const w   = tt.offsetWidth;
-  if (top  + h > vh) tt.style.top  = Math.max(0, vh - h - 4) + 'px';
-  if (left + w > vw) tt.style.left = Math.max(0, vw - w - 4) + 'px';
-}
-
-function hideSeriesTooltip() {
-  if (_seriesExpandedCell) return;
-  document.getElementById('series-tt').style.display = 'none';
+  if (!_seriesExpandedCell) _seriesTooltip.move(e);
 }
 
 // --- Click-to-expand tooltip ---
@@ -590,7 +558,7 @@ async function toggleSeriesExpand(el, event) {
   if (!el.dataset.result) {
     expandEl.innerHTML = '<div style="color:#666;font-style:italic;font-size:9pt;margin-top:6px;">Game not yet played.</div>';
     expandEl.style.display = 'block';
-    clampSeriesTooltip();
+    _seriesTooltip.clamp();
     return;
   }
 
@@ -625,7 +593,7 @@ async function toggleSeriesExpand(el, event) {
       gameId
     );
     expandEl.style.display = 'block';
-    clampSeriesTooltip();
+    _seriesTooltip.clamp();
   } catch (err) {
     expandEl.innerHTML = '<div style="color:#f66;font-size:9pt;margin-top:6px;">Could not load stats.</div>';
   }
