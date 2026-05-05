@@ -362,26 +362,25 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
   var nyiGoalieName = primaryGoalieLastName(nyiIsHome ? homeStats.goalies : awayStats.goalies);
   var oppGoalieName = primaryGoalieLastName(nyiIsHome ? awayStats.goalies : homeStats.goalies);
 
-  // Delayed penalty: the non-penalized team pulls their goalie for an extra attacker
-  // while the ref's arm is up. The NHL API records the penalty event at the stoppage
-  // (when the penalized team touches the puck), which is at or just after the EA
-  // segment ends — so the search window spans from 30s before the segment start
-  // through 30s after the segment end.
+  // Delayed penalty: the non-penalized team pulls their goalie while the ref's arm
+  // is up. When the stoppage comes, a power play immediately follows.
+  // EN goalie pull: the game returns to 5v5 after the goal/pull-back, or ends.
+  // So: check the situationCode of the very first play after the EA segment ends.
+  // If it's a PP/PK/4v4, it's a delayed penalty. If it's 5v5 or there's no next
+  // play (game over), it's a real EN goalie pull.
   function isDelayedPenaltyEA(seg) {
-    var isNYISeg = seg.type === 'ea_nyi' || seg.type === 'ea_nyi_pp';
-    var BUFFER   = 0.5; // 30 seconds in game-minutes
-    return plays.some(function (p) {
-      if (p.typeDescKey !== 'penalty') return false;
-      var per = (p.periodDescriptor || {}).number || 0;
-      var pt  = toGameMin(per, p.timeInPeriod || '0:00');
-      if (pt < seg.startMin - BUFFER || pt > seg.endMin + BUFFER) return false;
-      var d = p.details || {};
-      var isNYIPenalty = nyiIsHome
-        ? d.eventOwnerTeamId === homeId
-        : d.eventOwnerTeamId !== homeId;
-      // NYI pulled goalie → look for opponent penalty; opp pulled → look for NYI penalty
-      return isNYISeg ? !isNYIPenalty : isNYIPenalty;
-    });
+    var nextPlay = null;
+    for (var i = 0; i < playsWithCode.length; i++) {
+      var p  = playsWithCode[i];
+      var pt = toGameMin((p.periodDescriptor || {}).number || 0, p.timeInPeriod || '0:00');
+      if (pt > seg.endMin + 0.02) { nextPlay = p; break; }
+    }
+    if (!nextPlay) return false; // game ended — EN pull, not delayed penalty
+    var nextPt = toGameMin((nextPlay.periodDescriptor || {}).number || 0, nextPlay.timeInPeriod || '0:00');
+    if (nextPt > seg.endMin + 0.5) return false; // too far away to be related
+    var nextType = classifyCode(nextPlay.situationCode || '');
+    return nextType === 'pp' || nextType === 'pk' ||
+           nextType === 'pp_5v3' || nextType === 'pk_3v5' || nextType === '4v4';
   }
 
   var eaLines = mergedEA.filter(function (seg) {
