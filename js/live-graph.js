@@ -144,6 +144,33 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
     if (type) segments.push({ startMin: lastCodeStart, endMin: curMin, type: type });
   }
 
+  // Fallback: if an EN goal has no covering EA segment (goalie pulled right before
+  // the goal with no earlier play carrying the EA code), synthesize one. Walk backward
+  // through playsWithCode to find where that code run started.
+  goals.filter(function (g) {
+    return (g.periodDescriptor || {}).periodType !== 'SO';
+  }).forEach(function (g) {
+    if (getSituationLabel(g, homeId) !== 'EN') return;
+    var gper = (g.periodDescriptor || {}).number || 0;
+    var gt   = toGameMin(gper, g.timeInPeriod || '0:00');
+    var type = classifyCode(g.situationCode || '');
+    if (!type || type.indexOf('ea_') !== 0) return;
+    var covered = segments.some(function (s) {
+      return s.type.indexOf('ea_') === 0 && s.startMin <= gt + 0.1 && s.endMin >= gt - 0.1;
+    });
+    if (covered) return;
+    var eaCode    = g.situationCode;
+    var pullStart = gt;
+    for (var i = playsWithCode.length - 1; i >= 0; i--) {
+      var p  = playsWithCode[i];
+      var pt = toGameMin((p.periodDescriptor || {}).number || 0, p.timeInPeriod || '0:00');
+      if (pt > gt + 0.01) continue;
+      if (p.situationCode !== eaCode) break;
+      pullStart = pt;
+    }
+    segments.push({ startMin: pullStart, endMin: gt + 0.1, type: type });
+  });
+
   // --- SVG ---
 
   var SVG_W = 600, SVG_H = 200;
@@ -291,7 +318,7 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
   // --- Empty net events from EA segments ---
 
   var eaSegs = segments.filter(function (s) {
-    return s.type === 'ea_nyi' || s.type === 'ea_nyi_pp' || s.type === 'ea_opp';
+    return s.type.indexOf('ea_') === 0;
   });
 
   // Merge adjacent same-team EA segments (gap < 3 seconds)
@@ -312,7 +339,7 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
     goals.forEach(function (g) {
       var gper = (g.periodDescriptor || {}).number || 0;
       var gt   = toGameMin(gper, g.timeInPeriod || '0:00');
-      if (gt <= t) {
+      if (gt < t) {
         var d = g.details || {};
         if (nyiIsHome ? d.eventOwnerTeamId === homeId : d.eventOwnerTeamId !== homeId) n++;
         else o++;
