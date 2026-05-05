@@ -105,6 +105,32 @@ function getShortestActivePenaltyTime(plays, currentPeriod, timeRemaining) {
   return mins + ':' + String(secs).padStart(2, '0');
 }
 
+// Returns EN breakdown line: "X-Y (+N EN)" or "X-Y (+N EN) (+M pEN)" if any EN goals exist.
+// pEN = a non-EN goal scored after the first EN goal in the game.
+function buildENBreakdown(plays, homeTeamId) {
+  var goals = plays.filter(function (p) {
+    return p.typeDescKey === 'goal' && (p.periodDescriptor || {}).periodType !== 'SO';
+  });
+  var awayPure = 0, homePure = 0, enCount = 0, penCount = 0, seenEN = false;
+  goals.forEach(function (g) {
+    var isEN   = getSituationLabel(g, homeTeamId) === 'EN';
+    var isHome = (g.details || {}).eventOwnerTeamId === homeTeamId;
+    if (isEN) {
+      enCount++;
+      seenEN = true;
+    } else if (seenEN) {
+      penCount++;
+    } else {
+      if (isHome) homePure++; else awayPure++;
+    }
+  });
+  if (enCount === 0) return '';
+  var text = awayPure + '&ndash;' + homePure +
+    ' (+' + enCount + ' EN)' +
+    (penCount > 0 ? ' (+' + penCount + ' pEN)' : '');
+  return '<div style="font-size:9pt;color:#888;font-style:italic;margin-top:3px;">' + text + '</div>';
+}
+
 // Returns a non-5v5 skater situation line (e.g. "5v4 1:42") in gold, replacing the date.
 // Returns empty string at 5v5, intermission, final, or when situation data is unavailable.
 function buildSkaterSituation(boxscore, plays) {
@@ -214,6 +240,7 @@ function buildLiveHeader(boxscore, plays) {
       '<div style="font-size:42pt;font-weight:bold;line-height:1;">' +
         (away.score || 0) + ' &ndash; ' + (home.score || 0) +
       '</div>' +
+      buildENBreakdown(plays, home.id) +
       '<div style="font-size:12pt;margin-top:6px;">' + clockStr + '</div>' +
       (function () {
         var sit = buildSkaterSituation(boxscore, plays);

@@ -460,6 +460,7 @@ function buildDevPanel() {
     { label: 'NYI @ DAL  2025020310', id: '2025020310' },
     { label: 'TOR @ NYI  2025020651', id: '2025020651' },
     { label: 'CAR @ NYI  2023030144', id: '2023030144' },
+    { label: 'NYI @ COL  2025020300', id: '2025020300' },
   ];
   PINNED_GAMES.forEach(function (g) {
     addBtn(body, g.label, function () {
