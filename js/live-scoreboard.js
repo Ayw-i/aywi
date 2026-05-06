@@ -69,7 +69,7 @@ function getSituationLabel(play, homeTeamId) {
 }
 
 function randomShatautImg() {
-  var list = appConfig && appConfig.kingOfShutoutsImages;
+  var list = (typeof appConfig !== 'undefined') && appConfig && appConfig.kingOfShutoutsImages;
   if (!list || !list.length) return 'assets/saros-no-goals.png';
   return list[Math.floor(Math.random() * list.length)];
 }

@@ -142,6 +142,35 @@ function detectGentlemanReverseSwept(series) {
   return null;
 }
 
+// Returns the abbrev of the team that failed a reverse sweep (trailed 0-3, tied it 3-3, lost game 7), or null.
+var HISTORICAL_FAILED_REV_SWEEPS = [
+  { year: 2024, loser: 'EDM' }  // Cup Finals vs FLA: down 0-3, back to 3-3, lost game 7
+];
+
+function detectFailedRevSweep(series) {
+  var games = series.computedGames;
+  if (!games || games.length < 7) {
+    if (!_bracketYear) return null;
+    var tAbbrev = (series.topSeedTeam    || {}).abbrev;
+    var bAbbrev = (series.bottomSeedTeam || {}).abbrev;
+    for (var i = 0; i < HISTORICAL_FAILED_REV_SWEEPS.length; i++) {
+      var h = HISTORICAL_FAILED_REV_SWEEPS[i];
+      if (h.year === _bracketYear && (h.loser === tAbbrev || h.loser === bAbbrev)) {
+        return h.loser;
+      }
+    }
+    return null;
+  }
+  if (games.length !== 7) return null;
+  var topWinsFirst3  = games.slice(0, 3).filter(function(g) { return g.topWon; }).length;
+  var topWinsGames46 = games.slice(3, 6).filter(function(g) { return g.topWon; }).length;
+  // Top seed failed: lost games 1-3, won games 4-6, lost game 7
+  if (topWinsFirst3 === 0 && topWinsGames46 === 3 && !games[6].topWon) return (series.topSeedTeam    || {}).abbrev;
+  // Bottom seed failed: top won games 1-3, bottom won games 4-6, top won game 7
+  if (topWinsFirst3 === 3 && topWinsGames46 === 0 &&  games[6].topWon) return (series.bottomSeedTeam || {}).abbrev;
+  return null;
+}
+
 // Returns the abbrev of the team that was reverse-swept (led 3-0 then lost 4-3), or null.
 function detectReverseSwept(series) {
   var games = series.computedGames;
@@ -663,6 +692,14 @@ function buildSeriesCard(series, seedLabels) {
     if (grsLoser === bottomAbbrev) bottomGentRevSwept = true;
   }
 
+  // 6e3: failed reverse sweep (trailed 0-3, tied 3-3, lost game 7)
+  var topFailedRevSw = false, bottomFailedRevSw = false;
+  if (seriesOver && topWins + bottomWins === 7 && !topRevSwept && !bottomRevSwept && !topGentRevSwept && !bottomGentRevSwept) {
+    var frsLoser = detectFailedRevSweep(series);
+    if (frsLoser === topAbbrev)    topFailedRevSw    = true;
+    if (frsLoser === bottomAbbrev) bottomFailedRevSw = true;
+  }
+
   // 6f: reverse sweep watch (led 3-0, now tied 3-3)
   var topRevSwWatch = false, bottomRevSwWatch = false;
   if (!seriesOver && topWins === 3 && bottomWins === 3) {
@@ -683,22 +720,24 @@ function buildSeriesCard(series, seedLabels) {
     var isSwept   = (isTop ? topSwept      : bottomSwept)     && !isNYITeam;
     var isGent         = (isTop ? topGentSwept      : bottomGentSwept)      && !isNYITeam;
     var isBackdoorSw   = (isTop ? topBackdoorSwept  : bottomBackdoorSwept)  && !isNYITeam;
-    var isRevSw      = (isTop ? topRevSwept      : bottomRevSwept)      && !isNYITeam;
-    var isGentRevSw  = (isTop ? topGentRevSwept  : bottomGentRevSwept)  && !isNYITeam;
+    var isRevSw        = (isTop ? topRevSwept      : bottomRevSwept)      && !isNYITeam;
+    var isGentRevSw    = (isTop ? topGentRevSwept  : bottomGentRevSwept)  && !isNYITeam;
+    var isFailedRevSw  = (isTop ? topFailedRevSw   : bottomFailedRevSw)   && !isNYITeam;
     var isRevSwW  = (isTop ? topRevSwWatch : bottomRevSwWatch) && !isNYITeam;
 
-    var textColor = isFraud   ? '#FF69B4'
-                  : isRevSwW ? '#FF69B4'
-                  : isSwept  ? '#880000'
-                  : isRevSw      ? '#660066'
-                  : isGentRevSw  ? '#664400'
-                  : isBackdoorSw ? '#1A4D1A'
-                  : isDown3  ? '#CC2222'
+    var textColor = isFraud        ? '#FF69B4'
+                  : isRevSwW      ? '#FF69B4'
+                  : isSwept       ? '#880000'
+                  : isRevSw       ? '#660066'
+                  : isGentRevSw   ? '#664400'
+                  : isFailedRevSw ? '#664400'
+                  : isBackdoorSw  ? '#1A4D1A'
+                  : isDown3       ? '#CC2222'
                   : '';
     // For swept/reverse-swept teams: fade logo+name individually so emojis stay at full opacity.
     // For all other eliminated teams: fade the whole cell.
-    var cellOpacity  = (isFaded && !isSwept && !isGent && !isRevSw && !isGentRevSw && !isBackdoorSw) ? 'opacity:0.4;' : '';
-    var innerOpacity = (isSwept || isGent || isRevSw || isGentRevSw || isBackdoorSw) ? 'opacity:0.4;' : '';
+    var cellOpacity  = (isFaded && !isSwept && !isGent && !isRevSw && !isGentRevSw && !isFailedRevSw && !isBackdoorSw) ? 'opacity:0.4;' : '';
+    var innerOpacity = (isSwept || isGent || isRevSw || isGentRevSw || isFailedRevSw || isBackdoorSw) ? 'opacity:0.4;' : '';
 
     var leftEmoji = '', rightEmoji = '';
     if (isRevSw) {
@@ -716,6 +755,9 @@ function buildSeriesCard(series, seedLabels) {
       rightEmoji = '<span style="opacity:0.4;">🧹</span>';
     } else if (isGentRevSw) {
       leftEmoji  = '<span style="opacity:0.4;">😱</span>';
+      rightEmoji = '<span style="opacity:0.4;">😵</span>';
+    } else if (isFailedRevSw) {
+      leftEmoji  = '<img src="assets/edm-drop.svg" style="opacity:0.4;width:1em;height:1em;vertical-align:middle;">';
       rightEmoji = '<span style="opacity:0.4;">😵</span>';
     } else if (isBackdoorSw) {
       leftEmoji  = '<span style="opacity:0.4;">🚪</span>';
