@@ -1,6 +1,14 @@
 // Scoreboard section HTML builders.
 // Pure functions — no shared state. Depends on utils.js (formatSVP etc.).
 
+function jafares(name) {
+  if (!name) return name;
+  return name.replace(/J(?:ohn)?\.?\s+Tavares/gi, function (match) {
+    if (/^John/i.test(match)) return Math.random() < 0.5 ? '🐍' : 'Jafares';
+    return match.replace(/Tavares/i, 'Afares');
+  });
+}
+
 function getNHLLogoURL(abbrev) {
   return 'https://assets.nhle.com/logos/nhl/svg/' + abbrev + '_light.svg';
 }
@@ -263,9 +271,9 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev, is
 
   function goalRow(g) {
     var d        = g.details || {};
-    var scorer   = rosterMap[d.scoringPlayerId] || '?';
-    var a1       = rosterMap[d.assist1PlayerId];
-    var a2       = rosterMap[d.assist2PlayerId];
+    var scorer   = jafares(rosterMap[d.scoringPlayerId] || '?');
+    var a1       = jafares(rosterMap[d.assist1PlayerId]);
+    var a2       = jafares(rosterMap[d.assist2PlayerId]);
     var assists  = [a1, a2].filter(Boolean).join(', ') || 'Unassisted';
     var period   = (g.periodDescriptor || {}).number || '?';
     var time     = g.timeInPeriod || '?';

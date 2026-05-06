@@ -29,6 +29,14 @@ function randomShortKingImg() {
   return SHORT_KING_IMGS[Math.floor(Math.random() * SHORT_KING_IMGS.length)];
 }
 
+function jafares(name) {
+  if (!name) return name;
+  return name.replace(/J(?:ohn)?\.?\s+Tavares/gi, function (match) {
+    if (/^John/i.test(match)) return Math.random() < 0.5 ? '🐍' : 'Jafares';
+    return match.replace(/Tavares/i, 'Afares');
+  });
+}
+
 // --- applyMoodOverlay ---
 
 function applyMoodOverlay(overlay) {
@@ -202,7 +210,7 @@ function showGoalTransition(play, rosterMap, nyiIsHome, homeTeamId, onComplete) 
   if (!sit) return;
 
   var d        = play.details || {};
-  var fullName = rosterMap[d.scoringPlayerId] || null;
+  var fullName = jafares(rosterMap[d.scoringPlayerId] || null);
   var lastName = fullName ? fullName.split(' ').pop() : null;
   var shotType = formatShotType(d.shotType);
   var subText  = lastName ? lastName + (shotType ? ' with the ' + shotType + '!' : '!') : null;
@@ -342,7 +350,7 @@ async function checkForNewFight(plays, rosterMap, homeTeamId, nyiIsHome) {
     var pid = (p.details || {}).committedByPlayerId;
     if (pid && !seen[pid]) {
       seen[pid] = true;
-      var full = (rosterMap && rosterMap[pid]) || '';
+      var full = jafares((rosterMap && rosterMap[pid]) || '');
       fighterNames.push(full.split(' ').pop() || '?');
     }
   });
@@ -366,7 +374,7 @@ function checkFightAdditionalPenalty(plays, rosterMap, homeTeamId, nyiIsHome) {
   var latest  = newPens[newPens.length - 1];
   var d       = latest.details || {};
   var pid     = d.committedByPlayerId;
-  var name    = pid && rosterMap ? ((rosterMap[pid] || '').split(' ').pop() || '') : '';
+  var name    = pid && rosterMap ? (jafares(rosterMap[pid] || '').split(' ').pop() || '') : '';
   var ptype   = (d.descKey || 'penalty').replace(/-/g, ' ');
   var maxId   = Math.max.apply(null, newPens.map(function (p) { return p.eventId || 0; }));
   var isNYI   = nyiIsHome

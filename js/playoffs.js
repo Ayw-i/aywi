@@ -28,9 +28,12 @@ function seriesStatusText(topAbbrev, topWins, bottomAbbrev, bottomWins) {
   return 'Series tied ' + topWins + '–' + bottomWins;
 }
 
-// Replace any appearance of John Tavares with snake emoji
 function jafares(name) {
-  return name ? name.replace(/John Tavares/gi, Math.random() < 0.5 ? '🐍' : 'Jafares') : name;
+  if (!name) return name;
+  return name.replace(/J(?:ohn)?\.?\s+Tavares/gi, function (match) {
+    if (/^John/i.test(match)) return Math.random() < 0.5 ? '🐍' : 'Jafares';
+    return match.replace(/Tavares/i, 'Afares');
+  });
 }
 
 // --- Reverse-sweep detection ---
@@ -410,7 +413,7 @@ function buildPlayoffExpandHTML(bs, pbp, gameId) {
       html += '<div style="color:#888;font-style:italic;font-size:9pt;">No points</div>';
     } else {
       html += scorers.map(function (p) {
-        var name  = (p.name && p.name.default) || '?';
+        var name  = jafares((p.name && p.name.default) || '?');
         var g = p.goals || 0, a = p.assists || 0;
         var isOTW = otWinnerId !== null && p.playerId === otWinnerId;
         var parts = [];
@@ -424,7 +427,7 @@ function buildPlayoffExpandHTML(bs, pbp, gameId) {
     if (goalies.length) {
       html += '<div style="margin-top:4px;border-top:1px solid #222;padding-top:3px;">';
       html += goalies.map(function (g) {
-        var name = (g.name && g.name.default) || '?';
+        var name = jafares((g.name && g.name.default) || '?');
         var ga = g.goalsAgainst !== undefined ? g.goalsAgainst : '?';
         var sa = g.shotsAgainst !== undefined ? g.shotsAgainst : '?';
         return '<div style="font-size:9pt;">' + name +
