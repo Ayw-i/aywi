@@ -184,6 +184,13 @@ Always rendered below the mood section (except off-season: news only, no roster)
 
 ## Ideas & Backlog
 
+- **GameScore: PK credit via shift charts:** Reward skaters who participated in a successful
+  penalty kill. Requires fetching `/v1/shift-charts/{gameId}` (one extra call, ~100KB) to get
+  per-player shift start/end times, then cross-referencing with penalty windows from play-by-play
+  that expired without a PP goal. A flat SH TOI approximation isn't viable — the boxscore only
+  exposes total `toi`, no situational breakdown. Suggested weight: `+0.10` per successful PK
+  minute of shift overlap, or a flat `+0.15` per kill.
+
 - **Revisit goalie fatigue algorithm (season.html):** Current thresholds: shortHeavy = B2B or
   4 starts in 5 days; longHeavy = 18 starts in 30 days. Colors: amber (long only), orange
   (short only), red (both). Works per-goalie correctly. May need tuning — thresholds were

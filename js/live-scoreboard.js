@@ -465,11 +465,47 @@ function hadShutoutUntilGoaliePull(plays, goalieTeamId, homeTeamId) {
   });
 }
 
-function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, leftPullShutout, rightPullShutout, isFinal, wentToOT) {
+// Returns true if the goalie had a shutout until garbage time after the opponent's goalie pull.
+// Scenario: opponent pulls goalie → goalie's team scores EN → opponent scores back with goalie in.
+// All goals against must come after an EN goal for the goalie's team and be scored 5v5 (goalie back in).
+function hadShutoutUntilGarbageTime(plays, goalieTeamId, homeTeamId) {
+  var goals = plays.filter(function (p) {
+    return p.typeDescKey === 'goal' && (p.periodDescriptor || {}).periodType !== 'SO';
+  });
+  var goalsAgainst = goals.filter(function (g) {
+    return (g.details || {}).eventOwnerTeamId !== goalieTeamId;
+  });
+  if (goalsAgainst.length === 0) return false;
+  var firstPeriod = parseInt((goalsAgainst[0].periodDescriptor || {}).number) || 0;
+  if (firstPeriod < 3) return false;
+  // Walk goals in order, track when the goalie's team scores an EN (opponent goalie pulled).
+  var seenENGoalFor    = false;
+  var totalAgainst     = 0;
+  var garbageAgainst   = 0;
+  goals.forEach(function (g) {
+    var code        = g.situationCode || '1551';
+    var scoringHome = (g.details || {}).eventOwnerTeamId === homeTeamId;
+    var isGoalieTeam = (g.details || {}).eventOwnerTeamId === goalieTeamId;
+    if (isGoalieTeam) {
+      var oppGoalieIn = scoringHome ? (code[0] === '1') : (code[3] === '1');
+      if (!oppGoalieIn) seenENGoalFor = true;
+    } else {
+      totalAgainst++;
+      if (seenENGoalFor) {
+        // Garbage time: scoring team's goalie back in (5v5, not EA)
+        var scoringGoalieIn = scoringHome ? (code[3] === '1') : (code[0] === '1');
+        if (scoringGoalieIn) garbageAgainst++;
+      }
+    }
+  });
+  return totalAgainst > 0 && totalAgainst === garbageAgainst;
+}
+
+function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, leftPullShutout, rightPullShutout, leftGarbageShutout, rightGarbageShutout, isFinal, wentToOT) {
   var MEDAL = '&#127941;'; // 🏅 sports medal
   var WALL  = '&#129521;'; // 🧱 brick wall
 
-  function goalieRows(goalies, pullShutout) {
+  function goalieRows(goalies, pullShutout, garbageShutout) {
     var played = (goalies || []).filter(function (g) { return parseTOISecs(g.toi) > 0; });
     if (played.length === 0) {
       return '<tr><td colspan="5" style="opacity:0.5;font-size:9pt;">No data</td></tr>';
@@ -478,7 +514,7 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, le
     return played.map(function (g, i) {
       var toiSecs = parseTOISecs(g.toi);
       var ga      = g.goalsAgainst != null ? g.goalsAgainst : null;
-      var pulled  = played.length > 1 && i === played.length - 1;
+      var pulled  = played.length > 1 && i === played.length - 1 && toiSecs >= 60;
       var rawName = (g.name && g.name.default) || 'Unknown';
       var name    = rawName.indexOf('Sorokin') !== -1
         ? '<a href="sorokin.html">' + rawName + '</a>'
@@ -498,6 +534,9 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, le
       }
       if (!badgeParts && !pulled && i === 0 && pullShutout && toiSecs >= 2400) {
         badgeParts = [MEDAL, 'Shutout until goalie pull.'];
+      }
+      if (!badgeParts && !pulled && i === 0 && garbageShutout && toiSecs >= 2400) {
+        badgeParts = [MEDAL, 'Shutout until garbage time after goalie pull (laaame).'];
       }
 
       var shutoutRow = !pulled && ga === 0 && toiSecs >= 2400;
@@ -525,18 +564,18 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, le
     '<th style="font-size:8pt;">TOI</th>' +
     '</tr>';
 
-  function goalieTable(goalies, label, pullShutout) {
+  function goalieTable(goalies, label, pullShutout, garbageShutout) {
     return '<table width="100%">' +
       '<thead><tr><th colspan="5">' + label + '</th></tr>' + thead + '</thead>' +
-      '<tbody>' + goalieRows(goalies, pullShutout) + '</tbody>' +
+      '<tbody>' + goalieRows(goalies, pullShutout, garbageShutout) + '</tbody>' +
       '</table>';
   }
 
   return '<h3 style="margin-top:20px;margin-bottom:4px;">GOALIES</h3>' +
     '<table width="100%" style="border:none;">' +
     '<tr>' +
-    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(leftGoalies,  leftAbbrev,  leftPullShutout)  + '</td>' +
-    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + goalieTable(rightGoalies, rightAbbrev, rightPullShutout) + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(leftGoalies,  leftAbbrev,  leftPullShutout,  leftGarbageShutout)  + '</td>' +
+    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + goalieTable(rightGoalies, rightAbbrev, rightPullShutout, rightGarbageShutout) + '</td>' +
     '</tr></table>';
 }
 
@@ -845,8 +884,10 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
   var homeShutoutImg = (away.abbrev === 'NYI' && awayGoalieSorokin)
     ? randomShatautImg() : 'assets/saros-no-goals.png';
 
-  var awayPullShutout = hadShutoutUntilGoaliePull(plays, away.id, home.id);
-  var homePullShutout = hadShutoutUntilGoaliePull(plays, home.id, home.id);
+  var awayPullShutout    = hadShutoutUntilGoaliePull(plays, away.id, home.id);
+  var homePullShutout    = hadShutoutUntilGoaliePull(plays, home.id, home.id);
+  var awayGarbageShutout = hadShutoutUntilGarbageTime(plays, away.id, home.id);
+  var homeGarbageShutout = hadShutoutUntilGarbageTime(plays, home.id, home.id);
   var wentToOT = ((boxscore.periodDescriptor || {}).number || 0) > 3;
   var wentToSO = plays.some(function (p) {
     return (p.periodDescriptor || {}).periodType === 'SO';
@@ -862,9 +903,9 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
     shootoutSection +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
-    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, isFinal, wentToOT) +
-    buildTeamStats(boxscore, awayStats, homeStats, plays, home.id) +
+    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, awayGarbageShutout, homeGarbageShutout, isFinal, wentToOT) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays) +
-    buildLiveGraph(boxscore, playByPlay, nyiIsHome) +
+    buildTeamStats(boxscore, awayStats, homeStats, plays, home.id) +
+    buildLiveGraph(boxscore, playByPlay, nyiIsHome, gameId) +
     buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, nyiGameNum, nhlGameNum);
 }

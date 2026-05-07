@@ -1,7 +1,7 @@
 // Live situation graph — win probability line + situation strips.
 // Pure function. Depends on live-scoreboard.js (parseTOISecs, buildRosterMap).
 
-function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
+function buildLiveGraph(boxscore, playByPlay, nyiIsHome, gameId) {
   var home      = boxscore.homeTeam || {};
   var away      = boxscore.awayTeam || {};
   var plays     = (playByPlay || {}).plays || [];
@@ -15,6 +15,14 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
   var clock     = boxscore.clock || {};
   var isFinal   = boxscore.gameState === 'OFF' || boxscore.gameState === 'FINAL';
   var curPeriod = pd.number || 3;
+
+  // nhlGameNum > 1264 covers the last ~48 regular-season games, encompassing
+  // Games 81 and 82 for every team — exception window for tied-game pulls
+  // (a team occasionally pulls their goalie tied in their final game to chase
+  // a regulation win for playoff positioning, e.g. PHI 2023021299).
+  var isRegularSeason  = (boxscore.gameType === 2);
+  var nhlGameNum       = (isRegularSeason && gameId) ? parseInt(String(gameId).slice(-4), 10) : null;
+  var isLateSeasonGame = isRegularSeason && nhlGameNum !== null && nhlGameNum > 1264;
 
   // --- Helpers ---
 
@@ -169,6 +177,46 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
       pullStart = pt;
     }
     segments.push({ startMin: pullStart, endMin: gt + 0.1, type: type });
+  });
+
+  // --- Segment sanity checks ---
+
+  // Returns {nyi, opp} score immediately before time t.
+  function getScoreAt(t) {
+    var n = 0, o = 0;
+    goals.forEach(function (g) {
+      var gper = (g.periodDescriptor || {}).number || 0;
+      var gt   = toGameMin(gper, g.timeInPeriod || '0:00');
+      if (gt < t) {
+        var d = g.details || {};
+        if (nyiIsHome ? d.eventOwnerTeamId === homeId : d.eventOwnerTeamId !== homeId) n++;
+        else o++;
+      }
+    });
+    return { nyi: n, opp: o };
+  }
+
+  // Returns false if an EA segment is implausible and should be discarded.
+  // Only checks regulation (seg.startMin < 60); OT pulls are left alone.
+  function sanityCheckEA(seg) {
+    if (seg.startMin >= 60) return true;
+    var minsLeft = 60 - seg.startMin;
+    // Never pull with > 15 minutes of regulation remaining.
+    if (minsLeft > 15) return false;
+    var isNYISeg     = seg.type === 'ea_nyi' || seg.type === 'ea_nyi_pp';
+    var sc           = getScoreAt(seg.startMin);
+    var trailingDiff = isNYISeg ? (sc.opp - sc.nyi) : (sc.nyi - sc.opp);
+    // Tied game: almost never pull (exception: Game 81/82, chasing regulation win).
+    if (trailingDiff === 0 && !isLateSeasonGame) return false;
+    // 10–15 minutes left: only plausible if down 3 or more.
+    if (minsLeft > 10 && trailingDiff < 3) return false;
+    return true;
+  }
+
+  // Remove implausible EA segments before SVG rendering (affects both strips and text).
+  segments = segments.filter(function (seg) {
+    if (seg.type.indexOf('ea_') !== 0) return true;
+    return sanityCheckEA(seg);
   });
 
   // --- SVG ---
@@ -333,20 +381,6 @@ function buildLiveGraph(boxscore, playByPlay, nyiIsHome) {
       mergedEA.push({ type: s.type, startMin: s.startMin, endMin: s.endMin });
     }
   });
-
-  function getScoreAt(t) {
-    var n = 0, o = 0;
-    goals.forEach(function (g) {
-      var gper = (g.periodDescriptor || {}).number || 0;
-      var gt   = toGameMin(gper, g.timeInPeriod || '0:00');
-      if (gt < t) {
-        var d = g.details || {};
-        if (nyiIsHome ? d.eventOwnerTeamId === homeId : d.eventOwnerTeamId !== homeId) n++;
-        else o++;
-      }
-    });
-    return { nyi: n, opp: o };
-  }
 
   var gameStats = boxscore.playerByGameStats || {};
   var homeStats = gameStats.homeTeam || {};

@@ -8,17 +8,30 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
   var pbp     = {};
   var ejected = {};
   function initPbp(id) {
-    if (id && !pbp[id]) pbp[id] = { goals: 0, a1: 0, a2: 0, pd: 0, fightPIM: 0, nonFightPIM: 0, missedShots: 0 };
+    if (id && !pbp[id]) pbp[id] = { goals: 0, a1: 0, a2: 0, pd: 0, fightPIM: 0, nonFightPIM: 0, missedShots: 0, soGoals: 0, takeaways: 0, giveaways: 0 };
   }
   (plays || []).forEach(function (play) {
-    var d = play.details || {};
-    if (play.typeDescKey === 'goal') {
-      if (d.scoringPlayerId) { initPbp(d.scoringPlayerId); pbp[d.scoringPlayerId].goals++; }
-      if (d.assist1PlayerId) { initPbp(d.assist1PlayerId); pbp[d.assist1PlayerId].a1++; }
-      if (d.assist2PlayerId) { initPbp(d.assist2PlayerId); pbp[d.assist2PlayerId].a2++; }
+    var d          = play.details || {};
+    var periodType = (play.periodDescriptor || {}).periodType || '';
+    var isSO       = periodType === 'SO';
+    if (play.typeDescKey === 'goal' || play.typeDescKey === 'shootout-goal') {
+      if (isSO || play.typeDescKey === 'shootout-goal') {
+        // Shootout goals: track for display but exclude from GS
+        if (d.scoringPlayerId) { initPbp(d.scoringPlayerId); pbp[d.scoringPlayerId].soGoals++; }
+      } else {
+        if (d.scoringPlayerId) { initPbp(d.scoringPlayerId); pbp[d.scoringPlayerId].goals++; }
+        if (d.assist1PlayerId) { initPbp(d.assist1PlayerId); pbp[d.assist1PlayerId].a1++; }
+        if (d.assist2PlayerId) { initPbp(d.assist2PlayerId); pbp[d.assist2PlayerId].a2++; }
+      }
     }
     if (play.typeDescKey === 'missed-shot') {
       if (d.shootingPlayerId) { initPbp(d.shootingPlayerId); pbp[d.shootingPlayerId].missedShots++; }
+    }
+    if (play.typeDescKey === 'takeaway') {
+      if (d.playerId) { initPbp(d.playerId); pbp[d.playerId].takeaways++; }
+    }
+    if (play.typeDescKey === 'giveaway') {
+      if (d.playerId) { initPbp(d.playerId); pbp[d.playerId].giveaways++; }
     }
     if (play.typeDescKey === 'penalty') {
       var pim     = d.duration || 0;
@@ -64,6 +77,7 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
          + 0.05  * (p.blockedShots       || 0)
          + 0.15  * (p.plusMinus          || 0)
          + 0.15  * (q.pd                 || 0)
+         + 0.05  * (q.takeaways          || 0)
          - 0.15  * (q.nonFightPIM        || 0)
          + 0.01  * (q.fightPIM           || 0)
          + 0.01  * toiOver;
@@ -76,7 +90,9 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
 
   function skaterRow(p) {
     var q  = pbp[p.playerId] || {};
-    var g  = Math.max(p.goals || 0, q.goals || 0);
+    // Exclude SO goals from p.goals in case the API includes them in player totals
+    var pGoalsReg = Math.max(0, (p.goals || 0) - (q.soGoals || 0));
+    var g  = Math.max(pGoalsReg, q.goals || 0);
     var a1 = q.a1 || 0;
     var a2 = q.a2 || 0;
     if (a1 === 0 && a2 === 0) a2 = p.assists || 0;
@@ -87,6 +103,8 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
     var pd       = q.pd           || 0;
     var nonFPIM  = q.nonFightPIM  || 0;
     var fPIM     = q.fightPIM     || 0;
+    var tk       = q.takeaways    || 0;
+    var gv       = q.giveaways    || 0;
     var gs       = gameScore(p);
     var gsStr    = (gs >= 0 ? '+' : '') + gs.toFixed(2);
     var gsColor  = gs >= 0 ? '#8f8' : '#f88';
@@ -109,6 +127,7 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
     term(blk,    0.05,  'BLK');
     if (pm) term(pm, 0.15, (pm >= 0 ? '+' : '') + pm + '&nbsp;&plusmn;');
     term(pd,     0.15,  'PD');
+    term(tk,     0.05,  'TK');
     if (nonFPIM) lines.push('-' + (0.15 * nonFPIM).toFixed(3) +
       ' &nbsp;<span style="color:#888;">(0.15&times;' + nonFPIM + ' PIM)</span>');
     term(fPIM,   0.01,  'fight');
@@ -160,10 +179,16 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       : '';
     var rowStyle = isEjected ? ' style="background-color:#3a0000;"' : '';
 
+    var soTag = (q.soGoals || 0) > 0
+      ? '&nbsp;<span style="color:#888;font-size:8pt;">' + q.soGoals + 'SO</span>' : '';
+    var tkColor = tk > 0 ? '#8f8' : '#ccc';
+    var gvColor = gv > 0 ? '#f88' : '#ccc';
     return '<tr' + rowStyle + '>' +
       '<td>' + ((p.name && p.name.default) || '?') + ejectBadge + '</td>' +
-      '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A</td>' +
+      '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A' + soTag + '</td>' +
       '<td>' + (p.toi || '&mdash;') + '</td>' +
+      '<td style="color:' + tkColor + ';">' + tk + '</td>' +
+      '<td style="color:' + gvColor + ';">' + gv + '</td>' +
       '<td>' + pmCell + '</td>' +
       '<td style="white-space:nowrap;color:' + gsColor + ';">' + gsCell + '</td>' +
       '</tr>';
@@ -178,18 +203,20 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
       '<th style="font-size:8pt;">TOI</th>' +
+      '<th style="font-size:8pt;">TK</th>' +
+      '<th style="font-size:8pt;">GV</th>' +
       '<th style="font-size:8pt;">+/-</th>' +
       '<th style="font-size:8pt;">GS</th>' +
       '</tr>';
 
     var html = '<table width="100%">' +
-      '<thead><tr><th colspan="5">' + label + ' — Best</th></tr>' + thead + '</thead>' +
+      '<thead><tr><th colspan="7">' + label + ' — Best</th></tr>' + thead + '</thead>' +
       '<tbody>' + top.map(skaterRow).join('') + '</tbody>' +
       '</table>';
 
     if (bottom.length) {
       html += '<table width="100%" style="margin-top:4px;">' +
-        '<thead><tr><th colspan="5">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
+        '<thead><tr><th colspan="7">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
         '<tbody>' + bottom.map(skaterRow).join('') + '</tbody>' +
         '</table>';
     }
