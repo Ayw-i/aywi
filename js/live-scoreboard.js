@@ -71,8 +71,14 @@ function getSituationLabel(play, homeTeamId) {
     return 'EA';
   }
 
-  if (scoringSkaters > defendSkaters) return 'PPG';
-  if (scoringSkaters < defendSkaters) return 'SHG';
+  if (scoringSkaters > defendSkaters) {
+    if (scoringSkaters === 5 && defendSkaters === 4) return 'PPG';
+    return 'PPG (' + scoringSkaters + 'v' + defendSkaters + ')';
+  }
+  if (scoringSkaters < defendSkaters) {
+    if (scoringSkaters === 4 && defendSkaters === 5) return 'SHG';
+    return 'SHG (' + scoringSkaters + 'v' + defendSkaters + ')';
+  }
   return '5v5';
 }
 
@@ -328,6 +334,34 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
   var awayPenalties = penalties.filter(function (p) { return (p.details || {}).eventOwnerTeamId !== homeTeamId; });
   if (penalties.length === 0) return '';
 
+  // Tag coincidental minor pairs (same period+time, opposite teams, both 2') with a shared background color.
+  // Each new pair in the game gets the next shade of purple (cycles after 3).
+  (function () {
+    var COLORS = ['rgba(0,190,170,0.22)', 'rgba(100,60,230,0.25)', 'rgba(80,0,140,0.30)'];
+    var buckets = {};
+    penalties.forEach(function (p) {
+      var dur = (p.details || {}).duration;
+      if (dur !== 2) return;
+      var per = (p.periodDescriptor || {}).number || 0;
+      var key = per + ':' + (p.timeInPeriod || '');
+      if (!buckets[key]) buckets[key] = { home: [], away: [] };
+      var isHome = (p.details || {}).eventOwnerTeamId === homeTeamId;
+      (isHome ? buckets[key].home : buckets[key].away).push(p);
+    });
+    var groupIdx = 0;
+    Object.keys(buckets).forEach(function (key) {
+      var b = buckets[key];
+      if (!b.home.length || !b.away.length) return;
+      var pairs = Math.min(b.home.length, b.away.length);
+      for (var i = 0; i < pairs; i++) {
+        var color = COLORS[groupIdx % COLORS.length];
+        b.home[i]._coincidentalColor = color;
+        b.away[i]._coincidentalColor = color;
+        groupIdx++;
+      }
+    });
+  })();
+
   var TONE_TOOLTIP =
     '<span style="position:relative;display:inline-block;">' +
       '<span style="text-decoration:underline dotted;cursor:help;"' +
@@ -340,9 +374,14 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
     '</span>';
 
   // Group same-player same-time penalties into one row (e.g. boarding + game misconduct).
+  // Coincidental minors are always kept as solo rows so they can be colored independently.
   function groupPenalties(pens) {
     var groups = [], keyMap = {};
     pens.forEach(function (p) {
+      if (p._coincidentalColor) {
+        groups.push([p]);
+        return;
+      }
       var d   = p.details || {};
       var per = (p.periodDescriptor || {}).number || 0;
       var id  = d.committedByPlayerId || d.servedByPlayerId || 'bench';
@@ -400,7 +439,10 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
       ? '<br><span style="font-size:10pt;color:gray;">' + EJECT +
         '<span style="font-style:italic;"> Ejected.</span></span>'
       : '';
-    var rowStyle = isEjection ? ' style="background-color:#3a0000;"' : '';
+    var coincidentalColor = group[0]._coincidentalColor || null;
+    var rowStyle = isEjection           ? ' style="background-color:#3a0000;"'
+                 : coincidentalColor    ? ' style="background-color:' + coincidentalColor + ';"'
+                 : '';
 
     var penTeamAbbrev = d0.eventOwnerTeamId === homeTeamId ? homeAbbrev : awayAbbrev;
     if (isTooManyMen && penTeamAbbrev === 'TBL') {

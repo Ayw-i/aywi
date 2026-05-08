@@ -502,8 +502,14 @@ function playoffsGetSituationLabel(play, homeTeamId) {
     return 'EA';
   }
 
-  if (scoringSkaters > defendSkaters) return 'PPG';
-  if (scoringSkaters < defendSkaters) return 'SHG';
+  if (scoringSkaters > defendSkaters) {
+    if (scoringSkaters === 5 && defendSkaters === 4) return 'PPG';
+    return 'PPG (' + scoringSkaters + 'v' + defendSkaters + ')';
+  }
+  if (scoringSkaters < defendSkaters) {
+    if (scoringSkaters === 4 && defendSkaters === 5) return 'SHG';
+    return 'SHG (' + scoringSkaters + 'v' + defendSkaters + ')';
+  }
   return '5v5';
 }
 

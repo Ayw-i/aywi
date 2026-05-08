@@ -181,14 +181,10 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
 
     var soTag = (q.soGoals || 0) > 0
       ? '&nbsp;<span style="color:#888;font-size:8pt;">' + q.soGoals + 'SO</span>' : '';
-    var tkColor = tk > 0 ? '#8f8' : '#ccc';
-    var gvColor = gv > 0 ? '#f88' : '#ccc';
     return '<tr' + rowStyle + '>' +
       '<td>' + ((p.name && p.name.default) || '?') + ejectBadge + '</td>' +
       '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A' + soTag + '</td>' +
       '<td>' + (p.toi || '&mdash;') + '</td>' +
-      '<td style="color:' + tkColor + ';">' + tk + '</td>' +
-      '<td style="color:' + gvColor + ';">' + gv + '</td>' +
       '<td>' + pmCell + '</td>' +
       '<td style="white-space:nowrap;color:' + gsColor + ';">' + gsCell + '</td>' +
       '</tr>';
@@ -203,20 +199,18 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
       '<th style="font-size:8pt;">TOI</th>' +
-      '<th style="font-size:8pt;">TK</th>' +
-      '<th style="font-size:8pt;">GV</th>' +
       '<th style="font-size:8pt;">+/-</th>' +
       '<th style="font-size:8pt;">GS</th>' +
       '</tr>';
 
     var html = '<table width="100%">' +
-      '<thead><tr><th colspan="7">' + label + ' — Best</th></tr>' + thead + '</thead>' +
+      '<thead><tr><th colspan="5">' + label + ' — Best</th></tr>' + thead + '</thead>' +
       '<tbody>' + top.map(skaterRow).join('') + '</tbody>' +
       '</table>';
 
     if (bottom.length) {
       html += '<table width="100%" style="margin-top:4px;">' +
-        '<thead><tr><th colspan="7">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
+        '<thead><tr><th colspan="5">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
         '<tbody>' + bottom.map(skaterRow).join('') + '</tbody>' +
         '</table>';
     }
