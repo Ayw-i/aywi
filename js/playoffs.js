@@ -1095,6 +1095,65 @@ async function fetchSeriesGames(allSeries, season) {
   });
 }
 
+// --- Infohazard dialog (2025-26 season only) ---
+// Covers only the Stanley Cup Final card's cell, not the whole page.
+
+function ensureInfohazardStyle() {
+  if (document.getElementById('infohazard-style')) return;
+  var style = document.createElement('style');
+  style.id = 'infohazard-style';
+  style.textContent =
+    '.infohazard-btn{display:block;width:100%;box-sizing:border-box;color:#fff;' +
+    'border:1px solid #fff;padding:3px 4px;font-family:Helvetica,Arial,sans-serif;' +
+    'font-size:8.5pt;cursor:pointer;background-color:#000;}' +
+    '.infohazard-btn-yes{background-image:linear-gradient(to right,rgba(0,48,135,0.4),rgba(252,76,2,0.4));margin-bottom:4px;}' +
+    '.infohazard-btn-yes:hover{background-image:linear-gradient(to right,rgba(0,48,135,0.65),rgba(252,76,2,0.65));}' +
+    '.infohazard-btn-yes:active{background-image:linear-gradient(to right,rgba(0,48,135,0.9),rgba(252,76,2,0.9));}' +
+    '.infohazard-btn-no{background-image:linear-gradient(to right,rgba(206,17,38,0.4),rgba(180,151,90,0.4));}' +
+    '.infohazard-btn-no:hover{background-image:linear-gradient(to right,rgba(206,17,38,0.65),rgba(180,151,90,0.65));}' +
+    '.infohazard-btn-no:active{background-image:linear-gradient(to right,rgba(206,17,38,0.9),rgba(180,151,90,0.9));}';
+  document.head.appendChild(style);
+}
+
+function showInfohazardDialog() {
+  var target = document.getElementById('scf-block');
+  if (!target) return;
+
+  ensureInfohazardStyle();
+
+  var old = document.getElementById('infohazard-overlay');
+  if (old) old.remove();
+
+  target.style.opacity = '0.25';
+
+  var rect = target.getBoundingClientRect();
+  var boxWidth = Math.min(200, rect.width);
+
+  var overlay = document.createElement('div');
+  overlay.id = 'infohazard-overlay';
+  overlay.style.cssText = 'position:absolute;' +
+    'top:'   + (rect.top + window.scrollY + rect.height / 2) + 'px;' +
+    'left:'  + (rect.left + window.scrollX + rect.width / 2) + 'px;' +
+    'width:' + boxWidth + 'px;' +
+    'transform:translate(-50%,-50%);' +
+    'background:#000;border:1px solid #555;z-index:2000;' +
+    'box-sizing:border-box;padding:7px;';
+
+  overlay.innerHTML =
+    '<div style="color:#FF3333;font-size:9pt;font-weight:bold;letter-spacing:0.5px;margin-bottom:5px;">' +
+      '&#9888; INFOHAZARD WARNING &#9888;</div>' +
+    '<div style="font-size:8pt;line-height:1.3;margin-bottom:6px;font-family:Helvetica,Arial,sans-serif;">' +
+      'This year&rsquo;s finals matchup&hellip; why don&rsquo;t we just look at the Knicks or ' +
+      'something? I can show you that instead.<br><br>So how about it?</div>' +
+    '<button class="infohazard-btn infohazard-btn-yes" ' +
+      'onclick="window.location.href=\'knicks.html\'">Hockey season&rsquo;s over</button>' +
+    '<button class="infohazard-btn infohazard-btn-no" ' +
+      'onclick="document.getElementById(\'infohazard-overlay\').remove();' +
+      'document.getElementById(\'scf-block\').style.opacity=\'1\';">Show me that slop</button>';
+
+  document.body.appendChild(overlay);
+}
+
 // --- Main ---
 
 async function loadPlayoffsPage() {
@@ -1195,8 +1254,12 @@ async function loadPlayoffsPage() {
       (finalSeries
         ? roundWrap(roundStarted([finalSeries]),
             '<h3 style="text-align:center;font-size:12pt;margin:24px 0 10px 0;">Stanley Cup Final</h3>' +
-            '<div style="max-width:300px;margin:0 auto;">' + buildSeriesCard(finalSeries, seedLabels) + '</div>')
+            '<div id="scf-block" style="position:relative;max-width:300px;margin:0 auto;">' +
+            buildSeriesCard(finalSeries, seedLabels) +
+            '</div>')
         : '');
+
+    if (season === '20252026' && finalSeries) showInfohazardDialog();
 
     document.getElementById('footer').textContent =
       'Last updated: ' + new Date().toLocaleTimeString();

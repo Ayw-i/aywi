@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knicks — Are Ya Winning, Isles?</title>
+  <style>
+    body {
+      background-color: #000000;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 60px 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+    }
+
+    h2 {
+      text-align: left;
+      font-size: 18pt;
+      margin: 30px 0 12px 0;
+      text-transform: uppercase;
+    }
+
+    nav {
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: underline;
+      margin: 0 8px;
+      font-size: 11pt;
+    }
+
+    a {
+      color: white;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid white;
+      margin: 40px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      text-align: left;
+    }
+
+    th, td {
+      border: 1px solid white;
+      padding: 4px 8px;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    #footer {
+      font-size: 9pt;
+      margin-top: 50px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+
+<div id="main">
+
+  <h1>Are Ya Winning, Isles?</h1>
+  <nav><a href="playoffs.html">&larr; Back to Playoffs</a></nav>
+
+  <h2>Bracket</h2>
+  <div style="font-size:8pt;opacity:0.6;margin-bottom:10px;">
+    <span style="display:inline-block;width:16px;height:12px;background:linear-gradient(to bottom,#FFFF44 0px,#FFA500 3px,#555 3px);vertical-align:middle;margin-right:4px;"></span>OT win &nbsp;&nbsp;
+    <span style="display:inline-block;width:16px;height:12px;background:linear-gradient(135deg,#555 78%,rgba(255,255,255,0.9) 78%);vertical-align:middle;margin-right:4px;"></span>Away win
+  </div>
+  <div id="bracket">Loading...</div>
+
+  <h2>Knicks Playoff Scoring Splits</h2>
+  <div id="knicks-splits">Loading...</div>
+
+</div>
+
+<div id="knicks-tt" style="display:none;position:fixed;background:#111;border:1px solid #555;padding:8px 10px;z-index:999;white-space:nowrap;min-width:160px;">
+  <div id="knicks-tt-score" style="font-size:10pt;font-weight:bold;"></div>
+  <div id="knicks-tt-date"  style="font-size:8pt;opacity:0.6;margin-top:2px;"></div>
+</div>
+
+<script src="js/tooltip.js"></script>
+<script src="js/knicks.js"></script>
+
+</body>
+</html>
