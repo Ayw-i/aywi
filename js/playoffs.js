@@ -36,6 +36,30 @@ function jafares(name) {
   });
 }
 
+// --- Finals "reveal" swap (2025-26 season only, triggered from the infohazard dialog) ---
+
+var _finalsRevealMode = false;
+
+// True only for the actual Stanley Cup Final matchup (CAR vs VGK) — the swap must not
+// leak into CAR's or VGK's earlier-round series against other opponents.
+function isFinalsMatchup(abbrevA, abbrevB) {
+  return (abbrevA === 'CAR' && abbrevB === 'VGK') || (abbrevA === 'VGK' && abbrevB === 'CAR');
+}
+
+function applyFinalsNameSwap(name, teamAbbrev, opponentAbbrev) {
+  if (!_finalsRevealMode || !name || !isFinalsMatchup(teamAbbrev, opponentAbbrev)) return name;
+  if (teamAbbrev === 'CAR') {
+    var parts = name.trim().split(/\s+/);
+    if (parts.length > 1) {
+      parts[parts.length - 1] = 'Dundon';
+      name = parts.join(' ');
+    }
+  }
+  return name.replace(/Carter\s+Hart|C\.?\s*Hart|\bHart\b/gi, function (match) {
+    return match.replace(/\S/g, ' ');
+  });
+}
+
 // --- Reverse-sweep detection ---
 
 var _bracketYear = null; // set by loadPlayoffsPage
@@ -301,14 +325,15 @@ function _applyBsScore(bs) {
     otLbl = ' (' + (n === 4 ? 'OT' : (n - 3) + 'OT') + ')';
   }
   document.getElementById('playoff-tt-score').textContent =
-    (bsAway.abbrev || '') + ' ' + (bsAway.score || 0) + ' – ' +
-    (bsHome.score  || 0) + ' ' + (bsHome.abbrev || '') + otLbl;
+    (applyFinalsAbbrevDisplay(bsAway.abbrev, bsHome.abbrev) || '') + ' ' + (bsAway.score || 0) + ' – ' +
+    (bsHome.score  || 0) + ' ' + (applyFinalsAbbrevDisplay(bsHome.abbrev, bsAway.abbrev) || '') + otLbl;
 }
 
 function showPlayoffTooltip(el, event) {
   if (_playoffExpandedCell && _playoffExpandedCell !== el) return;
   var tt   = document.getElementById('playoff-tt');
-  var away = el.dataset.away, home = el.dataset.home;
+  var away = applyFinalsAbbrevDisplay(el.dataset.away, el.dataset.home);
+  var home = applyFinalsAbbrevDisplay(el.dataset.home, el.dataset.away);
   var as_  = el.dataset.ascore, hs = el.dataset.hscore;
   var ot   = el.dataset.ot,  date  = el.dataset.date;
 
@@ -398,7 +423,7 @@ function buildPlayoffExpandHTML(bs, pbp, gameId) {
     if (otGoals.length) otWinnerId = (otGoals[otGoals.length - 1].details || {}).scoringPlayerId;
   }
 
-  function teamCol(stats) {
+  function teamCol(stats, teamAbbrev, opponentAbbrev) {
     var skaters = (stats.forwards || []).concat(stats.defense || []);
     var scorers = skaters.filter(function (p) {
       return (p.goals || 0) + (p.assists || 0) > 0;
@@ -413,7 +438,7 @@ function buildPlayoffExpandHTML(bs, pbp, gameId) {
       html += '<div style="color:#888;font-style:italic;font-size:9pt;">No points</div>';
     } else {
       html += scorers.map(function (p) {
-        var name  = jafares((p.name && p.name.default) || '?');
+        var name  = applyFinalsNameSwap(jafares((p.name && p.name.default) || '?'), teamAbbrev, opponentAbbrev);
         var g = p.goals || 0, a = p.assists || 0;
         var isOTW = otWinnerId !== null && p.playerId === otWinnerId;
         var parts = [];
@@ -427,7 +452,7 @@ function buildPlayoffExpandHTML(bs, pbp, gameId) {
     if (goalies.length) {
       html += '<div style="margin-top:4px;border-top:1px solid #222;padding-top:3px;">';
       html += goalies.map(function (g) {
-        var name = jafares((g.name && g.name.default) || '?');
+        var name = applyFinalsNameSwap(jafares((g.name && g.name.default) || '?'), teamAbbrev, opponentAbbrev);
         var ga = g.goalsAgainst !== undefined ? g.goalsAgainst : '?';
         var sa = g.shotsAgainst !== undefined ? g.shotsAgainst : '?';
         return '<div style="font-size:9pt;">' + name +
@@ -438,15 +463,18 @@ function buildPlayoffExpandHTML(bs, pbp, gameId) {
     return html;
   }
 
+  var awayAbbrev = (bs && bs.awayTeam && bs.awayTeam.abbrev) || '';
+  var homeAbbrev = (bs && bs.homeTeam && bs.homeTeam.abbrev) || '';
+
   return '<table width="100%" style="border:none;margin-top:8px;border-top:1px solid #333;padding-top:6px;">' +
     '<tr>' +
     '<td style="font-size:8pt;font-weight:bold;color:#aaa;border:none;padding-bottom:3px;">' +
-      ((bs && bs.awayTeam && bs.awayTeam.abbrev) || 'Away') + '</td>' +
+      (applyFinalsAbbrevDisplay(awayAbbrev, homeAbbrev) || 'Away') + '</td>' +
     '<td style="font-size:8pt;font-weight:bold;color:#aaa;border:none;padding-bottom:3px;border-left:1px solid #333;padding-left:6px;">' +
-      ((bs && bs.homeTeam && bs.homeTeam.abbrev) || 'Home') + '</td>' +
+      (applyFinalsAbbrevDisplay(homeAbbrev, awayAbbrev) || 'Home') + '</td>' +
     '</tr><tr>' +
-    '<td valign="top" style="border:none;padding-right:6px;">'                              + teamCol(awayStats) + '</td>' +
-    '<td valign="top" style="border:none;border-left:1px solid #333;padding-left:6px;">' + teamCol(homeStats) + '</td>' +
+    '<td valign="top" style="border:none;padding-right:6px;">'                              + teamCol(awayStats, awayAbbrev, homeAbbrev) + '</td>' +
+    '<td valign="top" style="border:none;border-left:1px solid #333;padding-left:6px;">' + teamCol(homeStats, homeAbbrev, awayAbbrev) + '</td>' +
     '</tr>' +
     (gameId
       ? '<tr><td colspan="2" align="center" style="border:none;padding-top:5px;border-top:1px solid #222;">' +
@@ -620,6 +648,7 @@ function buildSeriesGameCells(series) {
       ' data-ascore="' + g.awayScore  + '"' +
       ' data-date="'   + g.gameDate   + '"' +
       ' data-ot="'     + g.otLabel    + '"' +
+      ' data-winner="' + g.winnerAbbrev + '"' +
       ' onmouseover="showPlayoffTooltip(this,event)"' +
       ' onmousemove="_playoffTooltip.move(event)"' +
       ' onmouseout="_playoffTooltip.hide()"' +
@@ -799,24 +828,24 @@ function buildSeriesCard(series, seedLabels) {
       ? '<table style="margin:0 auto;border-collapse:collapse;border:none;"><tr>' +
           '<td style="' + EC + '">' + (leftEmoji  || '') + '</td>' +
           '<td style="border:none;vertical-align:middle;padding:0;' + innerOpacity + '">' +
-            '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
+            '<div class="team-abbrev-text" style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
             (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '') +
           '</td>' +
           '<td style="' + EC + '">' + (rightEmoji || '') + '</td>' +
         '</tr></table>'
-      : '<div style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
+      : '<div class="team-abbrev-text" style="font-size:8pt;' + nameColor + '">' + abbrev + '</div>' +
         (seed ? '<div style="font-size:7pt;color:#888;">' + seed + '</div>' : '');
 
     var teamObj  = isTop ? top : bottom;
     var logoUrl  = teamObj.logo || playoffsLogoURL(abbrev);
     var imgStyle = 'display:block;margin:0 auto 3px;' + innerOpacity;
     var content = '<span style="' + innerStyle + '">' +
-      '<img src="' + logoUrl + '" width="36" alt="' + abbrev + '" ' +
+      '<img class="team-logo-img" src="' + logoUrl + '" width="36" alt="' + abbrev + '" ' +
       'onerror="this.style.display=\'none\'" style="' + imgStyle + '">' +
       textHTML +
       '</span>';
 
-    return '<td align="center" width="30%" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + revSwAttr + revSwWAttr + '>' +
+    return '<td align="center" width="30%" data-team="' + abbrev + '" style="border:none;padding:4px 2px;' + cellOpacity + '"' + fraudAttr + revSwAttr + revSwWAttr + '>' +
       content + '</td>';
   }
 
@@ -850,7 +879,7 @@ function buildSeriesCard(series, seedLabels) {
     teamCell(bottomAbbrev, false) +
     '</tr>' +
     '<tr>' +
-    '<td colspan="5" align="center" style="border-top:1px solid rgba(255,255,255,0.25);border-left:none;border-right:none;border-bottom:none;font-size:8pt;opacity:0.7;padding:3px 4px;">' +
+    '<td class="series-status-text" colspan="5" align="center" style="border-top:1px solid rgba(255,255,255,0.25);border-left:none;border-right:none;border-bottom:none;font-size:8pt;opacity:0.7;padding:3px 4px;">' +
     status + '</td>' +
     '</tr>' +
     buildSeriesGameCells(series) +
@@ -1109,10 +1138,74 @@ function ensureInfohazardStyle() {
     '.infohazard-btn-yes{background-image:linear-gradient(to right,rgba(0,48,135,0.4),rgba(252,76,2,0.4));margin-bottom:4px;}' +
     '.infohazard-btn-yes:hover{background-image:linear-gradient(to right,rgba(0,48,135,0.65),rgba(252,76,2,0.65));}' +
     '.infohazard-btn-yes:active{background-image:linear-gradient(to right,rgba(0,48,135,0.9),rgba(252,76,2,0.9));}' +
-    '.infohazard-btn-no{background-image:linear-gradient(to right,rgba(206,17,38,0.4),rgba(180,151,90,0.4));}' +
-    '.infohazard-btn-no:hover{background-image:linear-gradient(to right,rgba(206,17,38,0.65),rgba(180,151,90,0.65));}' +
-    '.infohazard-btn-no:active{background-image:linear-gradient(to right,rgba(206,17,38,0.9),rgba(180,151,90,0.9));}';
+    '.infohazard-btn-something{background-image:linear-gradient(to right,rgba(206,17,38,0.4),rgba(0,56,168,0.4));margin-bottom:4px;}' +
+    '.infohazard-btn-something:hover{background-image:linear-gradient(to right,rgba(206,17,38,0.65),rgba(0,56,168,0.65));}' +
+    '.infohazard-btn-something:active{background-image:linear-gradient(to right,rgba(206,17,38,0.9),rgba(0,56,168,0.9));}' +
+    '.infohazard-btn-no{background-image:linear-gradient(to right,rgba(224,58,62,0.4),rgba(0,83,140,0.4));}' +
+    '.infohazard-btn-no:hover{background-image:linear-gradient(to right,rgba(224,58,62,0.65),rgba(0,83,140,0.65));}' +
+    '.infohazard-btn-no:active{background-image:linear-gradient(to right,rgba(224,58,62,0.9),rgba(0,83,140,0.9));}';
   document.head.appendChild(style);
+}
+
+// NBA-team stand-ins used only when "Show me something" is clicked — swapped into the
+// Stanley Cup Final card's team cells (logo + abbrev) purely for display.
+var FINALS_SWAP = {
+  CAR: { abbrev: 'POR', logo: 'https://a.espncdn.com/i/teamlogos/nba/500/por.png', color: '#E03A3E' },
+  VGK: { abbrev: 'DAL', logo: 'https://a.espncdn.com/i/teamlogos/nba/500/dal.png', color: '#00538C' },
+};
+
+function applyFinalsTeamSwap() {
+  _finalsRevealMode = true;
+  var block = document.getElementById('scf-block');
+  if (!block) return;
+  Object.keys(FINALS_SWAP).forEach(function (orig) {
+    var td = block.querySelector('[data-team="' + orig + '"]');
+    if (!td) return;
+    var img = td.querySelector('.team-logo-img');
+    if (img) {
+      img.src = FINALS_SWAP[orig].logo;
+      img.alt = FINALS_SWAP[orig].abbrev;
+      // NHL logos render at 36x24 (960x640 viewBox, 3:2). The NBA logos are square
+      // (500x500), so lock them to the same 36x24 box instead of letting them grow.
+      img.style.width      = '36px';
+      img.style.height     = '24px';
+      img.style.objectFit  = 'contain';
+    }
+    var label = td.querySelector('.team-abbrev-text');
+    if (label) label.textContent = FINALS_SWAP[orig].abbrev;
+  });
+
+  var statusEl = block.querySelector('.series-status-text');
+  if (statusEl) {
+    var statusText = statusEl.textContent;
+    Object.keys(FINALS_SWAP).forEach(function (orig) {
+      statusText = statusText.replace(new RegExp(orig, 'g'), FINALS_SWAP[orig].abbrev);
+    });
+    statusEl.textContent = statusText;
+  }
+
+  Object.keys(FINALS_SWAP).forEach(function (orig) {
+    var primary = FINALS_SWAP[orig].color;
+    var cells = block.querySelectorAll('[data-winner="' + orig + '"]');
+    cells.forEach(function (cell) {
+      var awayWon = cell.dataset.away === orig;
+      var baseBg = awayWon
+        ? 'linear-gradient(135deg,' + primary + ' 78%,rgba(255,255,255,0.9) 78%)'
+        : primary;
+      cell.style.background = cell.dataset.ot
+        ? 'linear-gradient(to bottom,#FFFF44 0px,#FFA500 3px,transparent 3px),' + baseBg
+        : baseBg;
+    });
+  });
+}
+
+// Display-only abbrev swap for the game-popup team headers (CAR/VGK -> POR/DAL).
+// The underlying lookups (teamCol's teamAbbrev param) still use the real abbrev.
+function applyFinalsAbbrevDisplay(abbrev, opponentAbbrev) {
+  if (_finalsRevealMode && FINALS_SWAP[abbrev] && isFinalsMatchup(abbrev, opponentAbbrev)) {
+    return FINALS_SWAP[abbrev].abbrev;
+  }
+  return abbrev;
 }
 
 function showInfohazardDialog() {
@@ -1147,6 +1240,10 @@ function showInfohazardDialog() {
       'something? I can show you that instead.<br><br>So how about it?</div>' +
     '<button class="infohazard-btn infohazard-btn-yes" ' +
       'onclick="window.location.href=\'knicks.html\'">Hockey season&rsquo;s over</button>' +
+    '<button class="infohazard-btn infohazard-btn-something" ' +
+      'onclick="document.getElementById(\'infohazard-overlay\').remove();' +
+      'document.getElementById(\'scf-block\').style.opacity=\'1\';' +
+      'applyFinalsTeamSwap();">It will always get worse</button>' +
     '<button class="infohazard-btn infohazard-btn-no" ' +
       'onclick="document.getElementById(\'infohazard-overlay\').remove();' +
       'document.getElementById(\'scf-block\').style.opacity=\'1\';">Show me that slop</button>';
