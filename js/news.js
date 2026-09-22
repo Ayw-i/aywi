@@ -32,6 +32,17 @@ function parseFeed(xmlText, sourceName) {
   });
 }
 
+// Returns the URL only if it's http(s); anything else ("javascript:", "data:",
+// garbage) comes back as ''.
+function safeArticleURL(raw) {
+  try {
+    const u = new URL(raw);
+    return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : '';
+  } catch (e) {
+    return '';
+  }
+}
+
 async function loadNews() {
   try {
     const config = await getConfig();
@@ -59,13 +70,35 @@ async function loadNews() {
       return;
     }
 
+    // Feed text comes from third-party sites, so it's never parsed as HTML:
+    // cells are filled with textContent, and links are only kept if they're
+    // plain http(s) URLs (a "javascript:" link would run code on click).
     tbody.innerHTML = '';
     allArticles.forEach(function (article) {
       const row = document.createElement('tr');
-      row.innerHTML =
-        '<td>' + article.headline + '</td>' +
-        '<td>' + article.site + '</td>' +
-        '<td><a href="' + article.url + '" target="_blank" rel="noopener">Read</a></td>';
+
+      const headlineCell = document.createElement('td');
+      headlineCell.textContent = article.headline;
+
+      const siteCell = document.createElement('td');
+      siteCell.textContent = article.site;
+
+      const linkCell = document.createElement('td');
+      const safeUrl  = safeArticleURL(article.url);
+      if (safeUrl) {
+        const link = document.createElement('a');
+        link.href        = safeUrl;
+        link.target      = '_blank';
+        link.rel         = 'noopener';
+        link.textContent = 'Read';
+        linkCell.appendChild(link);
+      } else {
+        linkCell.textContent = '—';
+      }
+
+      row.appendChild(headlineCell);
+      row.appendChild(siteCell);
+      row.appendChild(linkCell);
       tbody.appendChild(row);
     });
 

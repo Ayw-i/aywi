@@ -1,0 +1,16 @@
+// Cloudflare deploy config for the site (Workers & Pages → aywi).
+// This is not a build step: the site is plain files, uploaded as-is.
+//
+// Having this file here stops Cloudflare's auto-setup from guessing the
+// project type. Without it, it sees config.json, decides this is a Hugo site,
+// runs `npx hugo`, and the deploy fails — which is what happened to every
+// build from 2026-04-16 (when config.json was added) until this file existed.
+//
+// What gets uploaded: everything in this folder EXCEPT what .assetsignore lists.
+{
+  "name": "aywi",
+  "compatibility_date": "2026-09-22",
+  "assets": {
+    "directory": "."
+  }
+}

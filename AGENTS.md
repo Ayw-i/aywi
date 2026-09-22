@@ -21,9 +21,12 @@ https://nhl-proxy.aywi.workers.dev — available in JS as the `WORKER` const
 
 Example: https://nhl-proxy.aywi.workers.dev/v1/club-stats/NYI/20252026/2
 
-`/polymarket/` passes any gamma-api path straight through, so endpoints beyond
-`events` (e.g. `public-search`) work without a Worker change. Worker source is in
-nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
+`/polymarket/` only passes through the gamma-api paths listed in `POLYMARKET_PATHS`
+(currently `/events` and `/public-search`) — add a path there to use a new endpoint.
+The Worker only answers pages from `ALLOWED_ORIGINS` (the public site) and local
+Live Server (localhost / 127.0.0.1, any port); requests from other sites get a 403.
+A new domain for the site must be added to `ALLOWED_ORIGINS` or the site breaks.
+Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
 
 ---
 
@@ -62,6 +65,8 @@ nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
 ├── fights.json         ← Fight records, used by the fight overlay
 ├── dev.js              ← DEV ONLY state switcher (remove before production)
 ├── nhl-proxy-worker.js ← Worker source reference
+├── wrangler.jsonc      ← Cloudflare deploy config for the site (stops auto-setup guessing Hugo)
+├── .assetsignore       ← Files kept off the public site (.git, docs, *.md, …)
 ├── assets/             ← Images, GIFs, video, audio (+ king-of-shutouts/, short-king/,
 │                         sorokin-water/, "pondering maclean"/ subfolders)
 ├── js/

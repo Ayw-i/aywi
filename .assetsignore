@@ -1,0 +1,19 @@
+# Files Cloudflare should NOT upload as part of the public site.
+# (Same syntax as .gitignore.) The site's deploy uploads the whole repo folder,
+# so anything not listed here becomes publicly downloadable.
+
+# Git internals — the full repo history. Its packfile is also far over
+# Cloudflare's 25 MiB per-file limit, so uploading it would fail the deploy.
+.git
+
+# Local tooling / editor settings
+.claude
+.vscode
+
+# Project docs and reference files — not part of the site
+*.md
+docs
+nhl-proxy-worker.js
+.gitignore
+.assetsignore
+wrangler.jsonc
