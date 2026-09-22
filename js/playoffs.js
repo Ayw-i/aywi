@@ -1253,6 +1253,27 @@ function showInfohazardDialog() {
 
 // --- Main ---
 
+// Jim Mora, in place of an empty today's-games list and empty bracket, for the
+// stretch of a new season before NYI have clinched or been eliminated.
+// 28pt matches the front page's long-headline size (see renderMoodState).
+function renderPlayoffsGag() {
+  var BIG = 'font-size:28pt;font-weight:bold;line-height:1.1;margin:16px 0 30px 0;';
+  var gagEl = document.getElementById('playoffs-gag');
+  if (!gagEl) return;
+
+  gagEl.innerHTML =
+    '<div style="' + BIG + '">Playoffs? Don\'t talk about-- playoffs!? You kidding me? Playoffs!?</div>' +
+    '<img src="assets/playoffs-questionmark-exclamationpoint.jpg" alt="" ' +
+      'style="max-width:50%;display:block;margin:0 auto;">' +
+    '<div style="' + BIG + '">I just hope we can get in!</div>';
+  gagEl.style.display = '';
+
+  var todaySection   = document.getElementById('today-games-section');
+  var bracketSection = document.getElementById('bracket-section');
+  if (todaySection)   todaySection.style.display   = 'none';
+  if (bracketSection) bracketSection.style.display = 'none';
+}
+
 async function loadPlayoffsPage() {
   var season  = getSelectedSeason();
   var year    = parseInt(season.slice(4), 10);
@@ -1271,6 +1292,7 @@ async function loadPlayoffsPage() {
 
   try {
     var bracketData, seedLabels = {}, todayGames = [], pbpResults = [];
+    var nyiFateSettled = false;
 
     if (isCurrent) {
       var results = await Promise.all([
@@ -1293,6 +1315,18 @@ async function loadPlayoffsPage() {
         }
       });
 
+      // Has NYI clinched ("x"/"y"/"z") or been eliminated ("e") yet this season?
+      // /v1/standings/now serves last season's FINAL standings until the new
+      // season's first games are played, so its clinchIndicator is stale through
+      // the off-season and preseason (it reads "e" all summer if NYI missed).
+      // Only trust it when the row's own seasonId matches the season we're
+      // viewing — otherwise treat NYI's fate as still undecided.
+      (standData.standings || []).forEach(function (t) {
+        var abbrev = t.teamAbbrev && (t.teamAbbrev.default || t.teamAbbrev);
+        if (abbrev !== 'NYI') return;
+        if (String(t.seasonId) === season && t.clinchIndicator) nyiFateSettled = true;
+      });
+
       todayGames = (scoreData.games || []).filter(function (g) { return g.gameType === 3; });
       pbpResults = await Promise.all(
         todayGames.map(function (g) {
@@ -1303,6 +1337,16 @@ async function loadPlayoffsPage() {
       );
     } else {
       bracketData = await fetch(WORKER + '/v1/playoff-bracket/' + year).then(function (r) { return r.json(); });
+    }
+
+    // Current season, NYI not yet clinched or eliminated — there's no bracket
+    // worth showing yet, so run the gag instead. Past seasons are never
+    // affected: they always have a settled bracket and skip this entirely.
+    if (isCurrent && !nyiFateSettled) {
+      renderPlayoffsGag();
+      document.getElementById('footer').textContent =
+        'Last updated: ' + new Date().toLocaleTimeString();
+      return;
     }
 
     // Today's games (current season only)
