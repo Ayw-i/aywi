@@ -147,6 +147,38 @@
       line-height: 1;
     }
 
+    /* Text with a small note on hover (box styled like the GameScore
+       breakdown). Deliberately no dotted underline — it's a hidden aside, and
+       only the help cursor hints at it. Pure CSS :hover rather than mouseenter,
+       because the pregame countdown re-renders every minute and a re-rendered
+       element wouldn't get a fresh mouseenter under a still mouse. */
+    .hover-note {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .hover-note-box {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 6px;
+      width: 200px;
+      z-index: 999;
+      background: #111;
+      border: 1px solid #555;
+      padding: 5px 7px;
+      font-size: 8pt;
+      font-weight: normal;
+      line-height: 1.4;
+      color: #ccc;
+      white-space: normal;
+    }
+
+    .hover-note:hover .hover-note-box { display: block; }
+
     #game-headline {
       font-size: 11pt;
       margin: 12px 0;

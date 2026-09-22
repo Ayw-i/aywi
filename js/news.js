@@ -1,3 +1,13 @@
+// Some feeds (Lighthouse Hockey) wrap titles in CDATA, so HTML entities like
+// "&#8211;" reach us as literal text instead of "–". This decodes them using an
+// inert HTML document: DOMParser documents never run scripts or load images,
+// and only the resulting plain text is kept. That text is still only ever put
+// on the page with textContent, so decoded "<...>" shows as text, never markup.
+function decodeEntities(text) {
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  return doc.documentElement.textContent;
+}
+
 function parseFeed(xmlText, sourceName) {
   const parser = new DOMParser();
   const doc    = parser.parseFromString(xmlText, 'text/xml');
@@ -8,7 +18,7 @@ function parseFeed(xmlText, sourceName) {
 
   return items.map(function (item) {
     const headline = item.querySelector('title')
-      ? item.querySelector('title').textContent.trim() : '';
+      ? decodeEntities(item.querySelector('title').textContent).trim() : '';
 
     let url = '';
     if (isAtom) {

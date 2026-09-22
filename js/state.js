@@ -156,6 +156,10 @@ function renderMoodState(stateName, overrides) {
     headline.innerHTML =
       '<a href="' + state.headlineLink + '" style="color:white;text-decoration:underline;">' +
       state.headline + '</a>';
+  } else if (state.headlineHTML) {
+    // Only for markup this code builds itself (e.g. the countdown's hover
+    // note) — never for text that comes from an API or feed.
+    headline.innerHTML = state.headlineHTML;
   } else {
     headline.textContent = state.headline;
   }
@@ -455,6 +459,15 @@ async function getRegularSeasonState(data) {
           headline: 'Game in ' + formatCountdown(minsToPuckDrop) + '.',
           headlineFontSize: '28pt',
         };
+        // Under an hour, the listed start time is close enough that the gap to
+        // the real puck drop (anthems, intros) matters — say so on hover.
+        if (minsToPuckDrop < 60) {
+          pregameOverrides.headlineHTML = 'Game in ' +
+            '<span class="hover-note">' + formatCountdown(minsToPuckDrop) +
+              '<span class="hover-note-box">...plus the 7-12 minutes it takes to actually ' +
+              'start after it says it&rsquo;s gonna start</span>' +
+            '</span>.';
+        }
       }
     }
     return { stateName: 'pregame', overrides: pregameOverrides, gameObj: nyiGame };
