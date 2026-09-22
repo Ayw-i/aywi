@@ -234,6 +234,21 @@
       color: white;
     }
 
+    /* News table keeps a fixed size so the « Prev / Next » links under it never
+       move: fixed column widths (see its <colgroup>), one line per row, long
+       headlines cut off with "…" (full text on hover via the link's title).
+       The headline itself is the link to the article. */
+    #news-table {
+      table-layout: fixed;
+    }
+
+    #news-table th,
+    #news-table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     #footer {
       font-size: 9pt;
       margin-top: 50px;
@@ -311,18 +326,24 @@
 
   <div class="fade-section">
     <h2>Islanders News</h2>
-    <table>
+    <table id="news-table">
+      <colgroup>
+        <col>
+        <col style="width:135px;">
+        <col style="width:100px;">
+      </colgroup>
       <thead>
         <tr>
           <th>Headline</th>
           <th>Site</th>
-          <th>Link</th>
+          <th>Date</th>
         </tr>
       </thead>
       <tbody id="news-tbody">
         <tr><td colspan="3">Loading...</td></tr>
       </tbody>
     </table>
+    <div id="news-pager" style="margin-top:8px;"></div>
   </div>
 
   <!-- STATS — hidden by loadRosterStats() until the season has stats to show -->

@@ -116,7 +116,11 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 
 Rendered below the mood section:
 
-1. NEWS AGGREGATE TABLE — Headline | Site | Link (always shown)
+1. NEWS AGGREGATE TABLE — Headline | Site | Date | Link (always shown). Dates are
+   relative ("12m ago", "3h ago", "Yesterday", then "Sep 18"). « Prev / Next » paging
+   under the table: page 1 is balanced (≤ maxPerSource per feed), pages 2+ are the
+   rest newest-first, up to maxPages — all from the articles already fetched, so
+   paging makes no extra requests (settings in config.json `news`)
 2. ROSTER STATS TABLES (from NHL API)
    - Forwards: Name | GP | G | A | PTS | +/-
    - Defensemen: Name | GP | G | A | PTS | +/-

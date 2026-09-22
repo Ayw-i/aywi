@@ -52,7 +52,8 @@
 
   "news": {
     "maxPerSource": 5,
-    "maxTotal": 12,
+    "pageSize": 12,
+    "maxPages": 10,
     "sources": [
       { "key": "lighthouse",  "name": "Lighthouse Hockey" },
       { "key": "nypost",      "name": "NY Post" },
@@ -100,7 +101,7 @@
     "postFinalsWindowDays": "How many days after the Stanley Cup Final's last game the post_finals congratulatory state stays up before switching to offseason.",
     "preseasonStartEstimateMonthDay": "MM-DD fallback used for the offseason countdown when next season's preseason schedule isn't published by the NHL API yet.",
     "scheduleOutCutoffDays": "Once next season's schedule is published, how many days out from the first preseason game the offseason countdown takes back over from the schedule_out state (which shows the full schedule table instead of a countdown).",
-    "news": "Sources are Islanders-specific feeds only. Each key must also exist in the FEEDS map in the Worker (nhl-proxy-worker.js, edited in the Cloudflare dashboard) or that feed 404s. maxPerSource caps each feed; maxTotal caps the merged, date-sorted table. See the Worker comments for league-wide feeds that were checked and rejected.",
+    "news": "Sources are Islanders-specific feeds only. Each key must also exist in the FEEDS map in the Worker (nhl-proxy-worker.js, edited in the Cloudflare dashboard) or that feed 404s. Page 1 of the news table is the balanced front page: at most maxPerSource from each feed, merged by date, pageSize rows. Pages 2+ are everything else the feeds returned, newest first, pageSize per page, up to maxPages pages in total. Paging only uses articles already fetched, so it costs no extra requests. See the Worker comments for league-wide feeds that were checked and rejected.",
     "kingOfShutoutsImages": "Pool of Sorokin shutout images, picked at random by randomShatautImg() in js/live-scoreboard.js when NYI shut out an opponent with Sorokin in net.",
     "vezinaMoodImages": "Sorokin's mood on sorokin.html by live Vezina probability — first entry whose threshold the probability exceeds wins, so keep this sorted high to low with a 0 entry last. Bypassed when the market belongs to a past season (see vezinaNewSeasonImage).",
     "vezinaResolvedText": "Shown on sorokin.html instead of live odds — live odds on a decided award would just read 0%/100%. 'won'/'lost' react to the result once the market closes. 'newSeason' shows when the market belongs to an EARLIER season than the one we're in (determined by the market's endDate year vs. getSelectedSeason()), i.e. polymarketVezinaSlug hasn't been pointed at the current season's market. That's the indefinite resting state — Polymarket doesn't always create one (there was no 2024-25 Vezina market at all).",
