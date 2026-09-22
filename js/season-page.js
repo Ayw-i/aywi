@@ -72,12 +72,18 @@ function goalieColor(shortLoad, longLoad, isB2B) {
 function fetchGoalieMap() {
   var season = getSelectedSeason();
 
-  return fetch(WORKER + '/v1/roster/NYI/' + season)
+  // Source the goalie list from club-stats, NOT /v1/roster/NYI/{season}: the
+  // roster endpoint returns the current organizational roster, so goalies who
+  // have since left are missing from past seasons (e.g. 2025-26 lists Sorokin
+  // and Varlamov, omitting Rittich's 28 starts and Hogberg entirely). club-stats
+  // lists everyone who actually appeared for NYI that season, which is also
+  // exactly who could have started a game.
+  return fetch(WORKER + '/v1/club-stats/NYI/' + season + '/2')
     .then(function (r) { return r.json(); })
     .then(function (d) {
       var goalies = d.goalies || [];
       return Promise.all(goalies.map(function (g) {
-        return fetch(WORKER + '/v1/player/' + g.id + '/game-log/' + season + '/2')
+        return fetch(WORKER + '/v1/player/' + g.playerId + '/game-log/' + season + '/2')
           .then(function (r) { return r.json(); })
           .then(function (d) {
             return { lastName: g.lastName.default, log: d.gameLog || [] };
