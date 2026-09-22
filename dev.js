@@ -37,6 +37,32 @@ function mockScheduleGame(abbrev, gameState, nyiScore, oppScore, daysFromNow, is
   };
 }
 
+// Helper: build a small fake full-schedule slate for previewing the
+// Schedule-Out table (needs startTimeUTC/easternUTCOffset, unlike
+// mockScheduleGame, since renderScheduleOutTable formats real game times).
+function devMockScheduleOutGames() {
+  var opponents = [
+    { abbrev: 'PHI', isHome: true,  daysFromNow: 5,  hour: 19 },
+    { abbrev: 'CAR', isHome: false, daysFromNow: 7,  hour: 13 },
+    { abbrev: 'BOS', isHome: true,  daysFromNow: 9,  hour: 19 },
+    { abbrev: 'NYR', isHome: false, daysFromNow: 11, hour: 19 },
+  ];
+  return opponents.map(function (o) {
+    var d = new Date();
+    d.setDate(d.getDate() + o.daysFromNow);
+    var utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), o.hour + 4, 0, 0)); // ET -> UTC
+    return {
+      gameType: 2,
+      gameDate: d.toISOString().slice(0, 10),
+      gameState: 'FUT',
+      startTimeUTC: utc.toISOString(),
+      easternUTCOffset: '-04:00',
+      awayTeam: { abbrev: o.isHome ? o.abbrev : 'NYI' },
+      homeTeam: { abbrev: o.isHome ? 'NYI' : o.abbrev },
+    };
+  });
+}
+
 // Mock data scenarios — each calls detectAndRenderState() with fake API data
 // so the real detection logic is exercised, not just the visual renderer.
 const DEV_MOCK_SCENARIOS = {
@@ -56,6 +82,12 @@ const DEV_MOCK_SCENARIOS = {
     todayGames: [{ gameType: 3, gameState: 'LIVE', awayTeam: { abbrev: 'BOS' }, homeTeam: { abbrev: 'TBL' } }],
     monthGames: [],
   },
+  // These bypass the real off-season detection (which hits the live NHL API) —
+  // handled specially in devSetMockState below.
+  'Mock: Post-Finals':   { direct: 'post_finals' },
+  'Mock: Offseason':     { direct: 'offseason' },
+  'Mock: Preseason':     { direct: 'preseason' },
+  'Mock: Schedule Out':  { direct: 'schedule_out' },
 
   // --- Post-game (game finished today) ---
   'Mock: Win today': {
@@ -158,7 +190,7 @@ const DEV_MOCK_SCENARIOS = {
 };
 
 const DEV_MOCK_GROUPS = [
-  { label: 'Season',    states: ['Mock: Sorover', 'Mock: Clinched', 'Mock: Outside In'] },
+  { label: 'Season',    states: ['Mock: Sorover', 'Mock: Clinched', 'Mock: Outside In', 'Mock: Post-Finals', 'Mock: Offseason', 'Mock: Preseason', 'Mock: Schedule Out'] },
   { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Shutout win', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
   { label: 'Between',   states: ['Mock: Between (last W)', 'Mock: Between (last L)'] },
   { label: 'Pre-Game',  states: ['Mock: Pre-game'] },
@@ -321,9 +353,26 @@ function devSetMockState(name) {
     document.querySelectorAll('.fade-section').forEach(function (el) { el.style.display = ''; });
   }
 
-  // Call the real detection function with mock data — exercises the full pipeline
   _devLastMockName = name;
-  detectAndRenderState(mockData);
+
+  if (mockData.direct) {
+    // Renders the state directly instead of through detection — these states
+    // depend on live NHL playoff-bracket/schedule data that a static mock can't fake.
+    clearGameSection();
+    var headlines = {
+      post_finals:   'Congratulations to... who cares, not us.',
+      offseason:     'Days until Isles hockey begins (preseason): 47',
+      preseason:     'Preseason. Real hockey soon.',
+      schedule_out:  '',
+    };
+    renderMoodState(mockData.direct, { headline: headlines[mockData.direct] || '' });
+    if (mockData.direct === 'schedule_out' && typeof renderScheduleOutTable === 'function') {
+      renderScheduleOutTable(devMockScheduleOutGames());
+    }
+  } else {
+    // Call the real detection function with mock data — exercises the full pipeline
+    detectAndRenderState(mockData);
+  }
 
   // Always show everything immediately in dev mode
   setTimeout(function () {

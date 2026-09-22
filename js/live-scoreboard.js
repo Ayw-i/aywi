@@ -217,6 +217,13 @@ function buildLiveHeader(boxscore, plays) {
                     : pd.periodType === 'SO' ? '/SO'
                     : '';
     clockStr = 'Final' + finalSuffix;
+    // Link through to the full box score, unless we're already on game.html
+    var onGamePage = /game\.html$/.test(window.location.pathname);
+    if (boxscore.id && !onGamePage) {
+      clockStr = '<a href="game.html?id=' + encodeURIComponent(boxscore.id) + '" ' +
+        'title="Full box score" style="color:' + LINK_TINT + ';text-decoration:underline;">' +
+        clockStr + '</a>';
+    }
   } else if (clock.inIntermission) {
     var isPlayoff = boxscore.gameType === 3;
     var intLabel = null;

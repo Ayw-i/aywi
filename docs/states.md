@@ -14,13 +14,51 @@ the entire top section content, background color, and audio. Detection runs on p
 4. Playoff games today but NYI is not in them               → Outside In
 5. clinchIndicator = "e" for NYI                            → Sorover
 6. clinchIndicator = "x" / "y" / "z" for NYI               → Clinched
-7. Preseason (gameType 01) active                           → Pre-season + counter  [TODO]
+7. Preseason (gameType 01) active                           → Pre-season + counter  [TODO — see note below]
 8. Live game in progress (gameState LIVE / CRIT)            → Live (scoreboard)
 9. Game today, not started (gameState FUT / PRE)            → Pre-game
 10. Game today, final (gameState OFF / FINAL)               → Win / Loss / Loser Point
 11. No game today, regular season                           → Persist last Win/Loss state
-12. No games in API                                         → Off-season (counter only)  [TODO]
+12. No NYI games this month AND Stanley Cup Final decided,
+    < postFinalsWindowDays (config.json, default 7) since
+    the Final's last game                                   → Post-Finals
+13. No NYI games this month, Final decided, ≥ postFinalsWindowDays
+    since, AND next season's schedule not yet published      → Off-season (estimate counter)
+14. No NYI games this month, next season's schedule published,
+    and today >= first preseason game's date                 → Preseason (placeholder)
+15. No NYI games this month, next season's schedule published,
+    <= scheduleOutCutoffDays (config.json, default 10) until
+    the first preseason game                                 → Off-season (real counter)
+16. No NYI games this month, next season's schedule published,
+    month is Aug or Sep, and neither of the above two windows
+    apply (still far from preseason, or no preseason games
+    listed yet)                                               → Schedule Out (schedule table)
+17. No NYI games this month AND Final not yet decided (or Final
+    lookup failed) — persist last clinch mood (Sorover/Clinched)
+    IF the current month is one of that mood's allowed months
+    (config.json stateMonthGates); otherwise fall back to
+    Preseason rather than trusting stale/absent clinch data.
 ```
+
+Rules 12-16 apply regardless of whether NYI made the Final — they key off the
+league-wide Final result (bracket series `O`), not NYI's own season outcome. This
+is why they sit ahead of rule 17's "persist last clinch mood": once the whole
+playoffs are over, the site shouldn't keep showing NYI's old Sorover/Clinched
+mood indefinitely.
+
+Rule 17's month-gate check exists specifically because of a real bug: in
+September, `getStanleyCupFinalEndDate()` used to look up next year's playoff
+bracket (fixed now — it derives the bracket year from the current date's own
+month, not an off-by-one), so it always returned nothing, and the code fell
+through to Sorover/Clinched with no sanity check at all. Rules 13-16 (and the
+new Preseason/Schedule-Out states) close that gap with real logic; the rule 17
+gate is a backstop in case that logic still can't resolve anything (e.g. a
+live-fetch failure).
+
+Rule 7's "Preseason" is currently only the bare-bones placeholder built for
+rules 14/17 above (no image/audio, no per-game detail) — not a full detection
+against today's actual preseason schedule. The fuller version (showing "Game N
+of preseason today" etc.) is still `[TODO]`.
 
 ---
 
@@ -31,14 +69,62 @@ the entire top section content, background color, and audio. Detection runs on p
 | Playoffs Active      | TBD        | TBD                          | See sub-states below                  | TBD                          | Yes    |
 | Playoffs Eliminated  | TBD        | TBD                          | TBD                                   | TBD                          | Yes    |
 | Outside In           | #000000    | now_im_on_the_outside.png    | "OUTSIDE IN" (link to playoffs.html)  | None                         | No     |
+| Post-Finals          | #000000    | now_im_on_the_outside.png    | "Congratulations to... who cares, not us." (link to playoffs.html) | None | No |
 | Sorover              | #2bae66    | sorover.png                  | "IT'S SOROVER"                        | only posers fall in love.mp3 | Yes    |
 | Clinched             | #000000    | roblox engvall.png           | "Clinched."                           | None                         | Yes    |
-| Pre-season           | TBD        | TBD                          | Counter + regular layout              | TBD                          | Yes    |
+| Pre-season           | TBD        | TBD                          | Counter + regular layout (fuller version, still TODO) | TBD | Yes |
+| Preseason (placeholder) | #000000 | None                       | "Preseason. Real hockey soon." (config.json)          | None | Yes |
+| Schedule Out         | #000000    | None                          | "NEW YEAR, NEW ME" + #/Date/Opponent schedule table   | None | Yes |
 | Live                 | #000000    | None (scoreboard layout)     | See response-text.md                  | TBD                          | Yes    |
 | Pre-game             | #000000    | TBD                          | "Game today."                         | TBD                          | Yes    |
 | Win                  | #000000    | lee.png (30% width)          | See response-text.md                  | TBD                          | Yes    |
 | Loss                 | #000000    | pov_sasha_daet_tebe_L.png    | See response-text.md                  | TBD                          | Yes    |
-| Off-season           | #000000    | None                         | "Days until preseason: X"             | None                         | Yes    |
+| Off-season           | #000000    | None                         | See response-text.md                  | None                         | Yes    |
+
+---
+
+## Schedule Out — State Spec
+
+Shows the upcoming regular-season schedule (bare #/Date/Opponent table, no
+results — nothing's been played yet) once the NHL has published next season's
+schedule but it's still too early to start counting down to preseason.
+
+**Trigger (all three must hold):**
+1. Current month is August or September.
+2. Next season's schedule is published (`getUpcomingSeasonSchedule()` finds
+   any `gameType === 2` game — the API returns the full season at once, so
+   any regular-season game found means Oct/Nov/Dec are in there too).
+3. Either more than `config.json`'s `season.scheduleOutCutoffDays` (default
+   10) days remain until the first preseason game, **or** no preseason
+   (`gameType === 1`) games are listed yet at all.
+
+Once within that cutoff window (or preseason has actually started), the
+regular Off-season countdown / Preseason placeholder takes back over — see
+priority rules 13-16 above.
+
+---
+
+## Month Gates (sanity-check backstop)
+
+`config.json`'s `stateMonthGates` lists which calendar months (1=Jan...12=Dec)
+each mood state is allowed to render in — e.g. Sorover/Clinched are gated to
+Oct-Apr, since a team can't be realistically eliminated from (or clinch)
+playoff contention in May-Sep. Checked via `isMonthAllowedForState()` /
+`checkMonthSanity()` in `js/utils.js`.
+
+This is a backstop, not the primary detection logic, and only applies to the
+real-data path (`data.isMock` skips it entirely, so the dev.js state switcher
+can preview any state regardless of the real-world month):
+
+- **Hard block**: only at the final Sorover/Clinched fallback in `applyState()`
+  (rule 17 above) — if the month gate rejects it, render Preseason instead of
+  trusting stale/absent clinch data. This is the actual bug this backstop was
+  built for.
+- **Soft check** (warn-only, everywhere else): `outside_in`, `post_finals`,
+  `offseason`, `preseason`, `schedule_out`, and the main win/loss/live/pregame
+  render call — these are already driven by real API data for "today," so a
+  gate failure here just logs a console warning for debugging rather than
+  overriding what real data already determined.
 
 ---
 
@@ -60,7 +146,8 @@ Source: `GET /v1/standings/now` → `standings[]` → find `teamAbbrev.default =
 
 - **Sorover / Clinched**: shows the previous game finalized scoreboard (see live-game.md)
 - **Live**: mood headline + full live scoreboard below it (see live-game.md)
-- **Win / Loss / Between games**: mood headline only; game section hidden
+- **Win / Loss (game finished today)**: mood headline + that game's finalized scoreboard
+- **Between games (no game today)**: mood headline + previous game's finalized scoreboard
 - **Outside In / Off-season / Pre-season**: game section hidden
 - **Playoffs Active (between games / win / loss)**: game section shows previous playoff game scoreboard + series record
 - **Playoffs Active (pregame / live)**: same as regular season pregame/live; game section hidden / replaced by scoreboard
@@ -133,6 +220,28 @@ NYI lost their playoff series. This is distinct from regular-season Sorover (`cl
 - Audio: TBD
 - Game section: finalized scoreboard from the series-ending game + "Series: [OPP] wins 4–X"
 - Persistent section: shown normally (news + roster)
+
+---
+
+## Post-Finals / Off-season Detection
+
+Runs only when no NYI game was found for the current month window (the existing
+`!gameInfo` fallback) — a real fetch, skipped for dev mock data:
+
+1. `GET /v1/playoff-bracket/{year}` → find `series.seriesLetter === 'O'` (the Final).
+   If it doesn't exist yet, or neither side has 4 wins, the Final isn't over — fall
+   through to the old behavior (persist clinch mood / Sorover default).
+2. If the Final is over, fetch the winning team's full season schedule
+   (`/v1/club-schedule-season/{abbrev}/{season}`) to find the actual date of the
+   last Final game (the bracket API doesn't carry per-game dates itself).
+3. `daysSinceFinal = today − thatDate`.
+   - `< config.season.postFinalsWindowDays` (default 7) → **Post-Finals** state.
+   - Otherwise → **Off-season** state, with a countdown to preseason.
+
+For the Off-season countdown, next season's preseason opener is looked up from
+`/v1/club-schedule-season/NYI/{nextSeason}` (first `gameType === 1` game). If the
+NHL hasn't published that schedule yet, falls back to a fixed estimate —
+`config.season.preseasonStartEstimateMonthDay` (default `09-21`).
 
 ---
 

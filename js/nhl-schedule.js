@@ -51,3 +51,56 @@ function getNYIGameNumber(gameId, games) {
   }
   return null;
 }
+
+// --- Shared schedule-formatting helpers ---
+// (used by season-page.js and state.js's Schedule-Out table)
+
+function formatSeasonDate(dateStr) {
+  var d = new Date(dateStr + 'T12:00:00');
+  var days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function formatGameTime(utcStr, easternOffset) {
+  var d = new Date(utcStr);
+  var offsetHours = parseInt(easternOffset, 10);
+  var local = new Date(d.getTime() + offsetHours * 3600000);
+  var hours = local.getUTCHours();
+  var mins  = local.getUTCMinutes();
+  var ampm  = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return hours + (mins ? ':' + String(mins).padStart(2, '0') : '') + ' ' + ampm;
+}
+
+function getEasternHour(utcStr, easternOffset) {
+  var d = new Date(utcStr);
+  var local = new Date(d.getTime() + parseInt(easternOffset, 10) * 3600000);
+  return local.getUTCHours();
+}
+
+function isWeekendDate(dateStr) {
+  var day = new Date(dateStr + 'T12:00:00').getDay();
+  return day === 0 || day === 6;
+}
+
+function isBackToBack(games, index) {
+  if (index === 0) return false;
+  var prev = new Date(games[index - 1].gameDate + 'T12:00:00');
+  var curr = new Date(games[index].gameDate + 'T12:00:00');
+  return (curr - prev) / 86400000 === 1;
+}
+
+function dateColor(games, index) {
+  var g = games[index];
+  if (isBackToBack(games, index)) return '#CC3333';
+  if (getEasternHour(g.startTimeUTC, g.easternUTCOffset) < 17) return '#FFD700';
+  if (isWeekendDate(g.gameDate)) return '#E8DCC8';
+  return '';
+}
+
+function logoImg(abbrev) {
+  return '<img src="https://assets.nhle.com/logos/nhl/svg/' + abbrev + '_light.svg"' +
+    ' width="18" style="vertical-align:middle;margin-right:4px;"' +
+    ' onerror="this.style.display=\'none\'">';
+}

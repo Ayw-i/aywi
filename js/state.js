@@ -25,6 +25,14 @@ const STATES = {
     audioSrc: null,
     fades: false,
   },
+  post_finals: {
+    background: '#000000',
+    image: 'assets/now_im_on_the_outside.png',
+    headline: '',
+    headlineLink: 'playoffs.html',
+    audioSrc: null,
+    fades: false,
+  },
   shutout_win: {
     background: '#000000',
     image: 'assets/hey-ovi-tell-me-how.jpg',
@@ -76,6 +84,22 @@ const STATES = {
     audioSrc: null,
     fades: true,
   },
+  preseason: {
+    background: '#000000',
+    image: null,
+    headline: '',
+    headlineLink: null,
+    audioSrc: null,
+    fades: true,
+  },
+  schedule_out: {
+    background: '#000000',
+    image: null,
+    headline: 'NEW YEAR, NEW ME',
+    headlineLink: null,
+    audioSrc: null,
+    fades: true,
+  },
 };
 
 function renderMoodState(stateName, overrides) {
@@ -93,6 +117,11 @@ function renderMoodState(stateName, overrides) {
   if (sitImg) sitImg.parentNode.removeChild(sitImg);
   var sitAbove = document.getElementById('situation-above');
   if (sitAbove) sitAbove.parentNode.removeChild(sitAbove);
+
+  // Clear the Schedule-Out table unless we're re-entering that state
+  // (renderScheduleOutTable repopulates it right after this call)
+  var scheduleOutTable = document.getElementById('schedule-out-table');
+  if (scheduleOutTable && stateName !== 'schedule_out') scheduleOutTable.innerHTML = '';
 
   // Stop YouTube if a review overlay was active
   if (typeof _ytMode !== 'undefined' && _ytMode) {
@@ -178,7 +207,15 @@ function renderPreviousGameScore(game, nyiGameNum) {
   var home    = game.homeTeam || {};
   var away    = game.awayTeam || {};
   var outcome = (game.gameOutcome && game.gameOutcome.lastPeriodType) || 'REG';
-  var finalLabel = outcome === 'REG' ? 'Final' : 'Final/' + outcome;
+  var finalText  = outcome === 'REG' ? 'Final' : 'Final/' + outcome;
+  // "Final" links through to the full box score on game.html. Mauve-tinted gray
+  // (vs the #aaa of the surrounding label) so it reads as a link without going
+  // bright white.
+  var finalLabel = game.id
+    ? '<a href="game.html?id=' + encodeURIComponent(game.id) + '" ' +
+      'title="Full box score" style="color:' + LINK_TINT + ';text-decoration:underline;">' +
+      finalText + '</a>'
+    : finalText;
   if (nyiGameNum) {
     var nhlGameNum = (game.gameType === 2 && game.id)
       ? parseInt(String(game.id).slice(-4), 10) : null;
@@ -202,6 +239,45 @@ function renderPreviousGameScore(game, nyiGameNum) {
       '<td width="30%" align="center" style="border:none;font-size:9pt;color:#aaa;letter-spacing:1px;text-transform:uppercase;">' + finalLabel + '</td>' +
       teamCell(home) +
     '</tr></table>';
+}
+
+// Bare #/Date/Opponent schedule table for the Schedule-Out state — nothing's
+// been played yet, so no result/score/record columns. Reuses the shared
+// formatting helpers from nhl-schedule.js (same look as season.html).
+function renderScheduleOutTable(games) {
+  var container = document.getElementById('schedule-out-table');
+  if (!container) return;
+  var regGames = games.filter(function (g) { return g.gameType === 2; });
+  if (!regGames.length) { container.innerHTML = ''; return; }
+
+  var TH = 'style="padding:4px 8px;font-size:9pt;color:#666;text-align:left;border-bottom:1px solid #333;"';
+  var rows = regGames.map(function (g, i) {
+    var isHome    = g.homeTeam.abbrev === 'NYI';
+    var opp       = isHome ? g.awayTeam : g.homeTeam;
+    var dc        = dateColor(regGames, i);
+    var dateStyle = dc ? 'color:' + dc + ';' : '';
+    var time      = formatGameTime(g.startTimeUTC, g.easternUTCOffset);
+    var dateCell  = formatSeasonDate(g.gameDate) +
+      '<br><span style="font-size:8pt;opacity:0.6;">' + time + '</span>';
+    var prefix = isHome ? 'vs ' : '@ ';
+    var rowBg  = i % 2 === 1 ? 'background-color:#0d0d0d;' : '';
+    var TD     = 'style="padding:3px 8px;font-size:10pt;';
+    return '<tr style="' + rowBg + '">' +
+      '<td style="padding:3px 6px;text-align:right;font-size:9pt;color:#444;">' + (i + 1) + '</td>' +
+      '<td ' + TD + dateStyle + '">' + dateCell + '</td>' +
+      '<td ' + TD + '">' + prefix + logoImg(opp.abbrev) + opp.abbrev + '</td>' +
+      '</tr>';
+  }).join('');
+
+  container.innerHTML =
+    '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
+    '<table style="width:100%;border-collapse:collapse;">' +
+    '<thead><tr>' +
+      '<th ' + TH + ' style="text-align:right;">#</th>' +
+      '<th ' + TH + '>Date</th>' +
+      '<th ' + TH + '>Opponent</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>' +
+    '</td></tr></table>';
 }
 
 
@@ -284,25 +360,37 @@ function getResponseText(config, situation, params) {
     case 'between_loss':
       return r.between_games.last_was_loss
         .replace('{nextGameDay}', params.nextGameDay || 'soon');
+    case 'post_finals':
+      return r.post_finals;
+    case 'offseason':
+      return r.offseason.replace('{days}', String(params.days));
+    case 'preseason':
+      return r.preseason;
     default: return '';
   }
 }
 
 // --- Regular season state ---
 
+// Preseason (1) and regular season (2) games both count as "a game NYI played" —
+// playoffs (3) are handled separately upstream in applyState().
+function isCountedGame(g) {
+  return g.gameType === 1 || g.gameType === 2;
+}
+
 async function getRegularSeasonState(data) {
   const { todayGames, monthGames, config } = data;
 
   const nyiGame = todayGames.find(function (g) {
-    return g.gameType === 2 && isNYIGame(g);
+    return isCountedGame(g) && isNYIGame(g);
   });
 
   if (!nyiGame) {
     const completed = monthGames.filter(function (g) {
-      return isNYIGame(g) && (g.gameState === 'OFF' || g.gameState === 'FINAL');
+      return isCountedGame(g) && isNYIGame(g) && (g.gameState === 'OFF' || g.gameState === 'FINAL');
     });
     const upcoming = monthGames.filter(function (g) {
-      return isNYIGame(g) && (g.gameState === 'FUT' || g.gameState === 'PRE');
+      return isCountedGame(g) && isNYIGame(g) && (g.gameState === 'FUT' || g.gameState === 'PRE');
     });
     const lastGame  = completed[completed.length - 1] || null;
     const nextGame  = upcoming[0] || null;
@@ -370,37 +458,212 @@ const CLINCH_STATE_OVERRIDES = {
   'clinched': ['win', 'loss'],
 };
 
+// --- Off-season detection ---
+
+function daysBetween(a, b) {
+  var oneDay = 24 * 60 * 60 * 1000;
+  var utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  var utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((utcB - utcA) / oneDay);
+}
+
+// Finds when the Stanley Cup Final (bracket series 'O') was decided, regardless of
+// whether NYI was in it. Returns null if the Final hasn't concluded (or bracket data
+// isn't available yet, e.g. early in the season).
+async function getStanleyCupFinalEndDate() {
+  var now = new Date();
+  // NHL Finals are always decided in spring. Only roll back to last calendar
+  // year in Jan-Mar, before that year's own playoffs have happened yet —
+  // every other month (including Sep-Dec) should look at the current year's
+  // bracket, since that's the one that most recently concluded.
+  var bracketYear = now.getMonth() <= 2 ? now.getFullYear() - 1 : now.getFullYear();
+  try {
+    var bracketData = await fetch(WORKER + '/v1/playoff-bracket/' + bracketYear)
+      .then(function (r) { return r.json(); });
+    var finalSeries = (bracketData.series || []).find(function (s) { return s.seriesLetter === 'O'; });
+    if (!finalSeries) return null;
+
+    var topWins    = finalSeries.topSeedWins    || 0;
+    var bottomWins = finalSeries.bottomSeedWins || 0;
+    if (topWins < 4 && bottomWins < 4) return null;
+
+    var topAbbrev    = (finalSeries.topSeedTeam    || {}).abbrev;
+    var bottomAbbrev = (finalSeries.bottomSeedTeam || {}).abbrev;
+    if (!topAbbrev || !bottomAbbrev) return null;
+
+    // The season string for the season that just concluded — derived from
+    // bracketYear rather than getSelectedSeason(), which reflects whatever
+    // season is *currently* underway and would be wrong here once a new
+    // season has since started (e.g. looking up June 2026's Final in Sept 2026).
+    var finalSeasonStr = (bracketYear - 1) + '' + bracketYear;
+    var schedData = await fetch(WORKER + '/v1/club-schedule-season/' + topAbbrev + '/' + finalSeasonStr)
+      .then(function (r) { return r.json(); });
+    var finalGames = (schedData.games || []).filter(function (g) {
+      if (g.gameType !== 3) return false;
+      if (g.gameState !== 'OFF' && g.gameState !== 'FINAL') return false;
+      var ha = (g.homeTeam || {}).abbrev, aa = (g.awayTeam || {}).abbrev;
+      return (ha === topAbbrev && aa === bottomAbbrev) || (ha === bottomAbbrev && aa === topAbbrev);
+    }).sort(function (a, b) { return (a.id || 0) - (b.id || 0); });
+
+    if (!finalGames.length) return null;
+    var lastGame = finalGames[finalGames.length - 1];
+    return lastGame.gameDate ? new Date(lastGame.gameDate + 'T12:00:00') : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Fetches next season's full schedule, keyed off the year the most recently
+// concluded Final was decided (not `now`, which has the Sep-Dec ambiguity
+// getStanleyCupFinalEndDate had). Returns [] if the NHL hasn't published it yet.
+async function getUpcomingSeasonSchedule(finalEndDate) {
+  var finalYear = finalEndDate.getFullYear();
+  var upcomingSeason = finalYear + '' + (finalYear + 1); // Final decided in 2026 -> next season "20262027"
+  try {
+    var schedData = await fetch(WORKER + '/v1/club-schedule-season/NYI/' + upcomingSeason)
+      .then(function (r) { return r.json(); });
+    return schedData.games || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Fallback estimate for the summer stretch before next season's schedule is published.
+function getEstimatedPreseasonStartDate(config) {
+  var now = new Date();
+  var startYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  var monthDay = (config.season && config.season.preseasonStartEstimateMonthDay) || '09-21';
+  var parts = monthDay.split('-');
+  return new Date(startYear + 1, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10), 12, 0, 0);
+}
+
 // --- Top-level state application ---
 
 async function applyState(data) {
-  const { standings, todayGames } = data;
+  const { standings, todayGames, config } = data;
 
   if (todayGames.some(function (g) { return g.gameType === 3; })) {
+    if (!data.isMock) checkMonthSanity(config, 'outside_in');
     renderMoodState('outside_in');
     clearGameSection();
     return 'outside_in';
   }
 
-  const nyi        = standings.standings.find(function (t) { return t.teamAbbrev.default === 'NYI'; });
-  const clinch     = nyi ? nyi.clinchIndicator : null;
-  const clinchMood = clinch ? CLINCH_MOOD_MAP[clinch] : null;
+  const nyi    = standings.standings.find(function (t) { return t.teamAbbrev.default === 'NYI'; });
+  const clinch = nyi ? nyi.clinchIndicator : null;
+  let clinchMood = clinch ? CLINCH_MOOD_MAP[clinch] : null;
+
+  // /v1/standings/now keeps serving last season's final standings until the new
+  // season's start to populate, so in the preseason/off-season stretch the
+  // clinchIndicator is stale ("e" all summer if NYI missed the playoffs). Drop
+  // it when the current month isn't one this mood belongs in, otherwise it
+  // overrides real preseason/early-season game states with Sorover/Clinched.
+  if (!data.isMock && clinchMood && !isMonthAllowedForState(config, clinchMood, new Date())) {
+    console.warn('[state] Ignoring stale "' + clinchMood + '" clinch mood — current month is ' +
+      'outside its expected window (config.stateMonthGates); standings data is likely ' +
+      'left over from last season.');
+    clinchMood = null;
+  }
+
   const clinchOverrides = clinchMood ? CLINCH_STATE_OVERRIDES[clinchMood] : null;
 
   var gameInfo = await getRegularSeasonState(data);
 
   if (!gameInfo) {
-    // No games found — off-season or no data
-    renderMoodState(clinchMood || 'sorover');
+    // No NYI games found this month — could be a mid-season gap, or the whole
+    // playoffs (league-wide) may have wrapped up. Check the latter before falling
+    // back to the persisted clinch mood. Skipped for dev mock data so the mock
+    // panel's Sorover/Clinched buttons aren't overridden by real live season state.
+    var finalEndDate = data.isMock ? null : await getStanleyCupFinalEndDate();
+    if (finalEndDate) {
+      var windowDays = (config.season && config.season.postFinalsWindowDays) || 7;
+      var daysSinceFinal = daysBetween(finalEndDate, new Date());
+      if (daysSinceFinal < windowDays) {
+        if (!data.isMock) checkMonthSanity(config, 'post_finals');
+        renderMoodState('post_finals', { headline: getResponseText(config, 'post_finals') });
+        clearGameSection();
+        return 'post_finals';
+      }
+
+      var upcomingGames = await getUpcomingSeasonSchedule(finalEndDate);
+      var hasRegularSeasonGames = upcomingGames.some(function (g) { return g.gameType === 2; });
+
+      if (!hasRegularSeasonGames) {
+        // Next season's schedule isn't published yet at all (roughly June-early Aug).
+        var estDate = getEstimatedPreseasonStartDate(config);
+        var estDays = Math.max(0, daysBetween(new Date(), estDate));
+        if (!data.isMock) checkMonthSanity(config, 'offseason');
+        renderMoodState('offseason', { headline: getResponseText(config, 'offseason', { days: estDays }) });
+        clearGameSection();
+        return 'offseason';
+      }
+
+      var preseasonGames = upcomingGames
+        .filter(function (g) { return g.gameType === 1 && g.gameDate; })
+        .sort(function (a, b) { return (a.id || 0) - (b.id || 0); });
+      var preseasonStart     = preseasonGames.length ? new Date(preseasonGames[0].gameDate + 'T12:00:00') : null;
+      var daysUntilPreseason = preseasonStart ? daysBetween(new Date(), preseasonStart) : null;
+      var cutoff             = (config.season && config.season.scheduleOutCutoffDays) || 10;
+      var month              = new Date().getMonth() + 1;
+
+      if (preseasonStart && daysUntilPreseason <= 0) {
+        if (!data.isMock) checkMonthSanity(config, 'preseason');
+        renderMoodState('preseason', { headline: getResponseText(config, 'preseason') });
+        clearGameSection();
+        return 'preseason';
+      }
+
+      if (preseasonStart && daysUntilPreseason <= cutoff) {
+        if (!data.isMock) checkMonthSanity(config, 'offseason');
+        renderMoodState('offseason', { headline: getResponseText(config, 'offseason', { days: daysUntilPreseason }) });
+        clearGameSection();
+        return 'offseason';
+      }
+
+      if (month === 8 || month === 9) {
+        if (!data.isMock) checkMonthSanity(config, 'schedule_out');
+        renderMoodState('schedule_out');
+        renderScheduleOutTable(upcomingGames);
+        clearGameSection();
+        return 'schedule_out';
+      }
+
+      // Schedule is out, but it's not Aug/Sep and preseason is still far off
+      // (shouldn't normally happen) — fall back to a generic countdown.
+      var fallbackDays = daysUntilPreseason != null ? daysUntilPreseason
+        : Math.max(0, daysBetween(new Date(), getEstimatedPreseasonStartDate(config)));
+      if (!data.isMock) checkMonthSanity(config, 'offseason');
+      renderMoodState('offseason', { headline: getResponseText(config, 'offseason', { days: fallbackDays }) });
+      clearGameSection();
+      return 'offseason';
+    }
+
+    // No Final data available at all (real fetch failed, or genuinely no month
+    // makes sense for it yet). Only trust the clinch-mood/Sorover default when
+    // the current month is actually plausible for it — otherwise this is the
+    // exact failure mode that used to show Sorover in September.
+    var fallbackMood = clinchMood || 'sorover';
+    if (!data.isMock && !isMonthAllowedForState(config, fallbackMood, new Date())) {
+      console.warn('[state] "' + fallbackMood + '" blocked outside its expected months ' +
+        '(config.stateMonthGates) — rendering preseason placeholder instead.');
+      renderMoodState('preseason', { headline: getResponseText(config, 'preseason') });
+      clearGameSection();
+      return 'preseason';
+    }
+
+    renderMoodState(fallbackMood);
     if (clinchMood) { showGameSection('Previous game:'); fetchAndRenderLastGame(); }
     else            { clearGameSection(); }
-    return clinchMood || 'sorover';
+    return fallbackMood;
   }
 
   // Apply clinch mood override if this game state is in the override list
   var moodOverridden = clinchOverrides && clinchOverrides.indexOf(gameInfo.stateName) !== -1;
   if (moodOverridden) {
+    // clinchMood already passed its month gate above, or it would be null here.
     renderMoodState(clinchMood);
   } else {
+    if (!data.isMock) checkMonthSanity(config, gameInfo.stateName);
     renderMoodState(gameInfo.stateName, gameInfo.overrides);
   }
 
@@ -409,8 +672,13 @@ async function applyState(data) {
     renderLiveGame(gameInfo.gameObj, { nextHomeGame: gameInfo.nextHomeGame || '—', config: data.config });
   }
 
-  // Show previous game section when clinched/eliminated and no active game today
-  if (clinchMood && gameInfo.stateName !== 'live' && gameInfo.stateName !== 'pregame') {
+  // Show the previous game's scoreboard when there's nothing else showing one:
+  // the clinched/eliminated moods, and between-games win/loss (no gameObj, so
+  // renderLiveGame above didn't run). Live/pregame are excluded — live renders
+  // its own scoreboard, and pregame has no result to show yet.
+  var showsOwnScoreboard = !!gameInfo.gameObj;
+  if ((clinchMood || !showsOwnScoreboard) &&
+      gameInfo.stateName !== 'live' && gameInfo.stateName !== 'pregame') {
     showGameSection('Previous game:');
     fetchAndRenderLastGame();
   } else {
@@ -465,7 +733,7 @@ async function detectAndRenderState(mockData) {
       monthGames      = month.games || [];
     }
 
-    const renderedState = await applyState({ standings, todayGames, monthGames, config });
+    const renderedState = await applyState({ standings, todayGames, monthGames, config, isMock: !!mockData });
 
     if (renderedState === 'live' && !mockData) {
       _liveRefreshTimer = setInterval(detectAndRenderState, 30000);

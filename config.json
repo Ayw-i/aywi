@@ -23,7 +23,31 @@
     "between_games": {
       "last_was_win": "Yes, and we'll win again {nextGameDay}.",
       "last_was_loss": "No, but we'll win {nextGameDay}."
-    }
+    },
+    "post_finals": "Congratulations to... who cares, not us.",
+    "offseason": "Days until Isles hockey begins (preseason): {days}",
+    "preseason": "Preseason. Real hockey soon."
+  },
+
+  "season": {
+    "postFinalsWindowDays": 7,
+    "preseasonStartEstimateMonthDay": "09-21",
+    "scheduleOutCutoffDays": 10
+  },
+
+  "stateMonthGates": {
+    "sorover":      [10, 11, 12, 1, 2, 3, 4],
+    "clinched":     [10, 11, 12, 1, 2, 3, 4],
+    "outside_in":   [4, 5, 6],
+    "post_finals":  [5, 6, 7],
+    "offseason":    [6, 7, 8, 9],
+    "schedule_out": [8, 9],
+    "preseason":    [8, 9],
+    "win":          [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+    "loss":         [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+    "shutout_win":  [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+    "live":         [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+    "pregame":      [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
   },
 
   "news": {
@@ -60,6 +84,11 @@
   "notes": {
     "nextGameDay": "Replaced at runtime by JS. 'tomorrow' if next game is the next calendar day, otherwise 'on [day of week, e.g. Monday]'.",
     "nextHomeGame": "Replaced at runtime by JS with the date of the next scheduled home game. Format: 'Saturday, April 19th' (full day name, full month name, day with ordinal suffix).",
-    "loss_ot_so": "Triggered when game ends in OT or SO as a loss. Detected via NHL API lossType field."
+    "loss_ot_so": "Triggered when game ends in OT or SO as a loss. Detected via NHL API lossType field.",
+    "days": "Replaced at runtime by JS with the number of days until the estimated/actual preseason start.",
+    "postFinalsWindowDays": "How many days after the Stanley Cup Final's last game the post_finals congratulatory state stays up before switching to offseason.",
+    "preseasonStartEstimateMonthDay": "MM-DD fallback used for the offseason countdown when next season's preseason schedule isn't published by the NHL API yet.",
+    "scheduleOutCutoffDays": "Once next season's schedule is published, how many days out from the first preseason game the offseason countdown takes back over from the schedule_out state (which shows the full schedule table instead of a countdown).",
+    "stateMonthGates": "Sanity-check backstop (see js/utils.js isMonthAllowedForState/checkMonthSanity) — the calendar months (1=Jan...12=Dec) each mood state is allowed to render in. A state rendering outside its list logs a console warning; for the Sorover/Clinched fallback specifically, it's hard-blocked and replaced with the preseason placeholder instead."
   }
 }

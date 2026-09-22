@@ -1,3 +1,8 @@
+// Link color for links sitting inside muted gray (#aaa) scoreboard label text —
+// a purple/pink-tinted gray, so it reads as a link without jumping to bright
+// white. Tweak here.
+const LINK_TINT = '#c0a8c8';
+
 function ordinalSuffix(d) {
   if (d >= 11 && d <= 13) return 'th';
   return ['th', 'st', 'nd', 'rd'][d % 10] || 'th';
@@ -33,4 +38,22 @@ function formatGAA(val) {
 function formatSVP(val) {
   if (val >= 1) return '1.000';
   return '.' + val.toFixed(3).slice(2);
+}
+
+// --- State month-gate sanity checks ---
+// (see config.json's stateMonthGates — a backstop against a state rendering
+// in a month it shouldn't, e.g. Sorover showing up in September)
+
+function isMonthAllowedForState(config, stateName, date) {
+  var allowed = (config.stateMonthGates || {})[stateName];
+  if (!allowed) return true; // no gate defined = no restriction
+  var month = (date || new Date()).getMonth() + 1; // 1-12
+  return allowed.indexOf(month) !== -1;
+}
+
+function checkMonthSanity(config, stateName) {
+  if (!isMonthAllowedForState(config, stateName, new Date())) {
+    console.warn('[state] "' + stateName + '" is rendering outside its expected ' +
+      'months (see config.json stateMonthGates). Check state-detection logic.');
+  }
 }
