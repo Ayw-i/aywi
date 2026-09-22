@@ -154,8 +154,21 @@ function renderGoalieTable(tbodyId, goalies) {
 
 async function loadStatsPage() {
   try {
-    var res  = await fetch(WORKER + '/v1/club-stats/NYI/20252026/2');
+    // Rolls over to the new season in September; honors a ?season= override.
+    var res  = await fetch(WORKER + '/v1/club-stats/NYI/' + getSelectedSeason() + '/2');
     var data = await res.json();
+
+    // Empty arrays before the regular season starts — say so rather than
+    // rendering three empty tables.
+    if (!(data.skaters || []).length && !(data.goalies || []).length) {
+      ['forwards-tbody', 'defensemen-tbody', 'goalies-tbody'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '<tr><td colspan="13">No stats yet this season.</td></tr>';
+      });
+      document.getElementById('footer').textContent =
+        'Last updated: ' + new Date().toLocaleString();
+      return;
+    }
 
     var forwards = (data.skaters || [])
       .filter(function (p) { return ['C', 'L', 'R'].includes(p.positionCode); })

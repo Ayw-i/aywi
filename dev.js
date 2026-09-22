@@ -37,30 +37,20 @@ function mockScheduleGame(abbrev, gameState, nyiScore, oppScore, daysFromNow, is
   };
 }
 
-// Helper: build a small fake full-schedule slate for previewing the
-// Schedule-Out table (needs startTimeUTC/easternUTCOffset, unlike
-// mockScheduleGame, since renderScheduleOutTable formats real game times).
-function devMockScheduleOutGames() {
-  var opponents = [
-    { abbrev: 'PHI', isHome: true,  daysFromNow: 5,  hour: 19 },
-    { abbrev: 'CAR', isHome: false, daysFromNow: 7,  hour: 13 },
-    { abbrev: 'BOS', isHome: true,  daysFromNow: 9,  hour: 19 },
-    { abbrev: 'NYR', isHome: false, daysFromNow: 11, hour: 19 },
-  ];
-  return opponents.map(function (o) {
-    var d = new Date();
-    d.setDate(d.getDate() + o.daysFromNow);
-    var utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), o.hour + 4, 0, 0)); // ET -> UTC
-    return {
-      gameType: 2,
-      gameDate: d.toISOString().slice(0, 10),
-      gameState: 'FUT',
-      startTimeUTC: utc.toISOString(),
-      easternUTCOffset: '-04:00',
-      awayTeam: { abbrev: o.isHome ? o.abbrev : 'NYI' },
-      homeTeam: { abbrev: o.isHome ? 'NYI' : o.abbrev },
-    };
-  });
+// Renders the Schedule-Out table with the REAL published schedule, so the
+// preview shows exactly what the live state will. Passing today's date to
+// getUpcomingSeasonSchedule resolves the right season during Aug/Sep, which is
+// the only window this state appears in anyway.
+function devRenderScheduleOutTable() {
+  getUpcomingSeasonSchedule(new Date())
+    .then(function (games) {
+      if (!games.length) console.warn('[dev] No schedule returned — table will be empty.');
+      renderScheduleOutTable(games);
+    })
+    .catch(function (err) {
+      console.warn('[dev] Schedule fetch failed; table left empty.', err);
+      renderScheduleOutTable([]);
+    });
 }
 
 // Mock data scenarios — each calls detectAndRenderState() with fake API data
@@ -367,7 +357,7 @@ function devSetMockState(name) {
     };
     renderMoodState(mockData.direct, { headline: headlines[mockData.direct] || '' });
     if (mockData.direct === 'schedule_out' && typeof renderScheduleOutTable === 'function') {
-      renderScheduleOutTable(devMockScheduleOutGames());
+      devRenderScheduleOutTable();
     }
   } else {
     // Call the real detection function with mock data — exercises the full pipeline

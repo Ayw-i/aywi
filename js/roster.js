@@ -73,10 +73,30 @@ function renderGoalieTable(goalies) {
   });
 }
 
+function setStatsSectionVisible(visible) {
+  var section = document.getElementById('stats-section');
+  if (section) section.style.display = visible ? '' : 'none';
+}
+
 async function loadRosterStats() {
   try {
-    const res  = await fetch(WORKER + '/v1/club-stats/NYI/20252026/2');
+    // getSelectedSeason() rolls over to the new season in September (and honors
+    // a ?season= override), so this follows the calendar instead of being pinned
+    // to one hardcoded season.
+    const res  = await fetch(WORKER + '/v1/club-stats/NYI/' + getSelectedSeason() + '/2');
     const data = await res.json();
+
+    // Before the regular season starts the API returns empty arrays — there's
+    // nothing to show, so hide the whole section rather than render empty tables.
+    // This also covers the off-season / preseason / schedule-out states.
+    const hasStats = (data.skaters || []).length > 0 || (data.goalies || []).length > 0;
+    if (!hasStats) {
+      setStatsSectionVisible(false);
+      document.getElementById('footer').textContent =
+        'Last updated: ' + new Date().toLocaleString();
+      return;
+    }
+    setStatsSectionVisible(true);
 
     const forwards   = data.skaters
       .filter(function (p) { return ['C', 'L', 'R'].includes(p.positionCode); })

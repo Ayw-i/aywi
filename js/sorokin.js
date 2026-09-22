@@ -82,15 +82,21 @@ async function loadSorokinPage() {
     var polyPromise = fetch(WORKER + '/polymarket/events?slug=' + slug)
       .catch(function () { return null; });
 
-    var nhlPromise = fetch(WORKER + '/v1/goalie-stats-leaders/20252026/2?limit=50');
+    // Rolls over to the new season in September (honors a ?season= override).
+    // NOTE: the Polymarket slug above is season-specific and has to be updated
+    // by hand — there's no way to derive next season's market URL.
+    var nhlPromise = fetch(WORKER + '/v1/goalie-stats-leaders/' + getSelectedSeason() + '/2?limit=50')
+      .catch(function () { return null; });
 
     var results   = await Promise.all([polyPromise, nhlPromise]);
     var polyRes   = results[0];
     var nhlRes    = results[1];
 
     // --- Polymarket odds ---
-    var sorokinProb = null;
-    var marketUrl   = config.polymarketVezinaUrl || ('https://polymarket.com/event/' + slug);
+    var sorokinProb   = null;
+    var marketClosed  = false;
+    var marketEndYear = null;
+    var marketUrl     = config.polymarketVezinaUrl || ('https://polymarket.com/event/' + slug);
 
     if (polyRes && polyRes.ok) {
       try {
@@ -101,16 +107,56 @@ async function loadSorokinPage() {
           return m.groupItemTitle && m.groupItemTitle.indexOf(SOROKIN_LAST_NAME) !== -1;
         });
         if (sorokinMarket && sorokinMarket.outcomePrices) {
+          // outcomes are ["Yes","No"], so prices[0] is P(Sorokin wins).
+          // Once resolved this is exactly "0" or "1".
           var prices  = JSON.parse(sorokinMarket.outcomePrices);
           sorokinProb = parseFloat(prices[0]);
+        }
+        // A closed/resolved market means the award is already decided, so "live
+        // odds" would just read 0.0% or 100.0%.
+        marketClosed =
+          !!(sorokinMarket && (sorokinMarket.closed ||
+                               sorokinMarket.umaResolutionStatus === 'resolved')) ||
+          !!(event && event.closed);
+
+        // Which season does this market belong to? endDate is the scheduled
+        // resolution (the award is handed out in June of the season's end year)
+        // and is set when the market is created, months before it closes — so
+        // endDate's year IS the season's end year. 2026-06-30 => season 2025-26.
+        var endDateStr = (sorokinMarket && sorokinMarket.endDate) ||
+                         (event && event.endDate) || null;
+        if (endDateStr) {
+          var parsedEnd = new Date(endDateStr);
+          if (!isNaN(parsedEnd)) marketEndYear = parsedEnd.getUTCFullYear();
         }
       } catch (e) {
         console.warn('Polymarket parse error:', e);
       }
     }
 
-    var oddsEl = document.getElementById('vezina-odds');
-    if (sorokinProb !== null) {
+    var oddsEl       = document.getElementById('vezina-odds');
+    var resolvedText = config.vezinaResolvedText || {};
+
+    // Compare the market's season against the season we're actually in. If the
+    // market belongs to an earlier season, config.polymarketVezinaSlug hasn't
+    // been pointed at the current season's market yet (and there may not even
+    // be one — Polymarket had no 2024-25 Vezina market at all).
+    var currentSeasonEndYear = parseInt(getSelectedSeason().slice(4), 10);
+    var isPastSeasonMarket   = marketEndYear !== null && marketEndYear < currentSeasonEndYear;
+
+    if (isPastSeasonMarket) {
+      console.info('[sorokin] Vezina market is for the season ending ' + marketEndYear +
+        ', but we\'re in the season ending ' + currentSeasonEndYear +
+        '. Update polymarketVezinaSlug in config.json if a new market exists.');
+      // Look ahead rather than relitigating a season that's already over.
+      oddsEl.textContent = resolvedText.newSeason ||
+        'Will Sorokin finally win the Vezina this year? Stay tuned...';
+    } else if (marketClosed && sorokinProb !== null) {
+      // This season's award has been decided — react to the actual result.
+      oddsEl.textContent = sorokinProb > 0.5
+        ? (resolvedText.won  || 'I WANT IT I NEED IT I GOT IT.')
+        : (resolvedText.lost || 'Sorokin was robbed of the Vezina :(');
+    } else if (sorokinProb !== null) {
       var pct = (sorokinProb * 100).toFixed(1) + '%';
       oddsEl.innerHTML =
         'Live Vezina odds: <a href="' + marketUrl + '" target="_blank" style="color:white;">' + pct + '</a>';
@@ -119,13 +165,28 @@ async function loadSorokinPage() {
     }
 
     // --- Mood image ---
-    var imgSrc = getVezinaMoodImage(sorokinProb, config.vezinaMoodImages);
+    // A past-season market resolves to 0, which would otherwise pick the most
+    // dejected image in the set — wrong tone next to the forward-looking text.
+    var imgSrc = isPastSeasonMarket
+      ? (config.vezinaNewSeasonImage || 'assets/king-of-shutouts/sort-of-happy.jpg')
+      : getVezinaMoodImage(sorokinProb, config.vezinaMoodImages);
     if (imgSrc) {
       document.getElementById('vezina-image').innerHTML =
         '<img src="' + imgSrc + '" alt="" style="max-height:600px;max-width:80%;display:block;margin:20px auto;">';
     }
 
     // --- NHL goalie rankings ---
+    // The leaders endpoint 404s (with an HTML body) for a season that hasn't
+    // been played yet, so check before parsing — otherwise .json() throws and
+    // takes the whole page down to the catch below.
+    if (!nhlRes || !nhlRes.ok) {
+      document.getElementById('vezina-tables').innerHTML =
+        '<p style="opacity:0.5;font-size:10pt;">No goalie stats yet this season.</p>';
+      document.getElementById('footer').textContent =
+        'Last updated: ' + new Date().toLocaleTimeString();
+      return;
+    }
+
     var nhlData = await nhlRes.json();
     var wins = nhlData.wins                || [];
     var gaa  = nhlData.goalsAgainstAverage || [];
