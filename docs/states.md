@@ -247,9 +247,14 @@ NHL hasn't published that schedule yet, falls back to a fixed estimate —
 
 ## Open Decisions
 
-- Background color and image for pregame / preseason states
+- Background color and image for pregame / preseason / schedule-out states
+  (all three currently render on plain black with no image)
 - Audio files for win / loss / live / preseason states
 - Whether to rotate multiple win/loss images randomly
 - Does off-season state show the persistent section (news/roster) or just the counter?
-  RESOLVED: show news table only, no roster stats during off-season.
+  RESOLVED: news table only, no roster stats. IMPLEMENTED — but data-driven rather
+  than state-driven: `#stats-section` hides itself whenever club-stats returns no
+  stats for the season, which covers off-season, preseason and schedule-out alike.
 - All TBD fields in Playoffs Active and Playoffs Eliminated above — revisit when Isles are in it.
+- The fuller Pre-season state from priority item 7 (counter, preseason-only record,
+  today's exhibition game) is still unbuilt; only the placeholder exists.

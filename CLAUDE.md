@@ -7,13 +7,23 @@ via Cloudflare Pages.
 
 ---
 
-## Cloudflare Worker — NHL API Proxy
+## Cloudflare Worker — API Proxy
 
-All NHL API calls go through this Worker (avoids CORS):
-https://nhl-proxy.aywi.workers.dev/v1/...
+All external API calls go through this Worker (avoids CORS). Base:
+https://nhl-proxy.aywi.workers.dev — available in JS as the `WORKER` const
+(defined in js/nhl-schedule.js).
+
+| Path            | Proxies to                          | Used for                     |
+|-----------------|-------------------------------------|------------------------------|
+| `/v1/...`       | https://api-web.nhle.com            | All NHL API calls            |
+| `/polymarket/...` | https://gamma-api.polymarket.com  | Vezina odds (sorokin.html)   |
+| `/feeds/{key}`  | RSS feed per key in the Worker      | News aggregate table         |
 
 Example: https://nhl-proxy.aywi.workers.dev/v1/club-stats/NYI/20252026/2
-Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
+
+`/polymarket/` passes any gamma-api path straight through, so endpoints beyond
+`events` (e.g. `public-search`) work without a Worker change. Worker source is in
+nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
 
 ---
 
@@ -37,25 +47,49 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 /
 ├── CLAUDE.md
 ├── index.html          ← Main page: mood section + persistent section
-├── season.html         ← Season record, standings, playoff odds
-├── schedule.html       ← Upcoming games, last 5 results
-├── stats.html          ← Skater and goalie season stats
+├── season.html         ← Game-by-game season table, special records, goalie starts
+├── schedule.html       ← Month calendar of the season's games
+├── stats.html          ← Extended skater and goalie season stats
+├── playoffs.html       ← Today's playoff games + full bracket by conference/round
+├── series.html         ← Season series vs. every opponent, grouped by division
+├── game.html           ← Single game box score (?id={gameId})
+├── sorokin.html        ← Sorokin page: Vezina odds + goalie ranking tables
+├── knicks.html         ← Hardcoded 2025-26 NBA playoffs bracket (joke page)
+├── swatches.html       ← Color swatch reference
 ├── about.html          ← What this site is
-├── config.json         ← Response strings and news sources (edited without touching JS)
+├── config.json         ← Response strings, month gates, news sources (edit without touching JS)
+├── fights.json         ← Fight records, used by the fight overlay
 ├── dev.js              ← DEV ONLY state switcher (remove before production)
 ├── nhl-proxy-worker.js ← Worker source reference
-├── assets/             ← Images, GIFs, audio files
+├── assets/             ← Images, GIFs, video, audio (+ king-of-shutouts/, short-king/,
+│                         sorokin-water/, "pondering maclean"/ subfolders)
 ├── js/
-│   ├── utils.js        ← Pure formatting helpers (dates, +/-, GAA, SV%)
+│   ├── utils.js        ← Pure formatting helpers (dates, +/-, GAA, SV%), month-gate checks
+│   ├── nhl-schedule.js ← WORKER const, season selection/picker, season schedule cache,
+│   │                     shared schedule formatting (dates, times, logos, date colors)
+│   ├── nav.js          ← Shared nav link bar
+│   ├── tooltip.js      ← Shared game-cell tooltip positioning
 │   ├── state.js        ← State definitions, rendering, detection pipeline
-│   ├── live-game.js    ← Live scoreboard layout (in progress)
+│   ├── main.js         ← Audio, YouTube widget, fade/observer setup, initialization
+│   ├── live-game.js    ← Live game coordinator: shared state + fetch/render loop
+│   ├── live-scoreboard.js ← Scoreboard section HTML builders (incl. skater situation)
+│   ├── live-skaters.js ← Skater panel: GameScore ranking, best/worst tables
+│   ├── live-overlays.js ← Situation overlay + fight HTML builders
+│   ├── live-graph.js   ← Win probability line + situation strips
 │   ├── news.js         ← News feed loading
-│   ├── roster.js       ← Roster stats loading and sortable tables
-│   └── main.js         ← Audio, fade/observer setup, initialization calls
+│   ├── roster.js       ← Front page roster stats tables (sortable)
+│   ├── stats.js        ← stats.html extended stats tables
+│   ├── season-page.js  ← season.html table, special records, goalie fatigue
+│   ├── schedule-page.js ← schedule.html month calendar
+│   ├── playoffs.js     ← playoffs.html bracket, series cards, today's game cards
+│   ├── series.js       ← series.html season series grid
+│   ├── sorokin.js      ← sorokin.html Vezina odds + rankings
+│   └── knicks.js       ← knicks.html hardcoded bracket
 └── docs/
-    ├── states.md       ← State machine: priority order, specs, trigger conditions
+    ├── states.md       ← State machine: priority order, specs, trigger conditions, month gates
     ├── live-game.md    ← Live layout spec and all situation overlays
-    └── response-text.md ← All text strings and their conditions
+    ├── response-text.md ← All text strings and their conditions
+    └── notes.md        ← API quirks, known issues, deferred decisions
 ```
 
 ---
@@ -132,19 +166,15 @@ needing to know which state is active. The season rolls over each September via
 | 4     | JS refactor into js/ files; docs/ spec files                |
 | 5     | Live game scoreboard layout                                 |
 | 6     | Situation overlays (PK, PP, OT, shootout, goal transition)  |
-| 7     | Pre-game state, off-season state                            |
-| 8+    | Audio, GIFs, news RSS, enhancements                         |
+| 7     | Pre-game, off-season, post-finals, preseason, schedule-out   |
+| 8     | Extra pages: playoffs, series, game, stats, sorokin          |
+| 9     | Skater situation indicator, GameScore panel, fight overlay   |
+| 10    | Season-rollover correctness + state month gates ← current    |
+| 11+   | Audio, GIFs, news RSS, enhancements                         |
 
 ---
 
 ## High Priority — Planned Features
-
-- **Live skater situation display:** Add a small line near the period/time display showing the
-  current on-ice skater counts. Usually "5v5". If a penalty is active: "5v4 2:00" or "4v5 2:00"
-  (skater count from away team's perspective vs. home team's, time remaining on penalty).
-  Handle 4v4, 5v3, 3v5, and extra attacker (goalie pulled, e.g. 6v5) situations. Right now the
-  only way to know we're not at 5v5 is the mood headline, which gets overridden a lot — this
-  gives a persistent, unambiguous skater-count indicator.
 
 - **Playoff background tiers:** Live game state should be aware of playoff context and set
   background color accordingly (no mood image in these states). Priority order (highest wins):
@@ -158,25 +188,12 @@ needing to know which state is active. The season rolls over each September via
   Note: Game 6 Beauvillier overlay is already built and can stay as-is (it's OT + elimination
   context combined). These tiers only affect background color + fallback behavior.
 
-- **Live game skater stats redesign:** Replace the current "best 3 / worst 3 by points/TOI"
-  panel with a full per-team skater table showing all players sorted by TOI, with additional
-  columns: shots, blocked shots, hits, faceoff %, takeaways, giveaways, +/-. Layout TBD
-  (collapsible vs. always expanded). Data is already available in `playerByGameStats` per player.
-  Best/worst ranking should use a GameScore-style algorithm (see below).
-
-- **GameScore algorithm for best/worst skater ranking:** Imitate Dom Luszczyszyn's GameScore
-  using available data. Formula: `0.75×G + 0.70×A1 + 0.55×A2 + 0.075×SOG + 0.05×BLK +
-  0.15×plusMinus − 0.15×nonFightingPIM + smallPositive×fightingPenalty`.
-  A1/A2 derived from play-by-play (assist1PlayerId = primary, assist2PlayerId = secondary).
-  Non-fighting vs fighting PIM split from penalty events (check descKey for "fighting").
-  PD (penalties drawn, ×0.15 positive) also derivable from play-by-play drawnByPlayerId — optional.
-  Corsi not available; raw faceoff counts not available (only faceoffWinningPctg — skip or approximate).
-  "Worst" = lowest GameScore, not a separate formula. Alignment note: skater panel height may vary
-  when 5v5 situation indicator is hidden vs shown — review center cell layout if it causes issues.
-
-- **Fight transition overlay:** When a fight is detected mid-game (penalty event with descKey
-  containing "fighting"), show a brief transitional overlay — image and text TBD. Detect via
-  play-by-play penalty events, same pattern as PK/PP detection.
+- **Live game skater stats expansion:** The best/worst panel now ranks by GameScore
+  (`gameScore()` in js/live-skaters.js) and shows Name | G/A | TOI | +/- | GS. Still planned:
+  a full per-team table of all skaters sorted by TOI with shots, blocked shots, hits and
+  faceoff % columns. Layout TBD (collapsible vs. always expanded). Data is already available
+  in `playerByGameStats` per player. Note TK/GV were deliberately dropped from the displayed
+  columns (they still feed GameScore) — see the analytics-caution note before re-adding them.
 
 - **Series page past-season team correctness:** The DIVISIONS and TEAM_NAMES tables in series.js
   are hardcoded for the current league. Past seasons need adjustments: (1) Seattle (SEA) didn't
@@ -218,10 +235,10 @@ needing to know which state is active. The season rolls over each September via
 - "Suffering index" — visual arc of the season's emotional history
 - Historical game log page
 - Sound effects on state change
-- Automated news via RSS proxy (Cloudflare Worker)
 - GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
 - Before public release: add Worker-level caching (Cloudflare Cache API)
-- Live event feed: rolling log of last 5–8 play-by-play events (shots, saves, blocks, hits) below the scoreboard during live state. Data already fetched via play-by-play endpoint. Consider tightening refresh interval (10s?) for this feature.
+- Live event feed refresh interval: the feed itself shipped (`buildLiveFeed` in
+  js/live-scoreboard.js); consider tightening the 30s live refresh to ~10s for it
 - Color-code skater/goalie stats by league ranking (gold/silver/green/red)
   Requires fetching league-wide stats leaders endpoints
 - Barzal spin gif for power play state (replace barzal-the-muse.png placeholder)

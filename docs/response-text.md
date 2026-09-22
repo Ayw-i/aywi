@@ -96,10 +96,42 @@ Text overrides all other text: "We're 5-on-3 so we've GOT to score here, right? 
 
 ## Pre-season
 
-Same live/postgame/between-games logic applies. Record shown is preseason-only.
-Persistent banner above persistent section: "Days until Isles hockey begins for real: X"
+Preseason games (gameType 1) count as real games for state detection — see
+`isCountedGame()` in js/state.js — so the live / postgame / between-games logic
+and text above all apply to them unchanged.
+
+The `preseason` state itself is only the fallback for when preseason has begun but
+there's no game data to show: single centered line, `responses.preseason` in
+config.json ("Preseason. Real hockey soon."). Placeholder wording; no image or
+audio yet.
+
+Not built: the preseason-only record, and the "Days until Isles hockey begins for
+real: X" banner above the persistent section.
+
+## Schedule Out
+
+Shown Aug/Sep once next season's schedule is published but preseason is still more
+than `season.scheduleOutCutoffDays` away (or has no games listed yet).
+
+Headline is hardcoded in the `STATES` map rather than config.json, since it takes
+no parameters: "NEW YEAR, NEW ME". Below it, a bare #/Date/Opponent table of the
+upcoming regular season (`renderScheduleOutTable()` in js/state.js).
 
 ## Off-season
 
 Single centered line: "Days until Isles hockey begins (preseason): X"
-Counter calculated from first NYI preseason game in upcoming season schedule.
+Counter calculated from first NYI preseason game in upcoming season schedule,
+falling back to `season.preseasonStartEstimateMonthDay` before that schedule is
+published.
+
+## Post-Finals
+
+Single centered line, `responses.post_finals` — shown for
+`season.postFinalsWindowDays` days after the Stanley Cup Final's last game.
+
+## Vezina Odds (sorokin.html)
+
+Not a mood state, but config-driven text. `vezinaResolvedText.won` / `.lost`
+replace the live odds once the market resolves; `.newSeason` shows when the
+configured market belongs to an earlier season than the one being viewed. See
+docs/notes.md for how the season is derived.

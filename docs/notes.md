@@ -135,3 +135,75 @@ Alternatives considered:
   layer but not a substitute.
 - JSON file in repo + GitHub Action: transparent but creates daily commits and
   requires Action setup.
+
+---
+
+## NHL API — "now" Endpoints Serve Last Season's Data in the Off-Season
+
+The single biggest source of wrong-season bugs. `/v1/standings/now` keeps
+serving the **previous season's final table** until the new season's first games
+are played. In September 2026 it returned `seasonId: 20252026`,
+`date: 2026-04-17`, `clinchIndicator: "e"` — i.e. "NYI eliminated", which is
+true of last season and meaningless for the season actually underway.
+
+This caused three separate bugs:
+
+1. **Sorover rendering in September.** The clinch indicator drove the mood
+   state, so a stale `"e"` meant "eliminated" forever.
+2. **Preseason game states overridden.** `CLINCH_STATE_OVERRIDES` replaced real
+   win/loss/live states with Sorover.
+3. **playoffs.html skipping the "Playoffs?!" panel.** A stale `"e"` reads as
+   "fate settled", so it tried to render a bracket that doesn't exist yet.
+
+**Rule:** never trust a `now` endpoint's payload to describe the season you're
+displaying. Validate it — `/v1/standings/now` rows carry their own `seasonId`,
+so compare that against `getSelectedSeason()` and treat a mismatch as "no data".
+`js/state.js` additionally gates clinch moods by month (config.json
+`stateMonthGates`) as a backstop.
+
+---
+
+## NHL API — Roster Endpoint Is Not Historical
+
+`/v1/roster/NYI/{season}` returns the **current organizational roster**, not the
+roster as it was that season. Players who have since left are missing entirely.
+For 2025-26 it returned only Sorokin and Varlamov — omitting Rittich (28 starts)
+and Hogberg — which left season.html's Goalie column blank for 28 games.
+
+**Rule:** for "who played for this team that season", use
+`/v1/club-stats/{team}/{season}/{gameType}`. It lists everyone who actually
+appeared, and conveniently excludes players who never played. Note the ID field
+there is `playerId`, not `id`.
+
+---
+
+## NHL API — Endpoints That 404 on an Unplayed Season
+
+Not all endpoints degrade gracefully for a season with no games yet:
+
+- `/v1/club-stats/NYI/{season}/2` → returns clean empty arrays
+  (`{"skaters":[],"goalies":[]}`). Safe to parse.
+- `/v1/goalie-stats-leaders/{season}/2` → **404 with an HTML body.** Calling
+  `.json()` on it throws, which will take down an entire page's `try` block if
+  unguarded (this is why sorokin.html showed "Failed to load data"). Check
+  `res.ok` before parsing.
+
+---
+
+## Polymarket — Identifying Which Season a Market Belongs To
+
+Market slugs are not derivable (`nhl-2024-25-vezina-trophy` doesn't exist —
+Polymarket had no 2024-25 Vezina market at all), so `polymarketVezinaSlug` in
+config.json is updated by hand and may point at a stale season indefinitely.
+
+The market's own `endDate` identifies its season: it's the scheduled resolution
+(the award is handed out in June of the season's end year) and is set at
+**creation**, months before the market closes. The 2025-26 market was created
+2025-10-22 with `endDate: 2026-06-30`, and actually closed 2026-06-06 — during
+the playoffs, 8 days before the Final ended, since it resolves when the award is
+announced. So `endDate` year 2026 => season 2025-26. Compare against
+`getSelectedSeason()` to detect a past-season market.
+
+Resolution is exposed three ways: event/market `closed: true`,
+`umaResolutionStatus: "resolved"`, and `outcomePrices` (`["0","1"]` for a
+resolved-No, `["1","0"]` for resolved-Yes, with `outcomes: ["Yes","No"]`).
