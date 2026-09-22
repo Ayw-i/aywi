@@ -35,7 +35,7 @@ function parseFeed(xmlText, sourceName) {
 async function loadNews() {
   try {
     const config = await getConfig();
-    const { sources, maxPerSource } = config.news;
+    const { sources, maxPerSource, maxTotal } = config.news;
 
     const allArticles = [];
 
@@ -51,6 +51,7 @@ async function loadNews() {
     }));
 
     allArticles.sort(function (a, b) { return b.date - a.date; });
+    if (maxTotal) allArticles.length = Math.min(allArticles.length, maxTotal);
 
     const tbody = document.getElementById('news-tbody');
     if (allArticles.length === 0) {
