@@ -76,7 +76,7 @@ of preseason today" etc.) is still `[TODO]`.
 | Preseason (placeholder) | #000000 | None                       | "Preseason. Real hockey soon." (config.json)          | None | Yes |
 | Schedule Out         | #000000    | None                          | "NEW YEAR, NEW ME" + #/Date/Opponent schedule table   | None | Yes |
 | Live                 | #000000    | None (scoreboard layout)     | See response-text.md                  | TBD                          | Yes    |
-| Pre-game             | #000000    | None (pregame preview)       | "Game today." → "Game in X hours Y minutes." within 3h of puck drop (pinned 28pt) | TBD                          | Yes    |
+| Pre-game             | #000000    | None (pregame preview)       | "Game today." → "Game in X hours Y minutes." within 3h of the listed start (pinned 28pt; under 1h, "X minutes" has a hover note about the 7-12 min real-start delay) → "Any minute now." once the listed start passes | TBD                          | Yes    |
 | Win                  | #000000    | lee.png (30% width)          | See response-text.md                  | TBD                          | Yes    |
 | Loss                 | #000000    | pov_sasha_daet_tebe_L.png    | See response-text.md                  | TBD                          | Yes    |
 | Off-season           | #000000    | None                         | See response-text.md                  | None                         | Yes    |
@@ -149,7 +149,11 @@ Source: `GET /v1/standings/now` → `standings[]` → find `teamAbbrev.default =
 - **Pre-game**: mood headline + pregame preview in the scoreboard spot — logos, dashes for
   scores, puck drop in the viewer's time zone ("Warmups" once gameState is PRE), date and venue (one per line),
   PRESEASON tag for gameType 1. No team records (preseason still reports last season's).
+  Once the listed start time passes (game still FUT/PRE), the clock line says "Puck drop any
+  minute" and the headline "Any minute now." — see notes.md, "Listed Start Time vs. Puck Drop".
   Page re-checks state every 60s so the live scoreboard takes over at puck drop (live: every 30s).
+  The live scoreboard also shows "Puck drop any minute" while it's the 1st period with the clock
+  stopped at 20:00 (the NHL marks the game LIVE a couple of minutes before the opening faceoff).
 - **Win / Loss (game finished today)**: mood headline + that game's finalized scoreboard
 - **Between games (no game today)**: mood headline + previous game's finalized scoreboard
 - **Outside In / Off-season / Pre-season**: game section hidden

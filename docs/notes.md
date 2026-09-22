@@ -207,3 +207,47 @@ announced. So `endDate` year 2026 => season 2025-26. Compare against
 Resolution is exposed three ways: event/market `closed: true`,
 `umaResolutionStatus: "resolved"`, and `outcomePrices` (`["0","1"]` for a
 resolved-No, `["1","0"]` for resolved-Yes, with `outcomes: ["Yes","No"]`).
+
+---
+
+## NHL API — Listed Start Time vs. Puck Drop
+
+The listed `startTimeUTC` is not puck drop. Observed live on 2026-09-22 (NYI @ NYR
+preseason, listed 7:00 PM ET, game `2026010027`, polled every 20s):
+
+| Time (ET)  | `gameState`   | Period / clock           | Play-by-play                  |
+|------------|---------------|--------------------------|-------------------------------|
+| 6:45       | `PRE`         | none (no `clock` object) | 0 events                      |
+| 7:00       | `PRE`         | none                     | 0 events                      |
+| ~7:07      | `LIVE`        | 1st, 20:00, not running  | 1 event: `period-start`       |
+| ~7:09      | `LIVE`        | 1st, clock running       | 2 events: + first `faceoff`   |
+
+- The game stays `PRE` well past the listed time (anthems, intros), then flips to
+  `LIVE` about 2 minutes **before** the opening faceoff, with the clock stopped at
+  20:00. `boxscore` and `score/now` flipped together.
+- The NHL logs `period-start` at the flip; the first `faceoff` event (or the clock
+  running) is the real puck-drop signal.
+- Listed start to actual puck drop was ~9 minutes (the site's hover note says 7-12).
+- How the site handles each stretch: "Any minute now." / "Puck drop any minute" past
+  the listed time while still `PRE` (state.js, `buildPregameHeader`), and "Puck drop
+  any minute" on the live scoreboard while it's the 1st at a stopped 20:00
+  (`buildLiveHeader`). A stopped 20:00 in any later period, or 19:58 in the 1st, is a
+  real stoppage and shows the normal clock.
+- One sample so far (a preseason game). Regular-season and playoff games may have
+  longer pregame ceremonies; worth re-checking against an opening-night game.
+
+---
+
+## Live Refresh Lag (Worker cache vs. refresh interval)
+
+The live view re-fetches every 30s (`detectAndRenderState`), but the Worker sends
+`Cache-Control: public, max-age=60` on `/v1/` responses, so the browser can serve
+the previous response for up to 60s. Net effect: the page can trail the NHL by up to
+~90s. Seen on 2026-09-22: the page still said "Puck drop any minute" about a minute
+after the opening faceoff, then caught up on its own.
+
+Trade-off if changing it: dropping `max-age` to ~25s (under the 30s refresh) makes
+every refresh fresh, but roughly doubles Worker requests per viewer (~5 → ~10 per
+minute during a live game), which halves how many viewers the free plan's 100k
+requests/day covers. See the capacity discussion before changing it.
+
