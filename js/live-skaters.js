@@ -1,7 +1,7 @@
 // Skater panel HTML builder.
 // Pure function — no shared state. Depends on live-scoreboard.js (parseTOISecs).
 
-function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays) {
+function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays, period) {
   // Build per-player data from play-by-play: goals, primary/secondary assists,
   // penalties drawn, and fighting vs non-fighting PIM.
   // Play-by-play is more up-to-date than playerByGameStats during live games.
@@ -190,37 +190,62 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays)
       '</tr>';
   }
 
-  function skaterPanel(players, label) {
-    if (!players.length) return '';
+  // "Nothing to show yet": a GameScore that would display as +0.00 / -0.00.
+  function hasGS(p) { return Math.abs(gameScore(p)) >= 0.005; }
+
+  // Best and Worst tables for one team, as { best, worst } HTML ('' = no table).
+  // 1st period (incl. its intermission): players still at 0.00 are left out —
+  // Best is only players above zero, Worst only players below, so neither table
+  // fills up with +0.00 rows and nobody can appear in both. Later periods: top 5
+  // and bottom 5 of everyone, Worst only once a team has 10+ skaters (so the
+  // two tables can't overlap).
+  function skaterTables(players, label) {
     var sorted = players.slice().sort(function (a, b) { return gameScore(b) - gameScore(a); });
-    var top    = sorted.slice(0, 5);
-    var bottom = players.length >= 10 ? sorted.slice(-5).reverse() : [];
-    var thead  = '<tr>' +
+    var top, bottom;
+    if (period === 1) {
+      top    = sorted.filter(function (p) { return hasGS(p) && gameScore(p) > 0; }).slice(0, 5);
+      bottom = sorted.filter(function (p) { return hasGS(p) && gameScore(p) < 0; }).slice(-5).reverse();
+    } else {
+      top    = sorted.slice(0, 5);
+      bottom = players.length >= 10 ? sorted.slice(-5).reverse() : [];
+    }
+
+    var thead = '<tr>' +
       '<th style="font-size:8pt;">Name</th>' +
       '<th style="font-size:8pt;">G/A</th>' +
       '<th style="font-size:8pt;">TOI</th>' +
       '<th style="font-size:8pt;">+/-</th>' +
       '<th style="font-size:8pt;">GS</th>' +
       '</tr>';
-
-    var html = '<table width="100%">' +
-      '<thead><tr><th colspan="5">' + label + ' — Best</th></tr>' + thead + '</thead>' +
-      '<tbody>' + top.map(skaterRow).join('') + '</tbody>' +
-      '</table>';
-
-    if (bottom.length) {
-      html += '<table width="100%" style="margin-top:4px;">' +
-        '<thead><tr><th colspan="5">' + label + ' — Worst</th></tr>' + thead + '</thead>' +
-        '<tbody>' + bottom.map(skaterRow).join('') + '</tbody>' +
+    function table(rows, which) {
+      if (!rows.length) return '';
+      return '<table width="100%">' +
+        '<thead><tr><th colspan="5">' + label + ' — ' + which + '</th></tr>' + thead + '</thead>' +
+        '<tbody>' + rows.map(skaterRow).join('') + '</tbody>' +
         '</table>';
     }
-    return html;
+    return { best: table(top, 'Best'), worst: table(bottom, 'Worst') };
   }
 
+  var left  = skaterTables(getPlayers(leftStats),  leftAbbrev);
+  var right = skaterTables(getPlayers(rightStats), rightAbbrev);
+
+  // One row per table type, teams side by side. A missing table leaves its half
+  // empty (the 50% cell still takes the space, so the other team's table stays
+  // in its column); a row with neither table is dropped; no tables at all hides
+  // the whole section.
+  function tableRow(leftHTML, rightHTML, topGap) {
+    if (!leftHTML && !rightHTML) return '';
+    var pad = topGap ? 'padding-top:4px;' : '';
+    return '<tr>' +
+      '<td width="50%" valign="top" style="border:none;padding-right:4px;' + pad + '">' + leftHTML  + '</td>' +
+      '<td width="50%" valign="top" style="border:none;padding-left:4px;'  + pad + '">' + rightHTML + '</td>' +
+      '</tr>';
+  }
+  var bestRow  = tableRow(left.best,  right.best,  false);
+  var worstRow = tableRow(left.worst, right.worst, !!bestRow);
+  if (!bestRow && !worstRow) return '';
+
   return '<h3 style="margin-top:20px;margin-bottom:4px;">SKATERS</h3>' +
-    '<table width="100%" style="border:none;">' +
-    '<tr>' +
-    '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + skaterPanel(getPlayers(leftStats),  leftAbbrev)  + '</td>' +
-    '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + skaterPanel(getPlayers(rightStats), rightAbbrev) + '</td>' +
-    '</tr></table>';
+    '<table width="100%" style="border:none;">' + bestRow + worstRow + '</table>';
 }

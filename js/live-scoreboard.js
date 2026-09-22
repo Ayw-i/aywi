@@ -1125,7 +1125,7 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
     buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, awayGarbageShutout, homeGarbageShutout, isFinal, wentToOT) +
-    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays) +
+    buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays, (boxscore.periodDescriptor || {}).number) +
     buildTeamStats(boxscore, awayStats, homeStats, plays, home.id) +
     buildLiveGraph(boxscore, playByPlay, nyiIsHome, gameId) +
     buildLiveFeed(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, nyiGameNum, nhlGameNum);
