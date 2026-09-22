@@ -150,7 +150,8 @@ function renderMoodState(stateName, overrides) {
   } else {
     headline.textContent = state.headline;
   }
-  headline.style.fontSize = state.headline.length > 25 ? '28pt' : '';
+  // Long headlines shrink to fit; a state can pin a size instead with headlineFontSize
+  headline.style.fontSize = state.headlineFontSize || (state.headline.length > 25 ? '28pt' : '');
 
   // Reorder headline vs image in the DOM based on state flag
   var moodSection = img.parentNode;
@@ -412,7 +413,22 @@ async function getRegularSeasonState(data) {
   const state = nyiGame.gameState;
 
   if (state === 'FUT' || state === 'PRE') {
-    return { stateName: 'pregame', overrides: { headline: 'Game today.' } };
+    // Within 3 hours of puck drop, count down instead. Rounded up so it never
+    // says "0 minutes"; once the start time passes (a delayed start) it goes
+    // back to "Game today." The 60s pregame refresh keeps the count current.
+    // The countdown is pinned to 28pt so the size doesn't jump as its length
+    // changes ("Game in 2 hours." vs "Game in 2 hours 59 minutes.").
+    var pregameOverrides = { headline: 'Game today.' };
+    if (nyiGame.startTimeUTC) {
+      var minsToPuckDrop = Math.ceil((new Date(nyiGame.startTimeUTC) - new Date()) / 60000);
+      if (minsToPuckDrop > 0 && minsToPuckDrop <= 180) {
+        pregameOverrides = {
+          headline: 'Game in ' + formatCountdown(minsToPuckDrop) + '.',
+          headlineFontSize: '28pt',
+        };
+      }
+    }
+    return { stateName: 'pregame', overrides: pregameOverrides, gameObj: nyiGame };
   }
 
   if (state === 'LIVE' || state === 'CRIT') {
@@ -569,6 +585,14 @@ async function applyState(data) {
 
   var gameInfo = await getRegularSeasonState(data);
 
+  // States without a game object never fill the scoreboard spot, so clear
+  // anything an earlier refresh left there (e.g. a pregame preview for a game
+  // that has since been postponed).
+  if (!gameInfo || !gameInfo.gameObj) {
+    var liveScoreboard = document.getElementById('live-scoreboard');
+    if (liveScoreboard) liveScoreboard.innerHTML = '';
+  }
+
   if (!gameInfo) {
     // No NYI games found this month — could be a mid-season gap, or the whole
     // playoffs (league-wide) may have wrapped up. Check the latter before falling
@@ -667,8 +691,12 @@ async function applyState(data) {
     renderMoodState(gameInfo.stateName, gameInfo.overrides);
   }
 
-  // Render scoreboard for live and final games (skip mock objects which have no id)
-  if (gameInfo.gameObj && gameInfo.gameObj.id && typeof renderLiveGame === 'function') {
+  // Pregame preview is built from the schedule object alone, so it renders for
+  // dev mocks too. Live and final games need the boxscore fetch (skip mock
+  // objects which have no id).
+  if (gameInfo.stateName === 'pregame' && typeof renderPregame === 'function') {
+    renderPregame(gameInfo.gameObj);
+  } else if (gameInfo.gameObj && gameInfo.gameObj.id && typeof renderLiveGame === 'function') {
     renderLiveGame(gameInfo.gameObj, { nextHomeGame: gameInfo.nextHomeGame || '—', config: data.config });
   }
 
@@ -735,8 +763,13 @@ async function detectAndRenderState(mockData) {
 
     const renderedState = await applyState({ standings, todayGames, monthGames, config, isMock: !!mockData });
 
+    // Keep re-checking while a game is on or coming up today. Pregame polls
+    // more slowly — it only needs to catch puck drop, and the page may sit on
+    // it for hours.
     if (renderedState === 'live' && !mockData) {
       _liveRefreshTimer = setInterval(detectAndRenderState, 30000);
+    } else if (renderedState === 'pregame' && !mockData) {
+      _liveRefreshTimer = setInterval(detectAndRenderState, 60000);
     }
 
   } catch (err) {

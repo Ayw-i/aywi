@@ -26,6 +26,16 @@ function formatNextGameDay(dateStr) {
   return 'on ' + days[game.getDay()];
 }
 
+// 125 -> "2 hours 5 minutes", 60 -> "1 hour", 45 -> "45 minutes"
+function formatCountdown(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const mins  = totalMinutes % 60;
+  const parts = [];
+  if (hours > 0) parts.push(hours + (hours === 1 ? ' hour' : ' hours'));
+  if (mins > 0)  parts.push(mins + (mins === 1 ? ' minute' : ' minutes'));
+  return parts.join(' ');
+}
+
 function formatPlusMinus(val) {
   if (val > 0) return '+' + val;
   return String(val);

@@ -474,6 +474,14 @@ async function fetchAndRenderScoreboard(gameId, context) {
   }
 }
 
+// Pregame preview. Takes up the scoreboard's spot so that at puck drop the live
+// scoreboard replaces it in place.
+function renderPregame(game) {
+  var container = document.getElementById('live-scoreboard');
+  if (!container) return;
+  container.innerHTML = game ? buildPregameHeader(game) : '';
+}
+
 function renderLiveGame(game, context) {
   var gameId    = game && game.id;
   var container = document.getElementById('live-scoreboard');

@@ -275,6 +275,55 @@ function buildLiveHeader(boxscore, plays) {
     '</table>';
 }
 
+// Pregame preview: same layout as buildLiveHeader, but for a game that hasn't
+// started yet. Built straight from the /v1/score/now game object — no extra
+// fetch. Scores show as dashes; the center shows puck drop in the viewer's own
+// time zone. Team records are left off on purpose: in preseason the API still
+// reports last season's final record.
+function buildPregameHeader(game) {
+  var home = game.homeTeam || {};
+  var away = game.awayTeam || {};
+
+  var puckDrop = game.startTimeUTC
+    ? 'puck drop ' + new Date(game.startTimeUTC).toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+      })
+    : 'time TBD';
+  // PRE = teams are on the ice for warmups
+  var clockStr = game.gameState === 'PRE'
+    ? 'Warmups &middot; ' + puckDrop
+    : puckDrop.charAt(0).toUpperCase() + puckDrop.slice(1);
+
+  var typeTag = game.gameType === 1 ? 'PRESEASON' : '';
+
+  var detailParts = [];
+  if (game.gameDate) detailParts.push(formatGameDate(game.gameDate));
+  if (game.venue && game.venue.default) detailParts.push(game.venue.default);
+
+  function teamCell(team) {
+    return '<td width="35%" align="center" style="border:none;">' +
+      '<img src="' + getNHLLogoURL(team.abbrev || '') + '" width="80" alt="' + (team.abbrev || '') + '" ' +
+      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 6px;">' +
+      '<div style="font-size:11pt;">' + (team.abbrev || '') + '</div>' +
+      '</td>';
+  }
+
+  return '<table width="100%" style="border:none;margin-bottom:16px;">' +
+    '<tr>' +
+    teamCell(away) +
+    '<td width="30%" align="center" style="border:none;vertical-align:middle;">' +
+      (typeTag ? '<div style="font-size:9pt;letter-spacing:2px;margin-bottom:6px;">' + typeTag + '</div>' : '') +
+      '<div style="font-size:42pt;font-weight:bold;line-height:1;">&ndash; &ndash; &ndash;</div>' +
+      '<div style="font-size:12pt;margin-top:6px;">' + clockStr + '</div>' +
+      (detailParts.length
+        ? '<div style="font-size:9pt;opacity:0.7;margin-top:4px;">' + detailParts.join('<br>') + '</div>'
+        : '') +
+    '</td>' +
+    teamCell(home) +
+    '</tr>' +
+    '</table>';
+}
+
 function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev, isFinal, awayShutoutImg, homeShutoutImg) {
   var goals     = plays.filter(function (p) {
     return p.typeDescKey === 'goal' && (p.periodDescriptor || {}).periodType !== 'SO';
