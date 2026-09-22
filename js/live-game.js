@@ -437,6 +437,9 @@ async function fetchAndRenderScoreboard(gameId, context) {
       } catch (e) {}
     }
 
+    // New game: start its feed on the newest page (before building its HTML)
+    if (_currentGameId !== gameId) _liveFeedPage = 0;
+
     container.innerHTML = buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum);
 
     var nyiIsHome    = home.abbrev === 'NYI';

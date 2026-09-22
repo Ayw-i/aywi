@@ -909,55 +909,129 @@ function buildTeamStats(boxscore, awayStats, homeStats, plays, homeTeamId) {
 
 // --- Live feed ---
 
+// --- Live feed (paged) ---
+
+// Which live-feed page is showing (0 = newest). The one piece of shared state in
+// this file: the scoreboard is rebuilt from scratch on every 30s refresh, and
+// this keeps the reader on the page they picked. Reset when the game changes
+// (live-game.js). Lives here, not live-game.js, so game.html's play log pages too.
+var _liveFeedPage = 0;
+var LIVE_FEED_PAGE_SIZE = 15;
+
+function feedWords(key) { return (key || '').replace(/-/g, ' '); }
+
+function feedAttr(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Every play-by-play event, as [label, detail]. Detail is plain text.
+function describeFeedEvent(p, teamAbbrev, lastName) {
+  var t = p.typeDescKey;
+  var d = p.details || {};
+  var who = function (id) { return lastName(id) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')'; };
+
+  switch (t) {
+    case 'goal':
+      return ['<b>GOAL</b>', teamAbbrev(d.eventOwnerTeamId) + ' — ' + lastName(d.scoringPlayerId) +
+        (d.shotType ? ' (' + feedWords(d.shotType) + ')' : '')];
+    case 'shot-on-goal':
+      return ['Shot', who(d.shootingPlayerId) + (d.shotType ? ' — ' + feedWords(d.shotType) : '')];
+    case 'missed-shot':
+      return ['Missed shot', who(d.shootingPlayerId) + (d.reason ? ' — ' + feedWords(d.reason) : '')];
+    case 'blocked-shot':
+      return ['Block', who(d.blockingPlayerId) + (d.shootingPlayerId ? ' blocks ' + lastName(d.shootingPlayerId) : '')];
+    case 'hit':
+      return ['Hit', who(d.hittingPlayerId) + (d.hitteePlayerId ? ' hits ' + lastName(d.hitteePlayerId) : '')];
+    case 'penalty':
+      return ['Penalty', (d.committedByPlayerId ? lastName(d.committedByPlayerId) : 'Bench') +
+        ' (' + teamAbbrev(d.eventOwnerTeamId) + ') — ' + feedWords(d.descKey) +
+        (d.duration ? ', ' + d.duration + ' min' : '')];
+    case 'delayed-penalty':
+      return ['Delayed penalty', 'on ' + teamAbbrev(d.eventOwnerTeamId)];
+    case 'faceoff':
+      return ['Faceoff', who(d.winningPlayerId) + (d.losingPlayerId ? ' beats ' + lastName(d.losingPlayerId) : '')];
+    case 'giveaway':
+      return ['Giveaway', who(d.playerId)];
+    case 'takeaway':
+      return ['Takeaway', who(d.playerId)];
+    case 'stoppage':
+      return ['Stoppage', feedWords(d.reason) + (d.secondaryReason ? ' + ' + feedWords(d.secondaryReason) : '')];
+    case 'period-start':
+      return ['Period start', ''];
+    case 'period-end':
+      return ['End of period', ''];
+    case 'game-end':
+      return ['<b>Game over</b>', ''];
+    default:
+      // Anything the NHL adds later (shootout events etc.) still shows, by name.
+      return [feedWords(t).replace(/^./, function (c) { return c.toUpperCase(); }), ''];
+  }
+}
+
+// « Prev | Page 2 of 21 | Next » — same look as the news pager, with a
+// fixed-width middle so the links never move.
+function buildLiveFeedPager(pageIdx, pageCount) {
+  if (pageCount < 2) return '';
+  function link(label, target) {
+    if (target < 0 || target >= pageCount) return '<span style="opacity:0.35;">' + label + '</span>';
+    return '<a href="#" onclick="showLiveFeedPage(' + target + ');return false;">' + label + '</a>';
+  }
+  return '<table style="border:none;margin-top:6px;font-size:9pt;"><tr>' +
+    '<td style="border:none;padding:0;width:50%;text-align:right;">' + link('&laquo; Prev', pageIdx - 1) + '</td>' +
+    '<td style="border:none;padding:0;width:120px;min-width:120px;text-align:center;white-space:nowrap;">' +
+      'Page ' + (pageIdx + 1) + ' of ' + pageCount + '</td>' +
+    '<td style="border:none;padding:0;width:50%;text-align:left;">' + link('Next &raquo;', pageIdx + 1) + '</td>' +
+    '</tr></table>';
+}
+
+// Pager click: every page's rows are already in the table (hidden), so this just
+// swaps which ones show — no refetch, no rebuild.
+function showLiveFeedPage(pageIdx) {
+  var body = document.getElementById('live-feed-body');
+  if (!body) return;
+  var pageCount = parseInt(body.getAttribute('data-page-count'), 10) || 1;
+  _liveFeedPage = Math.max(0, Math.min(pageIdx, pageCount - 1));
+  Array.prototype.forEach.call(body.rows, function (row) {
+    row.style.display = String(_liveFeedPage) === row.getAttribute('data-feed-page') ? '' : 'none';
+  });
+  var pager = document.getElementById('live-feed-pager');
+  if (pager) pager.innerHTML = buildLiveFeedPager(_liveFeedPage, pageCount);
+}
+
 function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal, nyiGameNum, nhlGameNum) {
-  var FEED_TYPES = { goal: true, 'shot-on-goal': true, 'blocked-shot': true, hit: true, penalty: true };
-  var feed = plays.filter(function (p) { return FEED_TYPES[p.typeDescKey]; });
-  feed = feed.slice(-7);
+  var feed = plays.slice().reverse();   // every event the NHL logs, newest first
   if (!feed.length) return '';
+
+  var size      = LIVE_FEED_PAGE_SIZE;
+  var pageCount = Math.ceil(feed.length / size);
+  if (_liveFeedPage > pageCount - 1) _liveFeedPage = pageCount - 1;
 
   function teamAbbrev(teamId) { return teamId === homeId ? homeAbbrev : awayAbbrev; }
   function lastName(id) { var n = rosterMap[id] || ''; return n.split(' ').slice(-1)[0] || '?'; }
 
-  var rows = feed.slice().reverse().map(function (p) {
-    var t  = p.typeDescKey;
-    var d  = p.details || {};
-    var pd = p.periodDescriptor || {};
-    var period = liveGamePeriodLabel(pd.number || 0);
-    var time   = p.timeInPeriod || '';
-    var label, detail;
+  var cellCss = 'font-size:9pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  function row(page, cells) {
+    return '<tr data-feed-page="' + page + '"' + (page === _liveFeedPage ? '' : ' style="display:none;"') + '>' +
+      cells + '</tr>';
+  }
 
-    if (t === 'goal') {
-      var shotType = d.shotType ? ' (' + d.shotType.replace(/-/g, ' ') + ')' : '';
-      label  = '<b>GOAL</b>';
-      detail = teamAbbrev(d.eventOwnerTeamId) + ' — ' + lastName(d.scoringPlayerId) + shotType;
-    } else if (t === 'shot-on-goal') {
-      var shotType = d.shotType ? ' — ' + d.shotType.replace(/-/g, ' ') : '';
-      label  = 'Shot';
-      detail = lastName(d.shootingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')' + shotType;
-    } else if (t === 'blocked-shot') {
-      var shooter = d.shootingPlayerId ? lastName(d.shootingPlayerId) : null;
-      label  = 'Block';
-      detail = lastName(d.blockingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')' +
-               (shooter ? ' blocks ' + shooter : '');
-    } else if (t === 'hit') {
-      var hittee = d.hitteePlayerId ? lastName(d.hitteePlayerId) : null;
-      label  = 'Hit';
-      detail = lastName(d.hittingPlayerId) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')' +
-               (hittee ? ' hits ' + hittee : '');
-    } else if (t === 'penalty') {
-      var pname = d.committedByPlayerId ? lastName(d.committedByPlayerId) : 'Bench';
-      label  = 'Penalty';
-      detail = pname + ' (' + teamAbbrev(d.eventOwnerTeamId) + ') — ' + (d.descKey || '').replace(/-/g, ' ');
-    } else {
-      return '';
-    }
-
-    return '<tr>' +
-      '<td style="white-space:nowrap;font-size:9pt;">' + period + ' ' + time + '</td>' +
-      '<td style="font-size:9pt;">' + label + '</td>' +
-      '<td style="font-size:9pt;">' + detail + '</td>' +
-      '</tr>';
+  var rows = feed.map(function (p, i) {
+    var pd     = p.periodDescriptor || {};
+    var period = pd.periodType === 'SO' ? 'SO' : liveGamePeriodLabel(pd.number || 0);
+    var ev     = describeFeedEvent(p, teamAbbrev, lastName);
+    return row(Math.floor(i / size),
+      '<td style="' + cellCss + '">' + period + ' ' + (p.timeInPeriod || '') + '</td>' +
+      '<td style="' + cellCss + '">' + ev[0] + '</td>' +
+      '<td style="' + cellCss + '" title="' + feedAttr(ev[1]) + '">' + ev[1] + '</td>');
   });
+
+  // Blank rows so the last page is as tall as the rest and the pager stays put.
+  // Only once there's a pager: early in a game a single short page just grows.
+  var lastPage = pageCount - 1;
+  for (var b = feed.length; pageCount > 1 && b < pageCount * size; b++) {
+    rows.push(row(lastPage, '<td style="' + cellCss + '">&nbsp;</td><td style="' + cellCss + '"></td><td style="' + cellCss + '"></td>'));
+  }
 
   var gameLabel = nyiGameNum
     ? ' &mdash; <span' + (nhlGameNum ? ' title="NHL Game ' + nhlGameNum + '"' : '') + ' style="cursor:default;">Game ' + nyiGameNum + '</span>'
@@ -965,12 +1039,14 @@ function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal
   var title = (isFinal ? 'PLAY LOG' : 'LIVE FEED') + gameLabel;
   return '<h3 style="margin-top:20px;margin-bottom:4px;">' + title + '</h3>' +
     '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
-    '<table>' +
+    '<table style="table-layout:fixed;">' +
+    '<colgroup><col style="width:80px;"><col style="width:110px;"><col></colgroup>' +
     '<thead>' +
-      '<tr><th style="font-size:8pt;">Time</th><th style="font-size:8pt;">Event</th><th style="font-size:8pt;">Player</th></tr>' +
+      '<tr><th style="font-size:8pt;">Time</th><th style="font-size:8pt;">Event</th><th style="font-size:8pt;">Details</th></tr>' +
     '</thead>' +
-    '<tbody>' + rows.join('') + '</tbody>' +
+    '<tbody id="live-feed-body" data-page-count="' + pageCount + '">' + rows.join('') + '</tbody>' +
     '</table>' +
+    '<div id="live-feed-pager">' + buildLiveFeedPager(_liveFeedPage, pageCount) + '</div>' +
     '</td></tr></table>';
 }
 

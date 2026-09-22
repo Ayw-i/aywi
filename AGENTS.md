@@ -250,8 +250,11 @@ needing to know which state is active. The season rolls over each September via
 - Sound effects on state change
 - GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
 - Before public release: add Worker-level caching (Cloudflare Cache API)
-- Live event feed refresh interval: the feed itself shipped (`buildLiveFeed` in
-  js/live-scoreboard.js); consider tightening the 30s live refresh to ~10s for it
+- Live event feed refresh interval: the feed shipped (`buildLiveFeed` in
+  js/live-scoreboard.js) and now shows every play-by-play event, newest first, 15 per
+  page with « Prev / Next » (the page survives the 30s rebuild via `_liveFeedPage`).
+  A faster refresh alone won't help while the Worker sends `max-age=60` — see
+  "Live Refresh Lag" in docs/notes.md for that trade-off first
 - Color-code skater/goalie stats by league ranking (gold/silver/green/red)
   Requires fetching league-wide stats leaders endpoints
 - Barzal spin gif for power play state (replace barzal-the-muse.png placeholder)
