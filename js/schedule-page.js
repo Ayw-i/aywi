@@ -63,9 +63,12 @@ function renderCalMonth(year, month, gamesByDate, todayStr) {
       cellStyle += 'background-color:' + bg + ';';
       if (game.gameType === 3) cellStyle += 'outline:2px solid #FFD700;outline-offset:-2px;';
 
+      // logoImg() lives in nhl-schedule.js — same treatment as season.html, sized
+      // up a little for the calendar. line-height:1 keeps the taller line box
+      // from overflowing the 60px cell.
       var prefix = isHome ? '' : '@ ';
-      var oppLine = '<div style="font-size:9pt;font-weight:bold;padding:2px 4px 0;">' +
-        prefix + opp.abbrev + '</div>';
+      var oppLine = '<div style="font-size:9pt;font-weight:bold;padding:2px 4px 0;line-height:1;">' +
+        prefix + logoImg(opp.abbrev, 24) + opp.abbrev + '</div>';
 
       var infoLine = '';
       if (isLive) {

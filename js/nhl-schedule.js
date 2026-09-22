@@ -99,8 +99,9 @@ function dateColor(games, index) {
   return '';
 }
 
-function logoImg(abbrev) {
+// width defaults to 18 (season.html's size); pass a value to size it per context.
+function logoImg(abbrev, width) {
   return '<img src="https://assets.nhle.com/logos/nhl/svg/' + abbrev + '_light.svg"' +
-    ' width="18" style="vertical-align:middle;margin-right:4px;"' +
+    ' width="' + (width || 18) + '" style="vertical-align:middle;margin-right:4px;"' +
     ' onerror="this.style.display=\'none\'">';
 }
