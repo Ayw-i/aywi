@@ -1208,6 +1208,16 @@ function applyFinalsAbbrevDisplay(abbrev, opponentAbbrev) {
   return abbrev;
 }
 
+// Centers the dialog over the Final card. Page coordinates, because the dialog
+// lives on <body>: it can't go inside the card, which is dimmed to 0.25 opacity
+// and would dim the dialog with it.
+function positionInfohazardDialog(overlay, target) {
+  var rect = target.getBoundingClientRect();
+  overlay.style.top   = (rect.top  + window.scrollY + rect.height / 2) + 'px';
+  overlay.style.left  = (rect.left + window.scrollX + rect.width  / 2) + 'px';
+  overlay.style.width = Math.min(200, rect.width) + 'px';
+}
+
 function showInfohazardDialog() {
   var target = document.getElementById('scf-block');
   if (!target) return;
@@ -1219,15 +1229,9 @@ function showInfohazardDialog() {
 
   target.style.opacity = '0.25';
 
-  var rect = target.getBoundingClientRect();
-  var boxWidth = Math.min(200, rect.width);
-
   var overlay = document.createElement('div');
   overlay.id = 'infohazard-overlay';
   overlay.style.cssText = 'position:absolute;' +
-    'top:'   + (rect.top + window.scrollY + rect.height / 2) + 'px;' +
-    'left:'  + (rect.left + window.scrollX + rect.width / 2) + 'px;' +
-    'width:' + boxWidth + 'px;' +
     'transform:translate(-50%,-50%);' +
     'background:#000;border:1px solid #555;z-index:2000;' +
     'box-sizing:border-box;padding:7px;';
@@ -1248,7 +1252,21 @@ function showInfohazardDialog() {
       'onclick="document.getElementById(\'infohazard-overlay\').remove();' +
       'document.getElementById(\'scf-block\').style.opacity=\'1\';">Show me that slop</button>';
 
+  positionInfohazardDialog(overlay, target);
   document.body.appendChild(overlay);
+
+  // The Final card can move after this runs: the bracket's team logos take no
+  // height until they load, so the rounds above grow and push the card down
+  // (on a cold cache the dialog ended up ~160px too high), and a window resize
+  // reflows everything. Re-center whenever the page's size changes, until the
+  // dialog is dismissed.
+  if (window.ResizeObserver) {
+    var resizeWatcher = new ResizeObserver(function () {
+      if (!overlay.isConnected) { resizeWatcher.disconnect(); return; }
+      positionInfohazardDialog(overlay, target);
+    });
+    resizeWatcher.observe(document.body);
+  }
 }
 
 // --- Main ---

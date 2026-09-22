@@ -218,7 +218,8 @@ function buildLiveHeader(boxscore, plays) {
                     : '';
     clockStr = 'Final' + finalSuffix;
     // Link through to the full box score, unless we're already on game.html
-    var onGamePage = /game\.html$/.test(window.location.pathname);
+    // (served as /game on the live site, /game.html under Live Server)
+    var onGamePage = /\/game(\.html)?$/.test(window.location.pathname);
     if (boxscore.id && !onGamePage) {
       clockStr = '<a href="game.html?id=' + encodeURIComponent(boxscore.id) + '" ' +
         'title="Full box score" style="color:' + LINK_TINT + ';text-decoration:underline;">' +
@@ -284,10 +285,14 @@ function buildPregameHeader(game) {
   var home = game.homeTeam || {};
   var away = game.awayTeam || {};
 
+  // "puck drop" and the time are each kept on one line (nbsp / nowrap), so a
+  // narrow center column wraps between phrases, never leaving "EDT" or "drop"
+  // stranded on their own line.
   var puckDrop = game.startTimeUTC
-    ? 'puck drop ' + new Date(game.startTimeUTC).toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
-      })
+    ? 'puck&nbsp;drop <span style="white-space:nowrap;">' +
+        new Date(game.startTimeUTC).toLocaleTimeString('en-US', {
+          hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+        }) + '</span>'
     : 'time TBD';
   // PRE = teams are on the ice for warmups
   var clockStr = game.gameState === 'PRE'
@@ -313,7 +318,7 @@ function buildPregameHeader(game) {
     teamCell(away) +
     '<td width="30%" align="center" style="border:none;vertical-align:middle;">' +
       (typeTag ? '<div style="font-size:9pt;letter-spacing:2px;margin-bottom:6px;">' + typeTag + '</div>' : '') +
-      '<div style="font-size:42pt;font-weight:bold;line-height:1;">&ndash; &ndash; &ndash;</div>' +
+      '<div style="font-size:42pt;font-weight:bold;line-height:1;white-space:nowrap;">&ndash; &ndash; &ndash;</div>' +
       '<div style="font-size:12pt;margin-top:6px;">' + clockStr + '</div>' +
       (detailParts.length
         ? '<div style="font-size:9pt;opacity:0.7;margin-top:4px;">' + detailParts.join('<br>') + '</div>'

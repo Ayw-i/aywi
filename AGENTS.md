@@ -136,6 +136,9 @@ needing to know which state is active. The season rolls over each September via
 - Unicode only: ▶ to play, ⏸ to pause
 - Only rendered when current state has an audio file
 - Audio loops continuously
+- Hovering the toggle shows a credit panel (cover, track, artist, link to where
+  the song lives), styled to match the goal-review YouTube widget. Filled from
+  the state's `audioCredit` in js/state.js; states without one get no panel
 - Browser autoplay is blocked until first user interaction — the toggle
   button is the intended first interaction. Do not add workarounds.
 
@@ -262,7 +265,8 @@ needing to know which state is active. The season rolls over each September via
 | File                                | Status                |
 |-------------------------------------|-----------------------|
 | assets/sorover.png                  | Ready                 |
-| assets/only posers fall in love.mp3 | Ready                 |
+| assets/only posers fall in love.mp3 | Ready — actually track 4, "Tinder対現実 • ☹ •" (TVVIN_PINEZ_M4LL) |
+| assets/only-posers-cover.jpg        | Album cover for the sound credit panel (150px, from Bandcamp) |
 | assets/lee.png                      | Win image (primary)   |
 | assets/pov_sasha_daet_tebe_L.png    | Loss image (primary)  |
 | assets/now_im_on_the_outside.png    | Playoffs state        |

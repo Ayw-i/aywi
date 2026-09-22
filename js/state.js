@@ -7,6 +7,15 @@ const STATES = {
     headline: "IT'S SOROVER",
     headlineLink: null,
     audioSrc: 'assets/only%20posers%20fall%20in%20love.mp3',
+    // Shown in the hover panel next to the sound toggle. The mp3 is track 4
+    // of the album (the file is named after the album, not the track).
+    audioCredit: {
+      title:  'Tinder対現実 • ☹ •',
+      artist: 'TVVIN_PINEZ_M4LL',
+      cover:  'assets/only-posers-cover.jpg',
+      link:   'https://powerlunch.bandcamp.com/track/tinder',
+      linkLabel: 'on Bandcamp ↗',
+    },
     fades: true,
   },
   clinched: {
@@ -161,16 +170,17 @@ function renderMoodState(stateName, overrides) {
     moodSection.insertBefore(img, headline);
   }
 
-  const audio = document.getElementById('bg-audio');
-  const toggle = document.getElementById('sound-toggle');
+  const audio       = document.getElementById('bg-audio');
+  const soundWidget = document.getElementById('sound-widget');
   audio.pause();
   if (state.audioSrc) {
     audio.src = state.audioSrc;
-    toggle.style.display = 'block';
+    soundWidget.style.display = 'block';
+    renderSoundCredit(state.audioCredit);
     audio.play().catch(function () {});
   } else {
     audio.src = '';
-    toggle.style.display = 'none';
+    soundWidget.style.display = 'none';
   }
 
   if (!state.fades) {
@@ -181,20 +191,39 @@ function renderMoodState(stateName, overrides) {
   }
 }
 
+// Fills the hover panel next to the sound toggle. States with audio but no
+// credit get no panel, so hovering the toggle shows nothing.
+function renderSoundCredit(credit) {
+  var panel = document.getElementById('sound-panel');
+  if (!panel) return;
+  if (!credit) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  document.getElementById('sound-cover').src          = credit.cover || '';
+  document.getElementById('sound-title').textContent  = credit.title || '';
+  document.getElementById('sound-artist').textContent = credit.artist || '';
+  document.getElementById('sound-source').textContent = credit.linkLabel || '';
+  document.getElementById('sound-link').href          = credit.link || '#';
+}
+
 function showGameSection(text) {
   const gameHeadline = document.getElementById('game-headline');
   const gameSection  = document.getElementById('game-section');
   gameHeadline.textContent = text;
+  gameSection.style.display = '';
   gameSection.classList.remove('visible');
   if (typeof _uiObserving !== 'undefined' && _uiObserving) {
     _uiObserver.observe(gameSection);
   }
 }
 
+// Hides the whole game section, divider line included. States that show their
+// game up in the mood section (pregame, live, final today) or no game at all
+// would otherwise leave an empty gap between two lines.
 function clearGameSection() {
   const gameHeadline = document.getElementById('game-headline');
   const gameSection  = document.getElementById('game-section');
   gameHeadline.textContent = '';
+  gameSection.style.display = 'none';
   gameSection.classList.remove('visible');
   var prevScore = document.getElementById('prev-game-score');
   if (prevScore) prevScore.innerHTML = '';

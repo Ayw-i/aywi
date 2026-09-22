@@ -9,11 +9,13 @@
     { href: 'about.html',    label: 'About' },
   ];
 
-  var current = window.location.pathname.split('/').pop() || 'index.html';
+  // Compared without ".html": the live site serves pages at /season rather
+  // than /season.html, while Live Server keeps the .html.
+  var current = (window.location.pathname.split('/').pop() || 'index').replace(/\.html$/, '');
 
   var html = '<h1>Are Ya Winning, Isles?</h1><nav>';
   links.forEach(function (link) {
-    var active = link.href === current ? ' style="font-weight:bold;text-decoration:none;"' : '';
+    var active = link.href.replace(/\.html$/, '') === current ? ' style="font-weight:bold;text-decoration:none;"' : '';
     html += '<a href="' + link.href + '"' + active + '>' + link.label + '</a>';
   });
   html += '</nav>';
