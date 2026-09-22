@@ -74,13 +74,19 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 
 ## Persistent Front Page Section
 
-Always rendered below the mood section (except off-season: news only, no roster):
+Rendered below the mood section:
 
-1. NEWS AGGREGATE TABLE — Headline | Site | Link
+1. NEWS AGGREGATE TABLE — Headline | Site | Link (always shown)
 2. ROSTER STATS TABLES (from NHL API)
    - Forwards: Name | GP | G | A | PTS | +/-
    - Defensemen: Name | GP | G | A | PTS | +/-
-   - Goalies: Name | GP | W | L | GAA | SV%
+   - Goalies: Name | GS | W | L | SO | GAA | SV%
+
+The stats block (`#stats-section`) hides itself whenever the season has no stats
+yet — club-stats returns empty arrays until the first regular-season game — so it
+disappears during the off-season, preseason and schedule-out states without
+needing to know which state is active. The season rolls over each September via
+`getSelectedSeason()`; it is not pinned to a hardcoded season.
 
 ---
 
@@ -241,8 +247,12 @@ Always rendered below the mood section (except off-season: news only, no roster)
 | assets/barzal-the-muse.png          | PP state placeholder  |
 | assets/yapper100.gif                | PK (4v5) image        |
 | assets/yapper200.gif                | PK (3v5) image        |
+| assets/playoffs-questionmark-exclamationpoint.jpg | Jim Mora panel on playoffs.html |
+| assets/king-of-shutouts/sort-of-happy.jpg | Vezina "new season" state (config: vezinaNewSeasonImage) |
 | Pre-game image                      | TBD                   |
-| Off-season image                    | TBD                   |
+| Off-season image                    | TBD — state ships imageless by design |
+| Preseason image                     | TBD — state ships imageless by design |
+| Schedule Out image                  | Not planned — schedule table instead of an image |
 | Geocities siren gif (goal scored)   | TBD                   |
 | Animated GIF dividers               | TBD                   |
 | Favicon                             | TBD                   |
