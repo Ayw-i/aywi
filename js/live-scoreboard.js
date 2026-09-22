@@ -925,8 +925,37 @@ function feedAttr(text) {
     .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Who a delayed penalty is against, as "against NYI (Palmieri)" / "against NYI",
+// or '' when it can't be told. NOT from the event's own eventOwnerTeamId: that
+// has meant the drawing team in one game and the penalized team in another (see
+// notes.md). Instead:
+//   1. the actual penalty, recorded at the whistle — first `penalty` after this
+//      event and before the next faceoff (a penalty's team is reliable);
+//   2. still in progress: the team that pulled its goalie drew it, so it's
+//      against the other team (situationCode = awayGoalie awaySk homeSk homeGoalie);
+//   3. otherwise nothing, rather than a guess.
+function delayedPenaltyAgainst(plays, idx, teamAbbrev, lastName, homeAbbrev, awayAbbrev) {
+  for (var j = idx + 1; j < plays.length; j++) {
+    var q = plays[j];
+    if (q.typeDescKey === 'faceoff') break;
+    if (q.typeDescKey === 'penalty') {
+      var qd = q.details || {};
+      return 'against ' + teamAbbrev(qd.eventOwnerTeamId) +
+        (qd.committedByPlayerId ? ' (' + lastName(qd.committedByPlayerId) + ')' : '');
+    }
+  }
+  var code = plays[idx].situationCode || '';
+  if (code.length === 4) {
+    if (code[0] === '0') return 'against ' + homeAbbrev;   // away pulled its goalie
+    if (code[3] === '0') return 'against ' + awayAbbrev;   // home pulled its goalie
+  }
+  return '';
+}
+
 // Every play-by-play event, as [label, detail]. Detail is plain text.
-function describeFeedEvent(p, teamAbbrev, lastName) {
+// `plays` and `idx` (its place in chronological order) are only needed for
+// events that depend on what came next — delayed penalties.
+function describeFeedEvent(p, teamAbbrev, lastName, plays, idx, homeAbbrev, awayAbbrev) {
   var t = p.typeDescKey;
   var d = p.details || {};
   var who = function (id) { return lastName(id) + ' (' + teamAbbrev(d.eventOwnerTeamId) + ')'; };
@@ -948,7 +977,7 @@ function describeFeedEvent(p, teamAbbrev, lastName) {
         ' (' + teamAbbrev(d.eventOwnerTeamId) + ') — ' + feedWords(d.descKey) +
         (d.duration ? ', ' + d.duration + ' min' : '')];
     case 'delayed-penalty':
-      return ['Delayed penalty', 'on ' + teamAbbrev(d.eventOwnerTeamId)];
+      return ['Delayed penalty', delayedPenaltyAgainst(plays, idx, teamAbbrev, lastName, homeAbbrev, awayAbbrev)];
     case 'faceoff':
       return ['Faceoff', who(d.winningPlayerId) + (d.losingPlayerId ? ' beats ' + lastName(d.losingPlayerId) : '')];
     case 'giveaway':
@@ -1019,7 +1048,7 @@ function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal
   var rows = feed.map(function (p, i) {
     var pd     = p.periodDescriptor || {};
     var period = pd.periodType === 'SO' ? 'SO' : liveGamePeriodLabel(pd.number || 0);
-    var ev     = describeFeedEvent(p, teamAbbrev, lastName);
+    var ev     = describeFeedEvent(p, teamAbbrev, lastName, plays, plays.length - 1 - i, homeAbbrev, awayAbbrev);
     return row(Math.floor(i / size),
       '<td style="' + cellCss + '">' + period + ' ' + (p.timeInPeriod || '') + '</td>' +
       '<td style="' + cellCss + '">' + ev[0] + '</td>' +

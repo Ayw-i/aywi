@@ -251,3 +251,22 @@ every refresh fresh, but roughly doubles Worker requests per viewer (~5 → ~10 
 minute during a live game), which halves how many viewers the free plan's 100k
 requests/day covers. See the capacity discussion before changing it.
 
+
+---
+
+## NHL API — `delayed-penalty` eventOwnerTeamId Is Unreliable
+
+On `delayed-penalty` events, `details.eventOwnerTeamId` does **not** consistently
+mean the same team. Two games, opposite meanings:
+
+| Game        | Delayed penalty at | eventOwnerTeamId | Penalty actually taken by        |
+|-------------|--------------------|------------------|----------------------------------|
+| 2026010027  | 1st 03:58          | NYR              | Palmieri (NYI), 4s later         |
+| 2026010008  | 1st 15:12          | NJD              | Steeves (NJD), 28s later         |
+
+So the live feed never uses it. `delayedPenaltyAgainst()` in live-scoreboard.js
+instead takes the team from the actual `penalty` event recorded at the whistle
+(first `penalty` after it, before the next `faceoff` — a penalty event's own
+`eventOwnerTeamId` *is* the penalized team in both samples), and while the delay
+is still running, from the empty net in `situationCode` (the team that pulled its
+goalie drew the penalty). With neither, it shows no team rather than guessing.
