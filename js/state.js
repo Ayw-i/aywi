@@ -447,8 +447,9 @@ async function getRegularSeasonState(data) {
 
   if (state === 'FUT' || state === 'PRE') {
     // Within 3 hours of puck drop, count down instead. Rounded up so it never
-    // says "0 minutes"; once the start time passes (a delayed start) it goes
-    // back to "Game today." The 60s pregame refresh keeps the count current.
+    // says "0 minutes". Once the listed start time passes it's "Any minute
+    // now." — the NHL keeps the game in PRE through anthems and intros until
+    // the real puck drop. The 60s pregame refresh keeps all of this current.
     // The countdown is pinned to 28pt so the size doesn't jump as its length
     // changes ("Game in 2 hours." vs "Game in 2 hours 59 minutes.").
     var pregameOverrides = { headline: 'Game today.' };
@@ -468,6 +469,8 @@ async function getRegularSeasonState(data) {
               'start after it says it&rsquo;s gonna start</span>' +
             '</span>.';
         }
+      } else if (minsToPuckDrop <= 0) {
+        pregameOverrides = { headline: 'Any minute now.' };
       }
     }
     return { stateName: 'pregame', overrides: pregameOverrides, gameObj: nyiGame };

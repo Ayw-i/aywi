@@ -237,6 +237,10 @@ function buildLiveHeader(boxscore, plays) {
     } else {
       clockStr = 'End of ' + liveGamePeriodLabel(period);
     }
+  } else if (period === 1 && clock.timeRemaining === '20:00' && !clock.running) {
+    // Marked live but the clock hasn't moved yet: the game is about to start
+    // (a stopped 20:00 in the 1st only happens before the opening faceoff).
+    clockStr = 'Puck&nbsp;drop any&nbsp;minute';
   } else if (period > 0) {
     clockStr = liveGamePeriodLabel(period) + ' &middot; ' + (clock.timeRemaining || '&mdash;');
   } else {
@@ -294,10 +298,19 @@ function buildPregameHeader(game) {
           hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
         }) + '</span>'
     : 'time TBD';
-  // PRE = teams are on the ice for warmups
-  var clockStr = game.gameState === 'PRE'
-    ? 'Warmups &middot; ' + puckDrop
-    : puckDrop.charAt(0).toUpperCase() + puckDrop.slice(1);
+  // Listed start times aren't puck drop — anthems and intros take another
+  // 7-12 minutes, and the NHL keeps the game in PRE until it actually starts.
+  // Past the listed time, say so instead of repeating a time that's gone by.
+  var pastListedStart = game.startTimeUTC && new Date() >= new Date(game.startTimeUTC);
+  var clockStr;
+  if (pastListedStart) {
+    clockStr = 'Puck&nbsp;drop any&nbsp;minute';
+  } else if (game.gameState === 'PRE') {
+    // PRE = teams are on the ice for warmups
+    clockStr = 'Warmups &middot; ' + puckDrop;
+  } else {
+    clockStr = puckDrop.charAt(0).toUpperCase() + puckDrop.slice(1);
+  }
 
   var typeTag = game.gameType === 1 ? 'PRESEASON' : '';
 
