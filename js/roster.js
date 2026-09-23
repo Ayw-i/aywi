@@ -41,8 +41,12 @@ function renderSkaterTable(tbodyId, players) {
   tbody.innerHTML = '';
   players.forEach(function (p) {
     const row = document.createElement('tr');
+    var skaterName = p.firstName.default + ' ' + p.lastName.default;
+    if (p.lastName.default === 'Schaefer') {
+      skaterName = '<a href="schaefer.html">' + skaterName + '</a>';
+    }
     row.innerHTML =
-      '<td>' + p.firstName.default + ' ' + p.lastName.default + '</td>' +
+      '<td>' + skaterName + '</td>' +
       '<td>' + p.gamesPlayed + '</td>' +
       '<td>' + p.goals + '</td>' +
       '<td>' + p.assists + '</td>' +

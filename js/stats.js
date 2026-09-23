@@ -89,7 +89,10 @@ function renderSkaterTable(tbodyId, players) {
 
   players.forEach(function (p) {
     var name  = p.firstName.default + ' ' + p.lastName.default;
-    var pim   = p.penaltyMinutes !== undefined ? p.penaltyMinutes : (p.pim !== undefined ? p.pim : '—');
+    if (p.lastName.default === 'Schaefer') {
+      name = '<a href="schaefer.html">' + name + '</a>';
+    }
+    var pim  = p.penaltyMinutes !== undefined ? p.penaltyMinutes : (p.pim !== undefined ? p.pim : '—');
     var ppg   = p.powerPlayGoals !== undefined ? p.powerPlayGoals : '—';
     var shots = p.shots          !== undefined ? p.shots          : '—';
     var toiRaw  = p.avgTimeOnIcePerGame;

@@ -58,6 +58,7 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── series.html         ← Season series vs. every opponent, grouped by division
 ├── game.html           ← Single game box score (?id={gameId})
 ├── sorokin.html        ← Sorokin page: Vezina odds + goalie ranking tables
+├── schaefer.html       ← Schaefer page: mock Wikipedia "Category:Sons of Schaefer" goalie list
 ├── knicks.html         ← Hardcoded 2025-26 NBA playoffs bracket (joke page)
 ├── swatches.html       ← Color swatch reference
 ├── about.html          ← What this site is
@@ -93,6 +94,7 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 │   ├── playoffs.js     ← playoffs.html bracket, series cards, today's game cards
 │   ├── series.js       ← series.html season series grid
 │   ├── sorokin.js      ← sorokin.html Vezina odds + rankings
+│   ├── schaefer.js     ← schaefer.html goalie list (criteria at top of file)
 │   └── knicks.js       ← knicks.html hardcoded bracket
 └── docs/
     ├── states.md       ← State machine: priority order, specs, trigger conditions, month gates

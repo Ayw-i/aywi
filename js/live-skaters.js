@@ -181,8 +181,11 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays,
 
     var soTag = (q.soGoals || 0) > 0
       ? '&nbsp;<span style="color:#888;font-size:8pt;">' + q.soGoals + 'SO</span>' : '';
+    var skaterName = (p.name && p.name.default) || '?';
+    // By id, not name: this table lists both teams' skaters
+    if (p.playerId === 8485366) skaterName = '<a href="schaefer.html">' + skaterName + '</a>';
     return '<tr' + rowStyle + '>' +
-      '<td>' + ((p.name && p.name.default) || '?') + ejectBadge + '</td>' +
+      '<td>' + skaterName + ejectBadge + '</td>' +
       '<td style="white-space:nowrap;">' + g + 'G&nbsp;' + a + 'A' + soTag + '</td>' +
       '<td>' + (p.toi || '&mdash;') + '</td>' +
       '<td>' + pmCell + '</td>' +
