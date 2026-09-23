@@ -56,7 +56,7 @@ function buildPPOverlay(diff, doublePP) {
 
   return {
     headline: headline,
-    image: { type: 'grid', src: 'assets/barzal-the-muse.png' },
+    image: { type: 'row', side: 'assets/barzal-the-muse.png', center: 'assets/barzy_pp_loop.gif' },
     subHeadline: 'We are on the New York Islanders Power Play (...can we decline?)',
   };
 }
@@ -135,6 +135,40 @@ function buildOppEmptyNetOverlay(oppGoalieName, nyiGoalieName, nyiLead) {
     image:    { type: 'slideshow', srcs: SOROKIN_WATER_IMGS },
     headline: 'Time to find out if the Isles can score on an empty net before they concede ' + n + ' ' + unit + '.',
   };
+}
+
+// --- Intermission tag ---
+
+// The line under the headline between periods, e.g.
+//   "(2nd intermission. The PP carries over into the 3rd, 1:23 left.)"
+// The NHL keeps reporting the skater counts through intermission (a penalty
+// carries into the next period), so the PP/PK overlay stays up — this makes it
+// clear nobody's on the ice. Returns null when not in intermission.
+function buildIntermissionTag(boxscore, plays, nyiIsHome) {
+  var clock = boxscore.clock || {};
+  if (!clock.inIntermission) return null;
+
+  var period    = (boxscore.periodDescriptor || {}).number || 0;
+  var isPlayoff = boxscore.gameType === 3;
+  var name;
+  if (period === 1 || period === 2) name = liveGamePeriodLabel(period) + ' intermission';
+  else if (period === 3 || isPlayoff) name = 'Intermission before ' + liveGamePeriodLabel(period + 1);
+  else name = 'Intermission';
+
+  // Is a penalty carrying over? Same skater-count read as getSituationOverlay.
+  var code = (boxscore.situation || {}).situationCode || '1551';
+  var awaySkaters = parseInt(code[1]) || 5;
+  var homeSkaters = parseInt(code[2]) || 5;
+  var nyiSkaters  = nyiIsHome ? homeSkaters : awaySkaters;
+  var oppSkaters  = nyiIsHome ? awaySkaters : homeSkaters;
+  if (nyiSkaters === oppSkaters) return '(' + name + '.)';
+
+  var which    = nyiSkaters > oppSkaters ? 'PP' : 'PK';
+  var next     = period + 1 <= 3 ? 'the ' + liveGamePeriodLabel(period + 1) : liveGamePeriodLabel(period + 1);
+  // The period is over, so penalty time counts from its 00:00
+  var timeLeft = getShortestActivePenaltyTime(plays, period, '00:00');
+  return '(' + name + '. The ' + which + ' carries over into ' + next +
+    (timeLeft ? ', ' + timeLeft + ' left' : '') + '.)';
 }
 
 // --- Situation dispatcher ---

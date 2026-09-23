@@ -111,6 +111,18 @@ function applyMoodOverlay(overlay) {
         container.innerHTML =
           '<img src="' + overlay.image.left  + '" style="max-width:40%;display:inline-block;margin:0 4px;">' +
           '<img src="' + overlay.image.right + '" style="max-width:40%;display:inline-block;margin:0 4px;">';
+      } else if (overlay.image.type === 'row') {
+        // One row: side | center | side. Cell widths are set so all three come
+        // out about the same height for the PP images (200x173 sides, 480x270 center).
+        var sideCell = '<td style="border:none;padding:0 4px;width:28%;vertical-align:middle;">' +
+          '<img src="' + overlay.image.side + '" style="width:100%;display:block;"></td>';
+        container.innerHTML =
+          '<table style="width:100%;border:none;border-collapse:collapse;"><tr>' +
+          sideCell +
+          '<td style="border:none;padding:0 4px;width:44%;vertical-align:middle;">' +
+            '<img src="' + overlay.image.center + '" style="width:100%;display:block;"></td>' +
+          sideCell +
+          '</tr></table>';
       } else if (overlay.image.type === 'review') {
         container.innerHTML = buildReviewHTML();
       } else if (overlay.image.type === 'slideshow') {
@@ -293,7 +305,7 @@ function showGoalTransition(play, rosterMap, nyiIsHome, homeTeamId, onComplete) 
     _goalTransitionActive = false;
     if (_shortKingAltTimer) { clearInterval(_shortKingAltTimer); _shortKingAltTimer = null; }
     (onComplete || detectAndRenderState)();
-  }, 5000);
+  }, 7248);
 }
 
 function checkForNewNYIGoals(plays, rosterMap, nyiIsHome, homeTeamId) {
@@ -469,6 +481,15 @@ async function fetchAndRenderScoreboard(gameId, context) {
           var overlay = getSituationOverlay(boxscore, nyiIsHome, nextHomeGame, rosterMap);
           applyMoodOverlay(overlay);
         }
+      }
+
+      // Between periods, the line under the headline says so. It takes the
+      // place of any overlay's own line there (e.g. the PP's "...can we decline?").
+      var intermissionTag = buildIntermissionTag(boxscore, plays, nyiIsHome);
+      var moodSubEl       = document.getElementById('mood-sub');
+      if (intermissionTag && moodSubEl) {
+        moodSubEl.innerHTML     = intermissionTag;
+        moodSubEl.style.display = 'block';
       }
     }
   } catch (err) {

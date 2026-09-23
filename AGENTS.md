@@ -286,7 +286,8 @@ needing to know which state is active. The season rolls over each September via
 | assets/pov_sasha_daet_tebe_L.png    | Loss image (primary)  |
 | assets/now_im_on_the_outside.png    | Playoffs state        |
 | assets/roblox engvall.png           | Clinched state        |
-| assets/barzal-the-muse.png          | PP state placeholder  |
+| assets/barzal-the-muse.png          | PP state, side images |
+| assets/barzy_pp_loop.gif            | PP state, center image |
 | assets/yapper100.gif                | PK (4v5) image        |
 | assets/yapper200.gif                | PK (3v5) image        |
 | assets/playoffs-questionmark-exclamationpoint.jpg | Jim Mora panel on playoffs.html |

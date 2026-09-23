@@ -1,4 +1,4 @@
-1# Live Game Layout
+# Live Game Layout
 
 Used in two contexts:
 - **Live state**: full scoreboard shown below the mood headline, auto-refreshes every 30s
@@ -119,8 +119,8 @@ Same score-diff text as 4v5 but penalty suffix becomes:
 
 ### Power Play — NYI 5v4
 
-Mood image: 3×3 grid of `assets/barzal-the-muse.png`
-TODO: replace with Barzal spin-on-half-wall gif when sourced.
+Mood image: one row — `assets/barzal-the-muse.png` | `assets/barzy_pp_loop.gif` | `assets/barzal-the-muse.png`
+(image type `row` in `applyMoodOverlay`).
 
 | Score diff | Text |
 |---|---|
@@ -188,11 +188,11 @@ Replaces entire page content — no mood section, no persistent section.
 ### Goal Scored Transition
 
 Detected via event ID tracking: on each poll, compare play-by-play goal events
-against `_lastSeenGoalEventId`. New NYI goals trigger a 5-second overlay, then
+against `_lastSeenGoalEventId`. New NYI goals trigger a 7.248-second overlay (7248 ms), then
 return to normal live state. Opponent goals are ignored for now.
 
 Detection is skipped on the first scoreboard load (sets baseline, no transition).
-`_goalTransitionActive` flag blocks `detectAndRenderState` during the 5 seconds.
+`_goalTransitionActive` flag blocks `detectAndRenderState` while the overlay is up.
 
 Four cases based on situation code at time of goal:
 
@@ -219,5 +219,16 @@ When NHL API indicates a goal is under review. Show "UNDER REVIEW" overlay. Spec
 
 ### Intermission
 
-Between periods during a live game. Show period summary stats instead of live clock.
-Spec TBD.
+Between periods during a live game (`boxscore.clock.inIntermission`).
+
+- Scoreboard clock shows "1st INT · 12:34" etc. instead of the game clock.
+- Mood headline stays as-is. The NHL keeps reporting the skater counts through
+  intermission, so a PP/PK overlay stays up when a penalty carries over.
+- The line under the headline (`#mood-sub`) becomes an intermission tag, built by
+  `buildIntermissionTag()` in js/live-overlays.js. It takes priority over any
+  overlay's own line there (e.g. the PP's "...can we decline?"):
+  - "(1st intermission.)" / "(2nd intermission.)" / "(Intermission before OT.)"
+  - With a penalty carrying over: "(2nd intermission. The PP carries over into the 3rd, 1:02 left.)"
+    — "PK" when NYI are short-handed; time is the shortest penalty left at the period's 00:00.
+
+Still TBD: period summary stats instead of the live clock.
