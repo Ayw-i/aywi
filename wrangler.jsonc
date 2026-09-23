@@ -7,10 +7,14 @@
 // build from 2026-04-16 (when config.json was added) until this file existed.
 //
 // What gets uploaded: everything in this folder EXCEPT what .assetsignore lists.
+//
+// not_found_handling "404-page": a URL that matches no file gets 404.html
+// (the Josh Bailey page) instead of Cloudflare's blank "404 Not Found".
 {
   "name": "aywi",
   "compatibility_date": "2026-09-22",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "not_found_handling": "404-page"
   }
 }

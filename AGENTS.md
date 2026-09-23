@@ -61,6 +61,8 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── knicks.html         ← Hardcoded 2025-26 NBA playoffs bracket (joke page)
 ├── swatches.html       ← Color swatch reference
 ├── about.html          ← What this site is
+├── 404.html            ← Not-found page (Cloudflare serves it via wrangler.jsonc)
+├── 403.html            ← Forbidden page (nothing routes here automatically)
 ├── config.json         ← Response strings, month gates, news sources (edit without touching JS)
 ├── fights.json         ← Fight records, used by the fight overlay
 ├── dev.js              ← DEV ONLY state switcher (remove before production)
@@ -68,7 +70,8 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── wrangler.jsonc      ← Cloudflare deploy config for the site (stops auto-setup guessing Hugo)
 ├── .assetsignore       ← Files kept off the public site (.git, docs, *.md, …)
 ├── assets/             ← Images, GIFs, video, audio (+ king-of-shutouts/, short-king/,
-│                         sorokin-water/, "pondering maclean"/ subfolders)
+│                         sorokin-water/, "pondering maclean"/ subfolders); its
+│                         index.html is a joke page shown instead of a folder listing
 ├── js/
 │   ├── utils.js        ← Pure formatting helpers (dates, +/-, GAA, SV%), month-gate checks
 │   ├── nhl-schedule.js ← WORKER const, season selection/picker, season schedule cache,
