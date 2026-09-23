@@ -251,6 +251,10 @@ every refresh fresh, but roughly doubles Worker requests per viewer (~5 → ~10 
 minute during a live game), which halves how many viewers the free plan's 100k
 requests/day covers. See the capacity discussion before changing it.
 
+Since the Worker's edge cache went in, a live game's `/v1/gamecenter/` responses are
+also shared between viewers for 10s (`nhlEdgeTtl()`), which can add up to 10s on top.
+Cache hits still count as Worker requests, so the cache doesn't change the math above.
+
 
 ---
 

@@ -55,8 +55,53 @@ function proxyHeaders(origin, contentType, maxAge) {
   return headers;
 }
 
+// --- Edge cache for NHL responses ---
+// NHL responses that can't change any more are kept in Cloudflare's cache,
+// shared by every visitor, so repeat loads never reach the NHL API.
+// Anything not matched in nhlEdgeTtl() isn't cached here, same as before.
+// Cache hits still count as Worker requests (the free plan's 100k/day) —
+// this saves NHL API calls and time, not Worker quota.
+// Testing: the dashboard editor's preview ignores the cache. Deploy, then
+// check the X-Worker-Cache header (MISS, then HIT) on the real URL.
+
+const DAY = 24 * 60 * 60;
+
+// e.g. 20262027 from September 2026 on — rolls over in September, like the site
+function currentSeason() {
+  const now = new Date();
+  const start = now.getUTCMonth() >= 8 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+  return start * 10000 + start + 1;
+}
+
+// How long Cloudflare may keep this NHL response, in seconds (0 = don't cache)
+function nhlEdgeTtl(pathname, body) {
+  // Anything for a finished season (/club-stats/NYI/20242025/2, a player's
+  // game-log/20242025/2, club-schedule-season/NYI/20242025, ...) never changes.
+  // Season ids are exactly 8 digits; game ids are 10, so they don't match.
+  const season = pathname.match(/\/(\d{8})(?=\/|$)/);
+  if (season && Number(season[1]) < currentSeason()) return 30 * DAY;
+
+  // A single game (play-by-play, landing, boxscore): how long depends on
+  // how far along the game is
+  if (pathname.startsWith('/v1/gamecenter/')) {
+    let game = {};
+    try { game = JSON.parse(body); } catch (e) { return 0; }
+    if (game.gameState === 'OFF') {
+      // Official. Scoring changes can still land in the day or two after,
+      // so only settle in for good once the game is a week old.
+      const ageDays = (Date.now() - Date.parse(game.gameDate)) / (DAY * 1000);
+      return ageDays > 7 ? 30 * DAY : DAY;
+    }
+    if (game.gameState === 'FINAL') return 5 * 60;   // just ended, not official yet
+    if (game.gameState === 'LIVE' || game.gameState === 'CRIT') return 10;  // viewers share one fetch
+    return 5 * 60;                                   // not started yet
+  }
+
+  return 0;
+}
+
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
     const url    = new URL(request.url);
     const origin = request.headers.get('Origin');
 
@@ -69,16 +114,41 @@ export default {
 
     // --- NHL API proxy: /v1/... ---
     if (url.pathname.startsWith('/v1/')) {
+      // The cached copy has no CORS headers — they depend on who's asking,
+      // so they're added fresh to every response, hit or miss.
+      const cache    = caches.default;
+      const cacheKey = new Request(url.toString());
+      const cached   = await cache.match(cacheKey);
+      if (cached) {
+        const hitHeaders = proxyHeaders(origin, 'application/json', 60);
+        hitHeaders['X-Worker-Cache'] = 'HIT';
+        return new Response(cached.body, { status: cached.status, headers: hitHeaders });
+      }
+
       const nhlUrl = 'https://api-web.nhle.com' + url.pathname + url.search;
       const nhlResponse = await fetch(nhlUrl, {
         redirect: 'follow',
         headers: { 'User-Agent': 'aywi-proxy/1.0' },
       });
       const body = await nhlResponse.text();
-      return new Response(body, {
-        status: nhlResponse.status,
-        headers: proxyHeaders(origin, 'application/json', 60),
-      });
+      const headers = proxyHeaders(origin, 'application/json', 60);
+
+      // Only successful responses get stored — never cache an error
+      const ttl = nhlResponse.ok ? nhlEdgeTtl(url.pathname, body) : 0;
+      if (ttl > 0) {
+        // waitUntil: store it after answering, so the visitor doesn't wait on it
+        ctx.waitUntil(cache.put(cacheKey, new Response(body, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=' + ttl,
+          },
+        })));
+        headers['X-Worker-Cache'] = 'MISS';
+      } else {
+        headers['X-Worker-Cache'] = 'BYPASS';   // not something we cache
+      }
+
+      return new Response(body, { status: nhlResponse.status, headers: headers });
     }
 
     // --- Polymarket proxy: /polymarket/... ---

@@ -26,6 +26,9 @@ Example: https://nhl-proxy.aywi.workers.dev/v1/club-stats/NYI/20252026/2
 The Worker only answers pages from `ALLOWED_ORIGINS` (the public site) and local
 Live Server (localhost / 127.0.0.1, any port); requests from other sites get a 403.
 A new domain for the site must be added to `ALLOWED_ORIGINS` or the site breaks.
+`/v1/` responses that can't change any more (finished seasons, finished games) are
+kept in Cloudflare's cache for all visitors — rules in `nhlEdgeTtl()`; the
+`X-Worker-Cache` response header says HIT / MISS / BYPASS.
 Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare dashboard).
 
 ---
@@ -259,7 +262,6 @@ needing to know which state is active. The season rolls over each September via
 - Historical game log page
 - Sound effects on state change
 - GSAx for goalies: fetch from MoneyPuck (unofficial stat, research endpoint)
-- Before public release: add Worker-level caching (Cloudflare Cache API)
 - Live event feed refresh interval: the feed shipped (`buildLiveFeed` in
   js/live-scoreboard.js) and now shows every play-by-play event, newest first, 15 per
   page with « Prev / Next » (the page survives the 30s rebuild via `_liveFeedPage`).
