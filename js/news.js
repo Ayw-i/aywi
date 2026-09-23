@@ -135,8 +135,11 @@ function renderNewsPage(idx) {
       link.title       = article.headline;   // full text on hover when cut off with "…"
       headlineCell.appendChild(link);
     } else {
-      headlineCell.textContent = article.headline;
-      headlineCell.title       = article.headline;
+      // In a span (not bare text) so the phone CSS can clamp it to two lines, like the link
+      const text = document.createElement('span');
+      text.textContent   = article.headline;
+      headlineCell.title = article.headline;
+      headlineCell.appendChild(text);
     }
 
     const siteCell = document.createElement('td');

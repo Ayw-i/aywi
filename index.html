@@ -303,6 +303,26 @@
       }
       #news-table col.news-site-col { width: 70px; }
       #news-table col.news-date-col { width: 62px; }
+
+      /* Headlines get two lines before the "…". Every row is exactly two
+         lines tall (short headlines and blank rows too), so the table and
+         the pager under it never change height. */
+      #news-tbody td {
+        height: 2.4em;
+        line-height: 1.2em;
+      }
+      #news-tbody td:first-child {
+        white-space: normal;
+      }
+      #news-tbody td:first-child > a,
+      #news-tbody td:first-child > span {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
     }
   </style>
 </head>
