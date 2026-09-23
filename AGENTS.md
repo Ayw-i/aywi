@@ -246,6 +246,11 @@ needing to know which state is active. The season rolls over each September via
   (Homestand/Road Trip) | Dates | Games | W-L-OTL. Single games between stretches are skipped.
   Month-spanning trips filed under start month. See conversation 2026-04-25 for full brainstorm.
 
+- **season.html — "Show preseason games" checkbox:** schedule.html shows preseason
+  (gameType 1, tagged "PRE"); season.html and series.html still skip it. Idea: a checkbox
+  on season.html that reveals the preseason games. Watch for split-squad days (two games
+  on one date, e.g. 2016-09-27) and keep them out of records and game numbers.
+
 - Randomize win/loss images (multiple alternates)
 - Animated GIF dividers between sections (source: gifcities.org)
 - "Suffering index" — visual arc of the season's emotional history

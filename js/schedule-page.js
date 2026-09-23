@@ -17,6 +17,38 @@ function cellColor(isHome, isPlayed, won) {
   return                 isHome ? CAL_COLORS.homeLoss     : CAL_COLORS.awayLoss;
 }
 
+// One game's lines inside a day cell (opponent, then result or LIVE score),
+// plus the background color for that game.
+function renderCalGame(game) {
+  var isHome   = game.homeTeam.abbrev === 'NYI';
+  var nyi      = isHome ? game.homeTeam : game.awayTeam;
+  var opp      = isHome ? game.awayTeam : game.homeTeam;
+  var isPlayed = game.gameState === 'OFF' || game.gameState === 'FINAL';
+  var isLive   = game.gameState === 'LIVE' || game.gameState === 'CRIT';
+  var won      = isPlayed && nyi.score > opp.score;
+
+  // logoImg() lives in nhl-schedule.js — same treatment as season.html, sized
+  // up a little for the calendar. line-height:1 keeps the taller line box
+  // from overflowing the 60px cell.
+  var prefix = isHome ? '' : '@ ';
+  var oppLine = '<div style="font-size:9pt;font-weight:bold;padding:2px 4px 0;line-height:1;">' +
+    prefix + logoImg(opp.abbrev, 24) + opp.abbrev + '</div>';
+
+  var infoLine = '';
+  if (isLive) {
+    infoLine = '<div style="font-size:8pt;color:#FFD700;padding:1px 4px;">LIVE ' +
+      nyi.score + '–' + opp.score + '</div>';
+  } else if (isPlayed) {
+    var lastPeriod = (game.gameOutcome || {}).lastPeriodType || 'REG';
+    var resultChar = won ? 'W' : (lastPeriod === 'OT' ? 'OTL' : lastPeriod === 'SO' ? 'SOL' : 'L');
+    var tag        = lastPeriod !== 'REG' ? ' ' + lastPeriod : '';
+    infoLine = '<div style="font-size:8pt;padding:1px 4px;">' +
+      resultChar + ' ' + nyi.score + '–' + opp.score + tag + '</div>';
+  }
+
+  return { bg: cellColor(isHome, isPlayed || isLive, won), html: oppLine + infoLine };
+}
+
 function renderCalMonth(year, month, gamesByDate, todayStr) {
   var MONTH_NAMES = ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'];
@@ -43,47 +75,36 @@ function renderCalMonth(year, month, gamesByDate, todayStr) {
 
   for (var day = 1; day <= daysInMonth; day++) {
     var dateStr = year + '-' + pad2(month + 1) + '-' + pad2(day);
-    var game    = gamesByDate[dateStr] || null;
-    var isToday = dateStr === todayStr;
+    var dayGames = gamesByDate[dateStr] || [];
+    var isToday  = dateStr === todayStr;
 
     var cellStyle = 'border:1px solid #1a1a1a;padding:0;width:14.28%;height:60px;vertical-align:top;';
     if (isToday) cellStyle += 'outline:2px solid #555;outline-offset:-2px;';
 
     var inner = '';
 
-    if (game) {
-      var isHome   = game.homeTeam.abbrev === 'NYI';
-      var nyi      = isHome ? game.homeTeam : game.awayTeam;
-      var opp      = isHome ? game.awayTeam : game.homeTeam;
-      var isPlayed = game.gameState === 'OFF' || game.gameState === 'FINAL';
-      var isLive   = game.gameState === 'LIVE' || game.gameState === 'CRIT';
-      var won      = isPlayed && nyi.score > opp.score;
+    if (dayGames.length) {
+      if (dayGames[0].gameType === 3) cellStyle += 'outline:2px solid #FFD700;outline-offset:-2px;';
 
-      var bg = cellColor(isHome, isPlayed || isLive, won);
-      cellStyle += 'background-color:' + bg + ';';
-      if (game.gameType === 3) cellStyle += 'outline:2px solid #FFD700;outline-offset:-2px;';
+      // Preseason games get a small "PRE" in the corner opposite the day number
+      var dayLabel = dayGames[0].gameType === 1
+        ? '<span style="float:left;color:#888;">PRE</span>' + day
+        : day;
 
-      // logoImg() lives in nhl-schedule.js — same treatment as season.html, sized
-      // up a little for the calendar. line-height:1 keeps the taller line box
-      // from overflowing the 60px cell.
-      var prefix = isHome ? '' : '@ ';
-      var oppLine = '<div style="font-size:9pt;font-weight:bold;padding:2px 4px 0;line-height:1;">' +
-        prefix + logoImg(opp.abbrev, 24) + opp.abbrev + '</div>';
-
-      var infoLine = '';
-      if (isLive) {
-        infoLine = '<div style="font-size:8pt;color:#FFD700;padding:1px 4px;">LIVE ' +
-          nyi.score + '–' + opp.score + '</div>';
-      } else if (isPlayed) {
-        var lastPeriod = (game.gameOutcome || {}).lastPeriodType || 'REG';
-        var resultChar = won ? 'W' : (lastPeriod === 'OT' ? 'OTL' : lastPeriod === 'SO' ? 'SOL' : 'L');
-        var tag        = lastPeriod !== 'REG' ? ' ' + lastPeriod : '';
-        infoLine = '<div style="font-size:8pt;padding:1px 4px;">' +
-          resultChar + ' ' + nyi.score + '–' + opp.score + tag + '</div>';
+      var blocks = dayGames.map(renderCalGame);
+      var gamesHtml;
+      if (blocks.length === 1) {
+        cellStyle += 'background-color:' + blocks[0].bg + ';';
+        gamesHtml = blocks[0].html;
+      } else {
+        // Split-squad day (preseason, two games at once): each game gets its own colored strip
+        gamesHtml = blocks.map(function (b) {
+          return '<div style="background-color:' + b.bg + ';margin-top:2px;padding-bottom:2px;">' + b.html + '</div>';
+        }).join('');
       }
 
-      inner = '<div style="font-size:8pt;color:#aaa;text-align:right;padding:2px 4px 0;">' + day + '</div>' +
-        oppLine + infoLine;
+      inner = '<div style="font-size:8pt;color:#aaa;text-align:right;padding:2px 4px 0;">' + dayLabel + '</div>' +
+        gamesHtml;
     } else {
       inner = '<div style="font-size:8pt;color:#333;text-align:right;padding:2px 4px 0;">' + day + '</div>';
     }
@@ -120,12 +141,17 @@ function renderCalMonth(year, month, gamesByDate, todayStr) {
 }
 
 function renderScheduleCalendar(games) {
-  var calGames = games.filter(function (g) { return g.gameType === 2 || g.gameType === 3; });
+  // 1 = preseason, 2 = regular season, 3 = playoffs
+  var calGames = games.filter(function (g) { return g.gameType === 1 || g.gameType === 2 || g.gameType === 3; });
   if (!calGames.length) return '<p style="opacity:0.5;font-size:10pt;">No games found.</p>';
 
-  // Index games by date
+  // Index games by date — a list per day, since preseason can have two
+  // games on the same date (split squad, e.g. 2016-09-27)
   var gamesByDate = {};
-  calGames.forEach(function (g) { gamesByDate[g.gameDate] = g; });
+  calGames.forEach(function (g) {
+    if (!gamesByDate[g.gameDate]) gamesByDate[g.gameDate] = [];
+    gamesByDate[g.gameDate].push(g);
+  });
 
   // Determine month range
   var dates     = calGames.map(function (g) { return g.gameDate; }).sort();

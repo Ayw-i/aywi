@@ -57,6 +57,11 @@ Shown below goals, smaller font (10pt). Less visually prominent.
 
 Shown above the skater performance section.
 If a goalie was pulled, show current goalie first, then pulled goalie in a second row colored red.
+Who started and who's in net now comes from the play-by-play (`goalieInNetId` on each shot
+attempt, via `getGoalieOrder()`), not from TOI: an early hook leaves the starter with *less* TOI.
+A goalie with TOI who hasn't faced a shot yet is treated as the one in net now.
+Only the starter can be "pulled". Preseason games (`gameType` 1) never get the label; teams
+split goalies mid-game there on purpose.
 
 | NYI                               | OPP                               |
 |-----------------------------------|-----------------------------------|

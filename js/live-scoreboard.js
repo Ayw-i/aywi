@@ -628,7 +628,42 @@ function hadShutoutUntilGarbageTime(plays, goalieTeamId, homeTeamId) {
   return totalAgainst > 0 && totalAgainst === garbageAgainst;
 }
 
-function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, leftPullShutout, rightPullShutout, leftGarbageShutout, rightGarbageShutout, isFinal, wentToOT) {
+// Works out which of a team's goalies started and which is in net now.
+// Ice time alone can't say — a starter pulled early has LESS TOI than the backup
+// who finishes. The play-by-play can: every shot attempt records the goalie it
+// was taken on (details.goalieInNetId).
+//   starter = the first of this team's goalies seen in net
+//   current = the last one seen — unless a goalie with ice time hasn't faced a
+//             shot yet. He came in after the last shot, so he's in net now
+//             (e.g. Varlamov right after Sorokin gets the hook).
+// Known blind spot: a backup who fills in briefly (equipment, injury check),
+// faces no shots, then hands the net back looks exactly like a starter being
+// pulled — the TOI totals are identical — so the two get swapped.
+// Returns { starterId, currentId }, both null until the first shot attempt.
+function getGoalieOrder(goalies, plays) {
+  var played = (goalies || []).filter(function (g) { return parseTOISecs(g.toi) > 0; });
+  var seen = {};
+  var starterId = null, currentId = null;
+
+  plays.forEach(function (p) {
+    // Shootout attempts also carry goalieInNetId, but the SO isn't a goalie change
+    if ((p.periodDescriptor || {}).periodType === 'SO') return;
+    var id = (p.details || {}).goalieInNetId;
+    var isOurs = played.some(function (g) { return g.playerId === id; });
+    if (!isOurs) return;
+    if (starterId === null) starterId = id;
+    currentId = id;
+    seen[id]  = true;
+  });
+  if (starterId === null) return { starterId: null, currentId: null };
+
+  played.forEach(function (g) {
+    if (!seen[g.playerId]) currentId = g.playerId;
+  });
+  return { starterId: starterId, currentId: currentId };
+}
+
+function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, leftPullShutout, rightPullShutout, leftGarbageShutout, rightGarbageShutout, isFinal, wentToOT, plays, isPreseason) {
   var MEDAL = '&#127941;'; // 🏅 sports medal
   var WALL  = '&#129521;'; // 🧱 brick wall
 
@@ -637,11 +672,20 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, le
     if (played.length === 0) {
       return '<tr><td colspan="5" style="opacity:0.5;font-size:9pt;">No data</td></tr>';
     }
-    played.sort(function (a, b) { return parseTOISecs(b.toi) - parseTOISecs(a.toi); });
+    // Goalie in net now goes first, then the rest by TOI.
+    // The starter is "pulled" only if someone else is in net now — and never in
+    // preseason, where teams swap goalies mid-game on purpose to split the reps.
+    var order = getGoalieOrder(played, plays || []);
+    played.sort(function (a, b) {
+      if (a.playerId === order.currentId) return -1;
+      if (b.playerId === order.currentId) return 1;
+      return parseTOISecs(b.toi) - parseTOISecs(a.toi);
+    });
     return played.map(function (g, i) {
       var toiSecs = parseTOISecs(g.toi);
       var ga      = g.goalsAgainst != null ? g.goalsAgainst : null;
-      var pulled  = played.length > 1 && i === played.length - 1 && toiSecs >= 60;
+      var pulled  = !isPreseason && played.length > 1 && g.playerId === order.starterId &&
+                    order.currentId !== order.starterId;
       var rawName = (g.name && g.name.default) || 'Unknown';
       var name    = rawName.indexOf('Sorokin') !== -1
         ? '<a href="sorokin.html">' + rawName + '</a>'
@@ -1197,7 +1241,7 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
     shootoutSection +
     buildLiveGoals(plays, rosterMap, home.id, home.abbrev, away.abbrev, isFinal, awayShutoutImg, homeShutoutImg) +
     buildLivePenalties(plays, rosterMap, home.id, home.abbrev, away.abbrev) +
-    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, awayGarbageShutout, homeGarbageShutout, isFinal, wentToOT) +
+    buildLiveGoalies(awayStats.goalies, homeStats.goalies, away.abbrev, home.abbrev, awayPullShutout, homePullShutout, awayGarbageShutout, homeGarbageShutout, isFinal, wentToOT, plays, boxscore.gameType === 1) +
     buildLiveSkaters(awayStats, homeStats, away.abbrev, home.abbrev, plays, (boxscore.periodDescriptor || {}).number) +
     buildTeamStats(boxscore, awayStats, homeStats, plays, home.id) +
     buildLiveGraph(boxscore, playByPlay, nyiIsHome, gameId) +
