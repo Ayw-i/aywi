@@ -78,7 +78,7 @@ of preseason today" etc.) is still `[TODO]`.
 | Schedule Out         | #000000    | None                          | "NEW YEAR, NEW ME" + #/Date/Opponent schedule table   | None | Yes |
 | Live                 | #000000    | None (scoreboard layout)     | See response-text.md                  | TBD                          | Yes    |
 | Pre-game             | #000000    | None (pregame preview)       | "Game today." → "Game in X hours Y minutes." within 3h of the listed start (pinned 28pt; under 1h, "X minutes" has a hover note about the 7-12 min real-start delay) → "Any minute now." once the listed start passes | TBD                          | Yes    |
-| Win                  | #000000    | offsides_like_how_worf_rides_with_starfleet.gif, headline above it | See response-text.md | TBD | Yes    |
+| Win                  | #000000    | offsides_like_how_worf_rides_with_starfleet.gif, no headline, line under it | See response-text.md | TBD | Yes    |
 | OT Win               | #000000    | schot_woll.gif, headline above it | See response-text.md ("{SCORER} WITH THE DAGGER!!!") | TBD | Yes    |
 | Shootout Win         | #000000    | None (shootout chart in the scoreboard below) | See response-text.md | TBD | Yes    |
 | Loss                 | #000000    | pov_sasha_daet_tebe_L.png    | See response-text.md                  | TBD                          | Yes    |

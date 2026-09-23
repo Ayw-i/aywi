@@ -16,12 +16,13 @@
       }
     },
     "postgame": {
-      "win": "Winning?",
+      "win": "",
       "win_sub": "Oh, we're cruising through Long Island Sound.",
       "ot_win": "OVERTIME WINNER!",
       "ot_win_sub": "{scorer} WITH THE DAGGER!!!",
       "shootout_win": "SHOOT! OUT! WIN!",
       "shootout_win_sub": "(Two points is two points!)",
+      "shutout_win_above": "Now that's the difference between first and last place.",
       "loss_regulation": "We lost.",
       "loss_ot_so": "We won... a loser point!"
     },

@@ -52,8 +52,10 @@ const STATES = {
     fades: true,
     headlineAbove: true,
   },
-  // Headline above the GIF, then a line under it (subHeadline, set by
-  // getRegularSeasonState). Between-games wins reuse this state with no image.
+  // GIF, then a line under it (subHeadline, set by getRegularSeasonState).
+  // The postgame headline is empty (config.json) — headlineAbove keeps the
+  // line directly under the GIF. Between-games wins reuse this state with no
+  // image and their own headline.
   // imageSize 100%: the GIFs are small (291-360px wide), so they show at their
   // own size, and at most the full width on a phone.
   win: {
@@ -210,6 +212,16 @@ function renderMoodState(stateName, overrides) {
     moodSection.insertBefore(headline, img);
   } else {
     moodSection.insertBefore(img, headline);
+  }
+
+  // Optional smaller line above the headline (the shutout screen's). Uses the
+  // #situation-above slot, which the top of this function clears every render.
+  if (state.aboveHeadline) {
+    var above = document.createElement('div');
+    above.id = 'situation-above';
+    above.style.cssText = 'text-align:center;font-weight:bold;font-size:18pt;margin-bottom:8px;';
+    above.textContent = state.aboveHeadline;
+    moodSection.insertBefore(above, headline);
   }
 
   const audio       = document.getElementById('bg-audio');
@@ -386,13 +398,26 @@ function oppScore(game) {
     : (game.awayTeam.score || 0);
 }
 
+// Last name of the opponent's top goal scorer, for the shutout headline
+// ("Hey Ovi..."). This season first — but club-stats stay empty until the
+// first regular-season game, so fall back to last season's leader. null if
+// neither has one, and the headline is just "Hey...".
 async function fetchOppLeadingScorer(abbrev) {
-  var season = getSelectedSeason();
+  var season     = getSelectedSeason();
+  var startYear  = parseInt(season.slice(0, 4), 10);
+  var lastSeason = (startYear - 1) + '' + startYear;
+  return (await fetchTopGoalScorer(abbrev, season)) ||
+         (await fetchTopGoalScorer(abbrev, lastSeason));
+}
+
+// Regular-season goals leader's last name for one team and season, or null
+// (no stats yet, nobody has scored, or the fetch failed).
+async function fetchTopGoalScorer(abbrev, season) {
   try {
     var r = await fetch(WORKER + '/v1/club-stats/' + abbrev + '/' + season + '/2');
     var d = await r.json();
     var skaters = (d.skaters || []).slice().sort(function (a, b) { return b.goals - a.goals; });
-    if (skaters.length && skaters[0].lastName) {
+    if (skaters.length && skaters[0].goals > 0 && skaters[0].lastName) {
       return skaters[0].lastName.default || null;
     }
   } catch (e) {}
@@ -441,6 +466,7 @@ function getResponseText(config, situation, params) {
       return r.postgame.ot_win_sub.replace('{scorer}', params.scorer || '');
     case 'postgame_shootout_win':     return r.postgame.shootout_win;
     case 'postgame_shootout_win_sub': return r.postgame.shootout_win_sub;
+    case 'shutout_win_above':         return r.postgame.shutout_win_above;
     case 'postgame_loss_reg': return r.postgame.loss_regulation;
     case 'postgame_loss_ot':  return r.postgame.loss_ot_so;
     case 'between_win':
@@ -490,7 +516,10 @@ async function getRegularSeasonState(data) {
       if (oppScore(lastGame) === 0) {
         var opp1 = lastGame.awayTeam.abbrev === 'NYI' ? lastGame.homeTeam : lastGame.awayTeam;
         var cap1 = await fetchOppLeadingScorer(opp1.abbrev);
-        return { stateName: 'shutout_win', overrides: { headline: cap1 ? 'Hey ' + cap1 + '...' : 'Hey...' } };
+        return { stateName: 'shutout_win', overrides: {
+          headline:      cap1 ? 'Hey ' + cap1 + '...' : 'Hey...',
+          aboveHeadline: getResponseText(config, 'shutout_win_above'),
+        } };
       }
       return { stateName: 'win',  overrides: { headline: getResponseText(config, 'between_win',  { nextGameDay: nextGameDay }), image: null } };
     } else {
@@ -548,7 +577,10 @@ async function getRegularSeasonState(data) {
       if (oppScore(nyiGame) === 0) {
         var opp2 = nyiGame.awayTeam.abbrev === 'NYI' ? nyiGame.homeTeam : nyiGame.awayTeam;
         var cap2 = await fetchOppLeadingScorer(opp2.abbrev);
-        return { stateName: 'shutout_win', overrides: { headline: cap2 ? 'Hey ' + cap2 + '...' : 'Hey...' }, gameObj: nyiGame };
+        return { stateName: 'shutout_win', gameObj: nyiGame, overrides: {
+          headline:      cap2 ? 'Hey ' + cap2 + '...' : 'Hey...',
+          aboveHeadline: getResponseText(config, 'shutout_win_above'),
+        } };
       }
       // Big bold line under the GIF (win and OT win)
       var BIG_SUB = 'font-size:28pt;font-weight:bold;opacity:1;margin:16px 0 30px 0;';
