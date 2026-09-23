@@ -117,6 +117,35 @@
       margin-bottom: 8px;
     }
 
+    .wiki-intro {
+      margin: 16px 0 0 0;
+      line-height: 1.5;
+    }
+
+    .wiki-option {
+      font-size: 10pt;
+      margin: 12px 0 0 0;
+    }
+
+    /* Brothers: one-goal players hidden unless the checkbox is ticked */
+    #brothers-list li.one-goal {
+      display: none;
+    }
+
+    #brothers-list.show-singles li.one-goal {
+      display: list-item;
+    }
+
+    #brothers-list.show-singles li.singles-note {
+      display: none;
+    }
+
+    .wiki li.singles-note {
+      list-style: none;
+      font-style: italic;
+      color: #54595d;
+    }
+
     .wiki-empty {
       font-style: italic;
       color: #54595d;
@@ -144,6 +173,7 @@
       </tr>
     </table>
     <p class="wiki-from">From Wikipedia, the free encyclopedia</p>
+    <p class="wiki-intro">This category contains goaltenders who might have had one more win in that column Vezina voters love so much... if not for Matthew Schaefer.</p>
 
     <div id="sons-list"><p>Loading...</p></div>
   </div>
@@ -157,6 +187,11 @@
       </tr>
     </table>
     <p class="wiki-from">From Wikipedia, the free encyclopedia</p>
+    <p class="wiki-intro">This category contains New York Islanders brothers-in-arms who have scored a goal assisted by Matthew Schaefer.</p>
+
+    <p class="wiki-option">
+      <label><input type="checkbox" id="show-singles"> Show one-goal players</label>
+    </p>
 
     <div id="brothers-list"><p>Loading...</p></div>
   </div>

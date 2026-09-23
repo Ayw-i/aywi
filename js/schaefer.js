@@ -173,7 +173,8 @@ function buildBrotherEntry(b) {
   // "Bo Horvat (11 goals)" / "Most recent: DAL @ NYI (March 26, 2026)."
   // The count covers regular season and playoffs together.
   var count = b.goals + (b.goals === 1 ? ' goal' : ' goals');
-  return '<li>' + b.name + ' (' + count + ')<br>' +
+  // One-goal players are hidden by CSS until "Show one-goal players" is ticked
+  return '<li' + (b.goals === 1 ? ' class="one-goal"' : '') + '>' + b.name + ' (' + count + ')<br>' +
     '<i>Most recent: ' + formatGameLink(b.lastGame) + '.</i></li>';
 }
 
@@ -289,7 +290,16 @@ async function loadSchaeferPage() {
         if (b.goals !== a.goals) return b.goals - a.goals;
         return a.lastGame.gameDate < b.lastGame.gameDate ? 1 : -1;
       });
-      return brothers.map(buildBrotherEntry).join('');
+      var html = brothers.map(buildBrotherEntry).join('');
+
+      // While they're hidden, say how many — otherwise a season of only
+      // one-goal players would look empty
+      var singles = brothers.filter(function (b) { return b.goals === 1; }).length;
+      if (singles) {
+        html += '<li class="singles-note">' + singles +
+          (singles === 1 ? ' player' : ' players') + ' with one goal hidden.</li>';
+      }
+      return html;
     });
   } catch (e) {
     console.error('Schaefer page failed:', e);
@@ -297,5 +307,13 @@ async function loadSchaeferPage() {
     document.getElementById('brothers-list').innerHTML = '<p>Failed to load data.</p>';
   }
 }
+
+// Also run once at load: on a reload the browser may keep the box ticked
+function applyShowSingles() {
+  var checked = document.getElementById('show-singles').checked;
+  document.getElementById('brothers-list').className = checked ? 'show-singles' : '';
+}
+document.getElementById('show-singles').addEventListener('change', applyShowSingles);
+applyShowSingles();
 
 loadSchaeferPage();
