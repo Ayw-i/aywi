@@ -282,7 +282,9 @@ needing to know which state is active. The season rolls over each September via
 | assets/sorover.png                  | Ready                 |
 | assets/only posers fall in love.mp3 | Ready — actually track 4, "Tinder対現実 • ☹ •" (TVVIN_PINEZ_M4LL) |
 | assets/only-posers-cover.jpg        | Album cover for the sound credit panel (150px, from Bandcamp) |
-| assets/lee.png                      | Win image (primary)   |
+| assets/offsides_like_how_worf_rides_with_starfleet.gif | Win image |
+| assets/schot_woll.gif               | OT win image          |
+| assets/lee.png                      | Former win image — no longer used |
 | assets/pov_sasha_daet_tebe_L.png    | Loss image (primary)  |
 | assets/now_im_on_the_outside.png    | Playoffs state        |
 | assets/roblox engvall.png           | Clinched state        |

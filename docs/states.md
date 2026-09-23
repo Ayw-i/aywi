@@ -17,7 +17,8 @@ the entire top section content, background color, and audio. Detection runs on p
 7. Preseason (gameType 01) active                           → Pre-season + counter  [TODO — see note below]
 8. Live game in progress (gameState LIVE / CRIT)            → Live (scoreboard)
 9. Game today, not started (gameState FUT / PRE)            → Pre-game
-10. Game today, final (gameState OFF / FINAL)               → Win / Loss / Loser Point
+10. Game today, final (gameState OFF / FINAL)               → Shutout Win / Shootout Win / OT Win / Win / Loss / Loser Point
+    (checked in that order: a 1-0 OT win gets the shutout screen)
 11. No game today, regular season                           → Persist last Win/Loss state
 12. No NYI games this month AND Stanley Cup Final decided,
     < postFinalsWindowDays (config.json, default 7) since
@@ -77,7 +78,9 @@ of preseason today" etc.) is still `[TODO]`.
 | Schedule Out         | #000000    | None                          | "NEW YEAR, NEW ME" + #/Date/Opponent schedule table   | None | Yes |
 | Live                 | #000000    | None (scoreboard layout)     | See response-text.md                  | TBD                          | Yes    |
 | Pre-game             | #000000    | None (pregame preview)       | "Game today." → "Game in X hours Y minutes." within 3h of the listed start (pinned 28pt; under 1h, "X minutes" has a hover note about the 7-12 min real-start delay) → "Any minute now." once the listed start passes | TBD                          | Yes    |
-| Win                  | #000000    | lee.png (30% width)          | See response-text.md                  | TBD                          | Yes    |
+| Win                  | #000000    | offsides_like_how_worf_rides_with_starfleet.gif, headline above it | See response-text.md | TBD | Yes    |
+| OT Win               | #000000    | schot_woll.gif, headline above it | See response-text.md ("{SCORER} WITH THE DAGGER!!!") | TBD | Yes    |
+| Shootout Win         | #000000    | None (shootout chart in the scoreboard below) | See response-text.md | TBD | Yes    |
 | Loss                 | #000000    | pov_sasha_daet_tebe_L.png    | See response-text.md                  | TBD                          | Yes    |
 | Off-season           | #000000    | None                         | See response-text.md                  | None                         | Yes    |
 

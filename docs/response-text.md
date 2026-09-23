@@ -26,13 +26,18 @@ Format: "Saturday, April 19th" (full day, full month, ordinal suffix).
 
 ## Post-game (game finished today)
 
-| Result             | Text                        |
-|--------------------|-----------------------------|
-| Win (any)          | "We won!"                   |
-| Loss — regulation  | "We lost."                  |
-| Loss — OT or SO    | "We won... a loser point!"  |
+| Result             | Headline (above image)      | Line under the image / headline |
+|--------------------|-----------------------------|---------------------------------|
+| Win — regulation   | "Winning?" + `offsides_like_how_worf_rides_with_starfleet.gif` | "Oh, we're cruising through Long Island Sound." |
+| Win — OT           | "OVERTIME WINNER!" + `schot_woll.gif` | "{SCORER} WITH THE DAGGER!!!" — last name, upper-cased; line left out until the scorer is in the data |
+| Win — shootout     | "SHOOT! OUT! WIN!" (no image; the shootout chart is in the scoreboard below) | "(Two points is two points!)" (14pt) |
+| Win — shutout      | "Hey {their captain}..." (takes priority over OT/SO) | — |
+| Loss — regulation  | "We lost."                  | — |
+| Loss — OT or SO    | "We won... a loser point!"  | — |
 
-OT/SO loss detected via NHL API `gameOutcome.lastPeriodType` field.
+OT/SO detected via NHL API `gameOutcome.lastPeriodType` field. The OT scorer is the last
+entry in the game's `goals` list from `/v1/score/now` (`otWinnerLastName()` in js/state.js).
+All strings live in config.json `responses.postgame`.
 
 ---
 

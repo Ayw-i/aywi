@@ -16,7 +16,12 @@
       }
     },
     "postgame": {
-      "win": "We won!",
+      "win": "Winning?",
+      "win_sub": "Oh, we're cruising through Long Island Sound.",
+      "ot_win": "OVERTIME WINNER!",
+      "ot_win_sub": "{scorer} WITH THE DAGGER!!!",
+      "shootout_win": "SHOOT! OUT! WIN!",
+      "shootout_win_sub": "(Two points is two points!)",
       "loss_regulation": "We lost.",
       "loss_ot_so": "We won... a loser point!"
     },
@@ -46,6 +51,8 @@
     "win":          [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
     "loss":         [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
     "shutout_win":  [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+    "ot_win":       [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+    "shootout_win": [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
     "live":         [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
     "pregame":      [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
   },

@@ -1233,7 +1233,8 @@ function buildScoreboardHTML(boxscore, playByPlay, gameId, nyiGameNum) {
 
   // Away is always left column, home is always right column — consistent with header.
   var nyiIsHome = home.abbrev === 'NYI';
-  var shootoutSection = (isFinal && wentToSO && boxscore.gameType === 2)
+  // Preseason too (the SHOOT! OUT! WIN! screen relies on this chart); playoffs never have one
+  var shootoutSection = (isFinal && wentToSO && boxscore.gameType !== 3)
     ? buildShootoutBoard(boxscore, playByPlay)
     : '';
   return buildHighScoringBanner(plays, homeStats, awayStats) +

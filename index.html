@@ -276,6 +276,13 @@
         padding: 0 0 8px 0 !important;
       }
 
+      /* Mood headline: at 72pt one long word ("OVERTIME", "SOROVER") is wider
+         than the screen. Only the default size — headlines that set their own
+         size (long ones drop to 28pt) keep it. */
+      #mood-headline {
+        font-size: 44pt;
+      }
+
       /* Score: 42pt split "4 –" and "3" over two lines in the narrow center column */
       .live-score {
         font-size: 28pt !important;

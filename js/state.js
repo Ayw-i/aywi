@@ -52,10 +52,34 @@ const STATES = {
     fades: true,
     headlineAbove: true,
   },
+  // Headline above the GIF, then a line under it (subHeadline, set by
+  // getRegularSeasonState). Between-games wins reuse this state with no image.
+  // imageSize 100%: the GIFs are small (291-360px wide), so they show at their
+  // own size, and at most the full width on a phone.
   win: {
     background: '#000000',
-    image: 'assets/lee.png',
-    imageSize: '30%',
+    image: 'assets/offsides_like_how_worf_rides_with_starfleet.gif',
+    imageSize: '100%',
+    headline: '',
+    headlineLink: null,
+    audioSrc: null,
+    fades: true,
+    headlineAbove: true,
+  },
+  ot_win: {
+    background: '#000000',
+    image: 'assets/schot_woll.gif',
+    imageSize: '100%',
+    headline: '',
+    headlineLink: null,
+    audioSrc: null,
+    fades: true,
+    headlineAbove: true,
+  },
+  // No image — the shootout chart in the scoreboard below is the picture
+  shootout_win: {
+    background: '#000000',
+    image: null,
     headline: '',
     headlineLink: null,
     audioSrc: null,
@@ -139,8 +163,22 @@ function renderMoodState(stateName, overrides) {
     var ytWidget = document.getElementById('yt-widget');
     if (ytWidget) ytWidget.style.display = 'none';
   }
+  // Line under the headline — or under the image, when the headline sits above
+  // it. Starts from mood-sub's own look each time (from index.html), since the
+  // goal transition and subHeadlineStyle restyle it.
   var moodSub = document.getElementById('mood-sub');
-  if (moodSub) { moodSub.innerHTML = ''; moodSub.style.display = 'none'; }
+  if (moodSub) {
+    if (moodSub.dataset.baseStyle == null) moodSub.dataset.baseStyle = moodSub.getAttribute('style') || '';
+    moodSub.setAttribute('style', moodSub.dataset.baseStyle);
+    if (state.subHeadline) {
+      moodSub.textContent   = state.subHeadline;   // may hold an API name — never innerHTML
+      moodSub.style.cssText += state.subHeadlineStyle || '';
+      moodSub.style.display = 'block';
+    } else {
+      moodSub.innerHTML     = '';
+      moodSub.style.display = 'none';
+    }
+  }
 
   const img = document.getElementById('mood-image');
   if (state.image) {
@@ -367,6 +405,17 @@ function wasOTorSO(game) {
      game.gameOutcome.lastPeriodType === 'SO');
 }
 
+// Last name of whoever scored NYI's OT winner. /v1/score/now lists every goal
+// on the game object, and the winner is the last one. null if that list isn't
+// there (yet) or its last goal isn't an NYI OT goal.
+function otWinnerLastName(game) {
+  var goals = game.goals || [];
+  var last  = goals[goals.length - 1];
+  if (!last || last.teamAbbrev !== 'NYI') return null;
+  if ((last.periodDescriptor || {}).periodType !== 'OT') return null;
+  return (last.lastName && last.lastName.default) || null;
+}
+
 // --- Response text ---
 
 function getResponseText(config, situation, params) {
@@ -386,6 +435,12 @@ function getResponseText(config, situation, params) {
       return r.live.trailing[String(d)];
     }
     case 'postgame_win':      return r.postgame.win;
+    case 'postgame_win_sub':  return r.postgame.win_sub;
+    case 'postgame_ot_win':   return r.postgame.ot_win;
+    case 'postgame_ot_win_sub':
+      return r.postgame.ot_win_sub.replace('{scorer}', params.scorer || '');
+    case 'postgame_shootout_win':     return r.postgame.shootout_win;
+    case 'postgame_shootout_win_sub': return r.postgame.shootout_win_sub;
     case 'postgame_loss_reg': return r.postgame.loss_regulation;
     case 'postgame_loss_ot':  return r.postgame.loss_ot_so;
     case 'between_win':
@@ -495,7 +550,30 @@ async function getRegularSeasonState(data) {
         var cap2 = await fetchOppLeadingScorer(opp2.abbrev);
         return { stateName: 'shutout_win', overrides: { headline: cap2 ? 'Hey ' + cap2 + '...' : 'Hey...' }, gameObj: nyiGame };
       }
-      return { stateName: 'win',  overrides: { headline: getResponseText(config, 'postgame_win') }, gameObj: nyiGame };
+      // Big bold line under the GIF (win and OT win)
+      var BIG_SUB = 'font-size:28pt;font-weight:bold;opacity:1;margin:16px 0 30px 0;';
+      var lastPeriod = (nyiGame.gameOutcome || {}).lastPeriodType;
+      if (lastPeriod === 'SO') {
+        return { stateName: 'shootout_win', gameObj: nyiGame, overrides: {
+          headline:         getResponseText(config, 'postgame_shootout_win'),
+          subHeadline:      getResponseText(config, 'postgame_shootout_win_sub'),
+          subHeadlineStyle: 'font-size:14pt;',
+        } };
+      }
+      if (lastPeriod === 'OT') {
+        // The dagger line only shows once the scorer's name is in the data
+        var scorer = otWinnerLastName(nyiGame);
+        return { stateName: 'ot_win', gameObj: nyiGame, overrides: {
+          headline:         getResponseText(config, 'postgame_ot_win'),
+          subHeadline:      scorer ? getResponseText(config, 'postgame_ot_win_sub', { scorer: scorer.toUpperCase() }) : null,
+          subHeadlineStyle: BIG_SUB,
+        } };
+      }
+      return { stateName: 'win', gameObj: nyiGame, overrides: {
+        headline:         getResponseText(config, 'postgame_win'),
+        subHeadline:      getResponseText(config, 'postgame_win_sub'),
+        subHeadlineStyle: BIG_SUB,
+      } };
     } else if (wasOTorSO(nyiGame)) {
       return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_ot') },  gameObj: nyiGame };
     } else {
@@ -515,8 +593,8 @@ const CLINCH_MOOD_MAP = {
   'z': 'clinched',  // presidents trophy
 };
 const CLINCH_STATE_OVERRIDES = {
-  'sorover':  ['win', 'loss', 'pregame', 'live'],
-  'clinched': ['win', 'loss'],
+  'sorover':  ['win', 'ot_win', 'shootout_win', 'loss', 'pregame', 'live'],
+  'clinched': ['win', 'ot_win', 'shootout_win', 'loss'],
 };
 
 // --- Off-season detection ---

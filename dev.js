@@ -95,6 +95,24 @@ const DEV_MOCK_SCENARIOS = {
     }],
     monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
   },
+  'Mock: OT win today': {
+    standings: mockStandings(null),
+    todayGames: [Object.assign(mockNYIGame('OFF', 3, 2, 'OT'), {
+      goals: [{ teamAbbrev: 'NYI', periodDescriptor: { number: 4, periodType: 'OT' }, lastName: { default: 'Barzal' } }],
+    })],
+    monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
+  },
+  // Same, but before the goals list has come through — no dagger line
+  'Mock: OT win (no scorer)': {
+    standings: mockStandings(null),
+    todayGames: [mockNYIGame('OFF', 3, 2, 'OT')],
+    monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
+  },
+  'Mock: SO win today': {
+    standings: mockStandings(null),
+    todayGames: [mockNYIGame('OFF', 3, 2, 'SO')],
+    monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
+  },
   'Mock: Loss today (reg)': {
     standings: mockStandings(null),
     todayGames: [mockNYIGame('OFF', 1, 3, 'REG')],
@@ -181,7 +199,7 @@ const DEV_MOCK_SCENARIOS = {
 
 const DEV_MOCK_GROUPS = [
   { label: 'Season',    states: ['Mock: Sorover', 'Mock: Clinched', 'Mock: Outside In', 'Mock: Post-Finals', 'Mock: Offseason', 'Mock: Preseason', 'Mock: Schedule Out'] },
-  { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Shutout win', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
+  { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Shutout win', 'Mock: OT win today', 'Mock: OT win (no scorer)', 'Mock: SO win today', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
   { label: 'Between',   states: ['Mock: Between (last W)', 'Mock: Between (last L)'] },
   { label: 'Pre-Game',  states: ['Mock: Pre-game'] },
   { label: 'Live',      states: ['Mock: Live +1', 'Mock: Live +2', 'Mock: Live +3', 'Mock: Live +4',
