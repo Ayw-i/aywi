@@ -242,6 +242,9 @@
       table-layout: fixed;
     }
 
+    #news-table col.news-site-col { width: 135px; }
+    #news-table col.news-date-col { width: 100px; }
+
     #news-table th,
     #news-table td {
       white-space: nowrap;
@@ -272,6 +275,34 @@
         box-sizing: border-box;
         padding: 0 0 8px 0 !important;
       }
+
+      /* Score: 42pt split "4 –" and "3" over two lines in the narrow center column */
+      .live-score {
+        font-size: 28pt !important;
+        white-space: nowrap;
+      }
+
+      /* Live feed / play log: smaller text, tighter padding and narrower
+         Time/Event columns, so the Details column gets most of the row */
+      .live-feed-table td {
+        font-size: 8pt !important;
+      }
+      .live-feed-table th,
+      .live-feed-table td {
+        padding: 3px 4px;
+      }
+      .live-feed-table col.feed-time-col  { width: 58px !important; }
+      .live-feed-table col.feed-event-col { width: 76px !important; }
+
+      /* News: smaller text and narrower Site/Date columns, so the headline
+         gets most of the row (the site name is the one cut off with "…") */
+      #news-table th,
+      #news-table td {
+        font-size: 9pt;
+        padding: 4px 4px;
+      }
+      #news-table col.news-site-col { width: 70px; }
+      #news-table col.news-date-col { width: 62px; }
     }
   </style>
 </head>
@@ -348,8 +379,8 @@
     <table id="news-table">
       <colgroup>
         <col>
-        <col style="width:135px;">
-        <col style="width:100px;">
+        <col class="news-site-col">
+        <col class="news-date-col">
       </colgroup>
       <thead>
         <tr>

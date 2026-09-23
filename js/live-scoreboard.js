@@ -274,7 +274,7 @@ function buildLiveHeader(boxscore, plays) {
     '<tr>' +
     teamCell(away, awaySOG) +
     '<td width="30%" align="center" style="border:none;vertical-align:middle;">' +
-      '<div style="font-size:42pt;font-weight:bold;line-height:1;">' +
+      '<div class="live-score" style="font-size:42pt;font-weight:bold;line-height:1;">' +
         (away.score || 0) + ' &ndash; ' + (home.score || 0) +
       '</div>' +
       buildENBreakdown(plays, home.id) +
@@ -342,7 +342,7 @@ function buildPregameHeader(game) {
     teamCell(away) +
     '<td width="30%" align="center" style="border:none;vertical-align:middle;">' +
       (typeTag ? '<div style="font-size:9pt;letter-spacing:2px;margin-bottom:6px;">' + typeTag + '</div>' : '') +
-      '<div style="font-size:42pt;font-weight:bold;line-height:1;white-space:nowrap;">&ndash; &ndash; &ndash;</div>' +
+      '<div class="live-score" style="font-size:42pt;font-weight:bold;line-height:1;white-space:nowrap;">&ndash; &ndash; &ndash;</div>' +
       '<div style="font-size:12pt;margin-top:6px;">' + clockStr + '</div>' +
       (detailParts.length
         ? '<div style="font-size:9pt;opacity:0.7;margin-top:4px;">' + detailParts.join('<br>') + '</div>'
@@ -1185,8 +1185,8 @@ function buildLiveFeed(plays, rosterMap, homeId, homeAbbrev, awayAbbrev, isFinal
   var title = (isFinal ? 'PLAY LOG' : 'LIVE FEED') + gameLabel;
   return '<h3 style="margin-top:20px;margin-bottom:4px;">' + title + '</h3>' +
     '<table width="100%" style="border:none;"><tr><td style="border:none;">' +
-    '<table style="table-layout:fixed;">' +
-    '<colgroup><col style="width:80px;"><col style="width:110px;"><col></colgroup>' +
+    '<table class="live-feed-table" style="table-layout:fixed;">' +
+    '<colgroup><col class="feed-time-col" style="width:80px;"><col class="feed-event-col" style="width:110px;"><col></colgroup>' +
     '<thead>' +
       '<tr><th style="font-size:8pt;">Time</th><th style="font-size:8pt;">Event</th><th style="font-size:8pt;">Details</th></tr>' +
     '</thead>' +
