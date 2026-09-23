@@ -406,7 +406,7 @@ function buildLiveGoals(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev, is
   }
 
   return '<h3 style="margin-top:20px;margin-bottom:4px;">GOALS</h3>' +
-    '<table width="100%" style="border:none;">' +
+    '<table class="team-pair" width="100%" style="border:none;">' +
     '<tr>' +
     '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalTable(awayGoals, awayAbbrev, awayShutoutImg) + '</td>' +
     '<td width="50%" valign="top" style="border:none;padding-left:4px;">' + goalTable(homeGoals, homeAbbrev, homeShutoutImg) + '</td>' +
@@ -567,7 +567,7 @@ function buildLivePenalties(plays, rosterMap, homeTeamId, homeAbbrev, awayAbbrev
   }
 
   return '<div style="margin-top:12px;font-size:9pt;opacity:0.85;">' +
-    '<table width="100%" style="border:none;">' +
+    '<table class="team-pair" width="100%" style="border:none;">' +
     '<tr>' +
     '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + penaltyTable(awayPenalties, awayAbbrev + ' Penalties') + '</td>' +
     '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + penaltyTable(homePenalties, homeAbbrev + ' Penalties') + '</td>' +
@@ -743,7 +743,7 @@ function buildLiveGoalies(leftGoalies, rightGoalies, leftAbbrev, rightAbbrev, le
   }
 
   return '<h3 style="margin-top:20px;margin-bottom:4px;">GOALIES</h3>' +
-    '<table width="100%" style="border:none;">' +
+    '<table class="team-pair" width="100%" style="border:none;">' +
     '<tr>' +
     '<td width="50%" valign="top" style="border:none;padding-right:4px;">' + goalieTable(leftGoalies,  leftAbbrev,  leftPullShutout,  leftGarbageShutout)  + '</td>' +
     '<td width="50%" valign="top" style="border:none;padding-left:4px;">'  + goalieTable(rightGoalies, rightAbbrev, rightPullShutout, rightGarbageShutout) + '</td>' +

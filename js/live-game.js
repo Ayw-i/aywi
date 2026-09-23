@@ -129,9 +129,12 @@ function applyMoodOverlay(overlay) {
         var srcs     = overlay.image.srcs || [];
         var slideImg = document.createElement('img');
         slideImg.src = srcs[0] || '';
-        slideImg.style.height    = '280px';
+        // Up to 280px tall, but never wider than the screen (a fixed 280px
+        // height made these 420px wide on a phone)
+        slideImg.style.maxHeight = '280px';
+        slideImg.style.maxWidth  = '100%';
         slideImg.style.width     = 'auto';
-        slideImg.style.objectFit = 'contain';
+        slideImg.style.height    = 'auto';
         slideImg.style.display   = 'block';
         slideImg.style.margin    = '0 auto';
         container.appendChild(slideImg);

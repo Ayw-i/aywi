@@ -254,6 +254,25 @@
       margin-top: 50px;
       opacity: 0.6;
     }
+
+    /* Phones: the two-team tables in the live view (goals, penalties, goalies,
+       skaters) need ~500-650px side by side, which made the whole page wider
+       than the screen. Below 700px each team's table takes the full width,
+       one above the other. Same rule in game.html. */
+    @media (max-width: 700px) {
+      table.team-pair,
+      table.team-pair > tbody,
+      table.team-pair > tbody > tr {
+        display: block;
+        width: 100%;
+      }
+      table.team-pair > tbody > tr > td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0 0 8px 0 !important;
+      }
+    }
   </style>
 </head>
 <body>

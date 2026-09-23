@@ -247,5 +247,5 @@ function buildLiveSkaters(leftStats, rightStats, leftAbbrev, rightAbbrev, plays,
   if (!bestRow && !worstRow) return '';
 
   return '<h3 style="margin-top:20px;margin-bottom:4px;">SKATERS</h3>' +
-    '<table width="100%" style="border:none;">' + bestRow + worstRow + '</table>';
+    '<table class="team-pair" width="100%" style="border:none;">' + bestRow + worstRow + '</table>';
 }

@@ -60,6 +60,23 @@
       margin: 0 8px;
       font-size: 11pt;
     }
+
+    /* Phones: two-team tables stack instead of sitting side by side
+       (see the matching rule in index.html) */
+    @media (max-width: 700px) {
+      table.team-pair,
+      table.team-pair > tbody,
+      table.team-pair > tbody > tr {
+        display: block;
+        width: 100%;
+      }
+      table.team-pair > tbody > tr > td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0 0 8px 0 !important;
+      }
+    }
   </style>
 </head>
 <body>

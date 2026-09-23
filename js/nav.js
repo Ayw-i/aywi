@@ -16,7 +16,9 @@
   var html = '<h1>Are Ya Winning, Isles?</h1><nav>';
   links.forEach(function (link) {
     var active = link.href.replace(/\.html$/, '') === current ? ' style="font-weight:bold;text-decoration:none;"' : '';
-    html += '<a href="' + link.href + '"' + active + '>' + link.label + '</a>';
+    // Trailing space: without it the links run together as one unbreakable
+    // "word", and the nav can't wrap onto a second line on a phone
+    html += '<a href="' + link.href + '"' + active + '>' + link.label + '</a> ';
   });
   html += '</nav>';
 
