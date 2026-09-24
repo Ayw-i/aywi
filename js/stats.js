@@ -156,6 +156,10 @@ function renderGoalieTable(tbodyId, goalies) {
 }
 
 async function loadStatsPage() {
+  // Drawn before the fetch so it's there even when the season has no stats
+  // yet or the load fails — that's exactly when you'd want another season.
+  document.getElementById('season-picker').innerHTML = renderSeasonPicker();
+
   try {
     // Rolls over to the new season in September; honors a ?season= override.
     var res  = await fetch(WORKER + '/v1/club-stats/NYI/' + getSelectedSeason() + '/2');

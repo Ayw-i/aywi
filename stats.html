@@ -81,6 +81,55 @@
     .sort-ind {
       font-size: 8pt;
     }
+
+    /* The skater tables have 13 columns that don't wrap (~530px), wider than
+       a phone. Each table sits in its own scroll box, so a wide table scrolls
+       sideways by itself instead of pushing the whole page off the screen. */
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    /* The Name column stays pinned to the left edge while the stat columns
+       scroll underneath it. With border-collapse: collapse the pinned cells'
+       borders would slide away with the rest of the table, so these tables
+       use separate borders instead: every cell draws only its right and
+       bottom edge, plus the top row and the Name column draw the outer edges. */
+    .table-scroll table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .table-scroll th,
+    .table-scroll td {
+      border-width: 0 1px 1px 0;
+    }
+    .table-scroll thead th {
+      border-top-width: 1px;
+    }
+    .table-scroll th:first-child,
+    .table-scroll td:first-child {
+      position: sticky;
+      left: 0;
+      border-left-width: 1px;
+      background-color: #000;   /* solid, so numbers don't show through */
+    }
+    .table-scroll th:first-child {
+      background-color: #262626; /* same gray as the other headers, but solid */
+    }
+
+    /* Phones: tighter cells and page edges so more columns fit before
+       scrolling kicks in. */
+    @media (max-width: 700px) {
+      #main {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      table {
+        font-size: 8pt;
+      }
+      th, td {
+        padding: 3px 4px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -91,74 +140,81 @@
   <script src="js/nav.js"></script>
 
   <h2>Stats</h2>
+  <div id="season-picker" style="text-align:left;margin-bottom:12px;"></div>
 
   <h3>Forwards</h3>
-  <table id="forwards-table">
-    <thead>
-      <tr>
-        <th title="Player name">Name</th>
-        <th title="Position">Pos</th>
-        <th title="Games played">GP</th>
-        <th title="Goals">G</th>
-        <th title="Assists">A</th>
-        <th title="Points (goals + assists)">PTS</th>
-        <th title="Plus/minus: net even-strength goals while on ice">+/-</th>
-        <th title="Penalty minutes">PIM</th>
-        <th title="Power play goals">PPG</th>
-        <th title="Shots on goal">SOG</th>
-        <th title="Shooting percentage">S%</th>
-        <th title="Average time on ice per game">TOI</th>
-        <th title="Points per 60 minutes of ice time">P/60</th>
-      </tr>
-    </thead>
-    <tbody id="forwards-tbody">
-      <tr><td colspan="13">Loading...</td></tr>
-    </tbody>
-  </table>
+  <div class="table-scroll">
+    <table id="forwards-table">
+      <thead>
+        <tr>
+          <th title="Player name">Name</th>
+          <th title="Position">Pos</th>
+          <th title="Games played">GP</th>
+          <th title="Goals">G</th>
+          <th title="Assists">A</th>
+          <th title="Points (goals + assists)">PTS</th>
+          <th title="Plus/minus: net even-strength goals while on ice">+/-</th>
+          <th title="Penalty minutes">PIM</th>
+          <th title="Power play goals">PPG</th>
+          <th title="Shots on goal">SOG</th>
+          <th title="Shooting percentage">S%</th>
+          <th title="Average time on ice per game">TOI</th>
+          <th title="Points per 60 minutes of ice time">P/60</th>
+        </tr>
+      </thead>
+      <tbody id="forwards-tbody">
+        <tr><td colspan="13">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <h3>Defensemen</h3>
-  <table id="defensemen-table">
-    <thead>
-      <tr>
-        <th title="Player name">Name</th>
-        <th title="Position">Pos</th>
-        <th title="Games played">GP</th>
-        <th title="Goals">G</th>
-        <th title="Assists">A</th>
-        <th title="Points (goals + assists)">PTS</th>
-        <th title="Plus/minus: net even-strength goals while on ice">+/-</th>
-        <th title="Penalty minutes">PIM</th>
-        <th title="Power play goals">PPG</th>
-        <th title="Shots on goal">SOG</th>
-        <th title="Shooting percentage">S%</th>
-        <th title="Average time on ice per game">TOI</th>
-        <th title="Points per 60 minutes of ice time">P/60</th>
-      </tr>
-    </thead>
-    <tbody id="defensemen-tbody">
-      <tr><td colspan="13">Loading...</td></tr>
-    </tbody>
-  </table>
+  <div class="table-scroll">
+    <table id="defensemen-table">
+      <thead>
+        <tr>
+          <th title="Player name">Name</th>
+          <th title="Position">Pos</th>
+          <th title="Games played">GP</th>
+          <th title="Goals">G</th>
+          <th title="Assists">A</th>
+          <th title="Points (goals + assists)">PTS</th>
+          <th title="Plus/minus: net even-strength goals while on ice">+/-</th>
+          <th title="Penalty minutes">PIM</th>
+          <th title="Power play goals">PPG</th>
+          <th title="Shots on goal">SOG</th>
+          <th title="Shooting percentage">S%</th>
+          <th title="Average time on ice per game">TOI</th>
+          <th title="Points per 60 minutes of ice time">P/60</th>
+        </tr>
+      </thead>
+      <tbody id="defensemen-tbody">
+        <tr><td colspan="13">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <h3>Goalies</h3>
-  <table id="goalies-table">
-    <thead>
-      <tr>
-        <th title="Player name">Name</th>
-        <th title="Games played">GP</th>
-        <th title="Wins">W</th>
-        <th title="Regulation losses">L</th>
-        <th title="Overtime/shootout losses">OTL</th>
-        <th title="Shutouts">SO</th>
-        <th title="Goals against average">GAA</th>
-        <th title="Save percentage">SV%</th>
-        <th title="Shots against">SA</th>
-      </tr>
-    </thead>
-    <tbody id="goalies-tbody">
-      <tr><td colspan="9">Loading...</td></tr>
-    </tbody>
-  </table>
+  <div class="table-scroll">
+    <table id="goalies-table">
+      <thead>
+        <tr>
+          <th title="Player name">Name</th>
+          <th title="Games played">GP</th>
+          <th title="Wins">W</th>
+          <th title="Regulation losses">L</th>
+          <th title="Overtime/shootout losses">OTL</th>
+          <th title="Shutouts">SO</th>
+          <th title="Goals against average">GAA</th>
+          <th title="Save percentage">SV%</th>
+          <th title="Shots against">SA</th>
+        </tr>
+      </thead>
+      <tbody id="goalies-tbody">
+        <tr><td colspan="9">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <p id="footer">Last updated: —</p>
 
