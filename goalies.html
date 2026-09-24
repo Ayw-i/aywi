@@ -80,7 +80,21 @@
       display: block;
       font-size: 10pt;
       color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    #gh-color-row {
+      font-size: 10pt;
+      color: #aaa;
       margin-bottom: 12px;
+    }
+    #gh-color {   /* same look as the season picker on the other pages */
+      background: #111;
+      color: white;
+      border: 1px solid #444;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 10pt;
+      padding: 2px 6px;
     }
 
     #gh-key {
@@ -118,6 +132,13 @@
     <input type="checkbox" id="gh-hide-minor" autocomplete="off">
     Hide goalies who never played 10 games in a season
   </label>
+  <div id="gh-color-row">
+    Color by:
+    <select id="gh-color" autocomplete="off">
+      <option value="save" selected>Save % vs. league</option>
+      <option value="none">Nothing (all white)</option>
+    </select>
+  </div>
 
   <table id="gh-layout">
     <tr>
@@ -127,6 +148,7 @@
   </table>
 
   <div id="gh-key"></div>
+  <div id="gh-defs"></div>
   <div id="gh-status">Loading…</div>
 
 </div>
@@ -135,8 +157,11 @@
   <div id="gh-tt-name"  style="font-weight:bold;"></div>
   <div id="gh-tt-month" style="font-size:9pt;color:#aaa;margin-top:2px;"></div>
   <div id="gh-tt-games" style="margin-top:4px;"></div>
+  <div id="gh-tt-stats" style="font-size:9pt;margin-top:2px;"></div>
+  <div id="gh-tt-vs"    style="font-size:9pt;color:#aaa;margin-top:2px;"></div>
 </div>
 
+<script src="js/utils.js"></script>
 <script src="js/nhl-schedule.js"></script>
 <script src="js/tooltip.js"></script>
 <script src="js/goalies.js"></script>
