@@ -186,6 +186,24 @@
       text-align: left;
     }
 
+    #prev-game-score table,
+    #next-game-score table {
+      margin: 10px 0;
+    }
+
+    /* The next game card grows open (pushing the page down) and fades in when
+       it's unfolded — setNextGameRevealed() in js/state.js sets the heights. */
+    #next-game-reveal {
+      overflow: hidden;
+      transition: height 0.4s ease, opacity 0.6s ease;
+    }
+
+    /* overflow:hidden keeps the inner margins from merging with the ones
+       outside the wrapper, so trim them to keep the usual spacing: 12px above
+       "Next game:" (2px + the previous card's 10px) and nothing extra below. */
+    #next-game-reveal #next-game-headline { margin-top: 2px; }
+    #next-game-score table                { margin-bottom: 0; }
+
     hr {
       border: none;
       border-top: 1px solid white;

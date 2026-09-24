@@ -160,8 +160,11 @@ Source: `GET /v1/standings/now` → `standings[]` → find `teamAbbrev.default =
 - **Win / Loss (game finished today)**: mood headline + that game's finalized scoreboard
 - **Between games (no game today)**: mood headline + "Previous game:" card. The next
   game's day in the headline ("on **Friday**" / "**tomorrow**") is a link that unfolds a
-  "Next game:" card under it; clicking again folds it back. "soon" (no next game this
-  month) isn't a link.
+  "Next game:" card under it; clicking again folds it back. The click also fades in the
+  header and on-screen sections the way the first scroll does. If the game section is
+  already showing, the card slides open (pushing the page down) and fades in, and folds
+  away the same way; otherwise it just arrives with the section's fade-in. "soon" (no
+  next game this month) isn't a link.
 - **Next game card** (`renderNextGameCard()` in js/state.js): same size as the previous
   game card — logos, dashes for scores, and Game N (or Preseason), date and puck drop in
   the viewer's time zone ("Time TBD" if the NHL hasn't set one) in the middle. Taken from

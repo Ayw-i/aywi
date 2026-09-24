@@ -288,15 +288,60 @@ function clearGameSection() {
 
 // The next game card stays folded away until the day in "we'll win again on
 // Friday" is clicked (nextGameDayLink below); clicking again folds it back.
-function setNextGameRevealed(show) {
+var _nextGameOpen = false;
+
+// animate = grow the space open and fade the card in (or shrink and fade out);
+// otherwise it just appears / disappears.
+function setNextGameRevealed(show, animate) {
   var reveal = document.getElementById('next-game-reveal');
-  if (reveal) reveal.style.display = show ? '' : 'none';
+  if (!reveal) return;
+  _nextGameOpen = show;
+
+  if (!animate) {
+    reveal.style.display = show ? '' : 'none';
+    reveal.style.height  = '';
+    reveal.style.opacity = '';
+    return;
+  }
+
+  // Pin the wrapper at its current height (0 when folded away), then set the
+  // height it's heading to — the CSS transition on #next-game-reveal slides it
+  // there, and everything below moves with it.
+  var from = reveal.style.display === 'none' ? 0 : reveal.offsetHeight;
+  reveal.style.display = '';
+  var to = show ? reveal.scrollHeight : 0;
+  reveal.style.height = from + 'px';
+  if (from === 0) reveal.style.opacity = '0';
+  reveal.offsetHeight;   // reading a size makes the browser apply the start values first
+  reveal.style.height  = to + 'px';
+  reveal.style.opacity = show ? '1' : '0';
+
+  reveal.ontransitionend = function (e) {
+    if (e.target === reveal && e.propertyName === 'height') finishNextGameReveal(reveal);
+  };
+  if (from === to) finishNextGameReveal(reveal);   // nothing to slide, so no transitionend
+}
+
+// After the slide: open goes back to its natural height (so it still fits if
+// the card changes), folded goes back to hidden.
+function finishNextGameReveal(reveal) {
+  reveal.style.height = '';
+  if (!_nextGameOpen) {
+    reveal.style.display = 'none';
+    reveal.style.opacity = '';
+  }
 }
 
 function toggleNextGame(event) {
   event.preventDefault();
-  var reveal = document.getElementById('next-game-reveal');
-  if (reveal) setNextGameRevealed(reveal.style.display === 'none');
+  // Only animate when the game section is already showing — otherwise the
+  // card just arrives with the section's own fade-in below.
+  var gameSection = document.getElementById('game-section');
+  var animate = gameSection && gameSection.classList.contains('visible');
+  setNextGameRevealed(!_nextGameOpen, animate);
+  // Clicking counts as the first scroll: fade in the header and the sections
+  // on screen, or the card would unfold inside a still-invisible game section.
+  if (typeof revealHeader === 'function') revealHeader();
 }
 
 // "on Friday" -> "on <link>Friday</link>", "tomorrow" -> "<link>tomorrow</link>".
@@ -320,9 +365,10 @@ function gameCardTeamCell(team, scoreHTML) {
     '</td>';
 }
 
-// Away | center label | home, the layout both game cards share.
+// Away | center label | home, the layout both game cards share. Margins are in
+// index.html's CSS (the next game card trims its bottom one).
 function gameCardTable(away, centerHTML, home, awayScore, homeScore) {
-  return '<table style="width:100%;border-collapse:collapse;margin:10px 0;"><tr>' +
+  return '<table style="width:100%;border-collapse:collapse;"><tr>' +
       gameCardTeamCell(away, awayScore) +
       '<td width="30%" align="center" style="border:none;font-size:9pt;color:#aaa;letter-spacing:1px;text-transform:uppercase;">' + centerHTML + '</td>' +
       gameCardTeamCell(home, homeScore) +
