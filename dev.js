@@ -1,5 +1,6 @@
 // dev.js — State switcher for local testing
-// Remove the <script src="dev.js"> tag from index.html before going to production
+// Remove the <script src="dev.js"> tag from index.html before going to production.
+// Until then the panel only appears locally or with ?dev in the URL (see bottom).
 
 // Helper: make a mock standings object for NYI
 function mockStandings(clinchIndicator) {
@@ -600,4 +601,9 @@ function buildDevPanel() {
   document.body.appendChild(panel);
 }
 
-buildDevPanel();
+// Only show the panel when asked for: running locally (Live Server), or with
+// ?dev in the URL (e.g. index.html?dev on the public site). Everyone else never
+// sees it. Same local hostnames the Worker lets through.
+var _devWanted = new URLSearchParams(window.location.search).has('dev') ||
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+if (_devWanted) buildDevPanel();

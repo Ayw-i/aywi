@@ -71,7 +71,8 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── 403.html            ← Forbidden page (nothing routes here automatically)
 ├── config.json         ← Response strings, month gates, news sources (edit without touching JS)
 ├── fights.json         ← Fight records, used by the fight overlay
-├── dev.js              ← DEV ONLY state switcher (remove before production)
+├── dev.js              ← DEV ONLY state switcher (remove before production); the panel
+│                         only appears on localhost/127.0.0.1 or with ?dev in the URL
 ├── nhl-proxy-worker.js ← Worker source reference
 ├── wrangler.jsonc      ← Cloudflare deploy config for the site (stops auto-setup guessing Hugo)
 ├── .assetsignore       ← Files kept off the public site (.git, docs, *.md, …)
