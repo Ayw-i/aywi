@@ -190,7 +190,7 @@ function applyMoodOverlay(overlay) {
       ytWidget.style.display = 'block';
       requestAnimationFrame(function () { ytWidget.style.opacity = '1'; });
     }
-    if (_ytReady && _ytPlayer) _ytPlayer.loadVideoById(overlay.youtubeId);
+    ytPlayVideo(overlay.youtubeId);   // main.js — loads the YouTube player the first time
     syncToggle();
   }
 }

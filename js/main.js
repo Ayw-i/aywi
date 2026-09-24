@@ -1,17 +1,42 @@
 // --- YouTube player ---
+// Only needed for the goal-review overlay, which is rare, so YouTube's player
+// script isn't loaded with the page — ytPlayVideo() fetches it the first time
+// a review starts. (Loading it up front cost a big download on every visit and
+// filled the console with YouTube's own [Violation] warnings.)
 
 var _ytPlayer = null;
-var _ytReady  = false;
+var _ytReady  = false;   // true once the player can take commands
 var _ytMode   = false;
+var _ytApiRequested = false;
+var _ytPendingVideo = null;  // video to start once the player is ready
+
+function ytPlayVideo(videoId) {
+  if (_ytReady && _ytPlayer) {
+    _ytPlayer.loadVideoById(videoId);
+    return;
+  }
+  _ytPendingVideo = videoId;
+  if (_ytApiRequested) return;
+  _ytApiRequested = true;
+  var script = document.createElement('script');
+  script.src = 'https://www.youtube.com/iframe_api';  // calls onYouTubeIframeAPIReady when loaded
+  document.head.appendChild(script);
+}
 
 window.onYouTubeIframeAPIReady = function () {
-  _ytReady = true;
   _ytPlayer = new YT.Player('yt-player', {
     height: '1',
     width: '1',
     playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: 'GDP4ds-ozOI' },
     events: {
-      onReady: function () { _ytPlayer.setVolume(50); },
+      onReady: function () {
+        _ytReady = true;
+        _ytPlayer.setVolume(50);
+        // Still on the review overlay? (It may have ended while the player loaded.)
+        if (_ytMode && _ytPendingVideo) _ytPlayer.loadVideoById(_ytPendingVideo);
+        _ytPendingVideo = null;
+        syncToggle();
+      },
       onStateChange: function (e) {
         if (e.data === 1 || e.data === 5) {
           var data = _ytPlayer.getVideoData();
