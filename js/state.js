@@ -852,13 +852,20 @@ async function applyState(data) {
 
   // /v1/standings/now keeps serving last season's final standings until the new
   // season's start to populate, so in the preseason/off-season stretch the
-  // clinchIndicator is stale ("e" all summer if NYI missed the playoffs). Drop
-  // it when the current month isn't one this mood belongs in, otherwise it
-  // overrides real preseason/early-season game states with Sorover/Clinched.
+  // clinchIndicator is stale ("e" all summer if NYI missed the playoffs). Left
+  // in, it would override real preseason/early-season game states with
+  // Sorover/Clinched. The row's own seasonId says which season it's from, so a
+  // row from last season is dropped quietly — that's expected every September
+  // (same check as playoffs.js).
+  if (!data.isMock && clinchMood && String(nyi.seasonId) !== getSelectedSeason()) {
+    clinchMood = null;
+  }
+
+  // Backstop: a clinch mood from this season's standings showing up in a month
+  // it shouldn't (see config.stateMonthGates) means something unexpected.
   if (!data.isMock && clinchMood && !isMonthAllowedForState(config, clinchMood, new Date())) {
-    console.warn('[state] Ignoring stale "' + clinchMood + '" clinch mood — current month is ' +
-      'outside its expected window (config.stateMonthGates); standings data is likely ' +
-      'left over from last season.');
+    console.warn('[state] Ignoring "' + clinchMood + '" clinch mood — current month is ' +
+      'outside its expected window (config.stateMonthGates). Check state-detection logic.');
     clinchMood = null;
   }
 
