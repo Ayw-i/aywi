@@ -17,7 +17,7 @@
     },
     "postgame": {
       "win": "",
-      "win_sub": "Tonight we're cruising through Long Island Sound.",
+      "win_sub": "{tonightOrToday} we're cruising through Long Island Sound.",
       "ot_win": "OVERTIME WINNER!",
       "ot_win_sub": "{scorer} WITH THE DAGGER!!!",
       "shootout_win": "SHOOT! OUT! WIN!",

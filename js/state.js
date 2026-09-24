@@ -443,6 +443,14 @@ function otWinnerLastName(game) {
 
 // --- Response text ---
 
+// "Tonight" from 3PM until 6AM (roughly sunrise), "Today" the rest of the
+// morning and early afternoon — the win screen can hang around until the NHL
+// flips its date around noon. Uses the viewer's own clock.
+function tonightOrToday() {
+  var hour = new Date().getHours();
+  return (hour >= 15 || hour < 6) ? 'Tonight' : 'Today';
+}
+
 function getResponseText(config, situation, params) {
   const r = config.responses;
   params = params || {};
@@ -460,7 +468,8 @@ function getResponseText(config, situation, params) {
       return r.live.trailing[String(d)];
     }
     case 'postgame_win':      return r.postgame.win;
-    case 'postgame_win_sub':  return r.postgame.win_sub;
+    case 'postgame_win_sub':
+      return r.postgame.win_sub.replace('{tonightOrToday}', tonightOrToday());
     case 'postgame_ot_win':   return r.postgame.ot_win;
     case 'postgame_ot_win_sub':
       return r.postgame.ot_win_sub.replace('{scorer}', params.scorer || '');

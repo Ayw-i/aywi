@@ -28,7 +28,7 @@ Format: "Saturday, April 19th" (full day, full month, ordinal suffix).
 
 | Result             | Headline (above image)      | Line under the image / headline |
 |--------------------|-----------------------------|---------------------------------|
-| Win — regulation   | (no headline) `offsides_like_how_worf_rides_with_starfleet.gif` | "Tonight we're cruising through Long Island Sound." |
+| Win — regulation   | (no headline) `offsides_like_how_worf_rides_with_starfleet.gif` | "{Tonight/Today} we're cruising through Long Island Sound." — "Tonight" from 3PM to 6AM on the viewer's clock, "Today" otherwise (`tonightOrToday()`); the screen can last until the NHL flips its date around noon the next day |
 | Win — OT           | "OVERTIME WINNER!" + `schot_woll.gif` | "{SCORER} WITH THE DAGGER!!!" — last name, upper-cased; line left out until the scorer is in the data |
 | Win — shootout     | "SHOOT! OUT! WIN!" (no image; the shootout chart is in the scoreboard below) | "(Two points is two points!)" (14pt) |
 | Win — shutout      | Smaller line above (18pt): "Now that's the difference between first and last place." (`shutout_win_above`), then "Hey {their top goal scorer}..." + `hey-ovi-tell-me-how.jpg` — last name of the opponent's regular-season goals leader (`fetchOppLeadingScorer()`, club-stats). This season first; if it has no leader yet (stats empty until the first regular-season game, or nobody has scored), last season's leader; if neither, just "Hey...". Takes priority over OT/SO | — |
