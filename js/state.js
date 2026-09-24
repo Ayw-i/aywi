@@ -263,6 +263,7 @@ function showGameSection(text) {
   const gameHeadline = document.getElementById('game-headline');
   const gameSection  = document.getElementById('game-section');
   gameHeadline.textContent = text;
+  setNextGameRevealed(false);
   gameSection.style.display = '';
   gameSection.classList.remove('visible');
   if (typeof _uiObserving !== 'undefined' && _uiObserving) {
@@ -281,6 +282,82 @@ function clearGameSection() {
   gameSection.classList.remove('visible');
   var prevScore = document.getElementById('prev-game-score');
   if (prevScore) prevScore.innerHTML = '';
+  renderNextGameCard(null);
+  setNextGameRevealed(false);
+}
+
+// The next game card stays folded away until the day in "we'll win again on
+// Friday" is clicked (nextGameDayLink below); clicking again folds it back.
+function setNextGameRevealed(show) {
+  var reveal = document.getElementById('next-game-reveal');
+  if (reveal) reveal.style.display = show ? '' : 'none';
+}
+
+function toggleNextGame(event) {
+  event.preventDefault();
+  var reveal = document.getElementById('next-game-reveal');
+  if (reveal) setNextGameRevealed(reveal.style.display === 'none');
+}
+
+// "on Friday" -> "on <link>Friday</link>", "tomorrow" -> "<link>tomorrow</link>".
+// Same white underline as the other headline links.
+function nextGameDayLink(dayText) {
+  var prefix = dayText.indexOf('on ') === 0 ? 'on ' : '';
+  return prefix +
+    '<a href="#" onclick="toggleNextGame(event)" title="Show next game" ' +
+    'style="color:white;text-decoration:underline;">' + dayText.slice(prefix.length) + '</a>';
+}
+
+// One side of a previous/next game card: logo, abbrev, big score (or a dash
+// for a game that hasn't been played).
+function gameCardTeamCell(team, scoreHTML) {
+  var abbrev = team.abbrev || '';
+  return '<td width="35%" align="center" style="border:none;">' +
+    '<img src="https://assets.nhle.com/logos/nhl/svg/' + abbrev + '_light.svg" width="56" alt="' + abbrev + '" ' +
+    'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 4px;">' +
+    '<div style="font-size:10pt;">' + abbrev + '</div>' +
+    '<div style="font-size:22pt;font-weight:bold;line-height:1.1;">' + scoreHTML + '</div>' +
+    '</td>';
+}
+
+// Away | center label | home, the layout both game cards share.
+function gameCardTable(away, centerHTML, home, awayScore, homeScore) {
+  return '<table style="width:100%;border-collapse:collapse;margin:10px 0;"><tr>' +
+      gameCardTeamCell(away, awayScore) +
+      '<td width="30%" align="center" style="border:none;font-size:9pt;color:#aaa;letter-spacing:1px;text-transform:uppercase;">' + centerHTML + '</td>' +
+      gameCardTeamCell(home, homeScore) +
+    '</tr></table>';
+}
+
+// Same card as the previous game, for the next one: dashes for scores, and the
+// date and puck drop (viewer's own time zone, like the pregame preview) in the
+// middle. game is a club-schedule-season object; null hides the card.
+function renderNextGameCard(game, nyiGameNum) {
+  var headline  = document.getElementById('next-game-headline');
+  var container = document.getElementById('next-game-score');
+  if (!headline || !container) return;
+  if (!game) {
+    headline.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  var lines = [];
+  if (nyiGameNum)               lines.push('Game ' + nyiGameNum);
+  else if (game.gameType === 1) lines.push('Preseason');
+  lines.push(formatSeasonDate(game.gameDate));
+  // TBD games still carry a placeholder start time — don't show it
+  if (game.gameScheduleState === 'TBD' || !game.startTimeUTC) {
+    lines.push('Time TBD');
+  } else {
+    lines.push(new Date(game.startTimeUTC).toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+    }));
+  }
+
+  headline.style.display = '';
+  container.innerHTML = gameCardTable(game.awayTeam || {}, lines.join('<br>'),
+    game.homeTeam || {}, '&ndash;', '&ndash;');
 }
 
 function renderPreviousGameScore(game, nyiGameNum) {
@@ -307,22 +384,9 @@ function renderPreviousGameScore(game, nyiGameNum) {
     finalLabel = '<span' + tooltip + ' style="cursor:default;">Game ' + nyiGameNum + '</span><br>' + finalLabel;
   }
 
-  function teamCell(team) {
-    var abbrev = team.abbrev || '';
-    return '<td width="35%" align="center" style="border:none;">' +
-      '<img src="https://assets.nhle.com/logos/nhl/svg/' + abbrev + '_light.svg" width="56" alt="' + abbrev + '" ' +
-      'onerror="this.style.display=\'none\'" style="display:block;margin:0 auto 4px;">' +
-      '<div style="font-size:10pt;">' + abbrev + '</div>' +
-      '<div style="font-size:22pt;font-weight:bold;line-height:1.1;">' + (team.score != null ? team.score : '&mdash;') + '</div>' +
-      '</td>';
-  }
+  function score(team) { return team.score != null ? team.score : '&mdash;'; }
 
-  container.innerHTML =
-    '<table style="width:100%;border-collapse:collapse;margin:10px 0;"><tr>' +
-      teamCell(away) +
-      '<td width="30%" align="center" style="border:none;font-size:9pt;color:#aaa;letter-spacing:1px;text-transform:uppercase;">' + finalLabel + '</td>' +
-      teamCell(home) +
-    '</tr></table>';
+  container.innerHTML = gameCardTable(away, finalLabel, home, score(away), score(home));
 }
 
 // Bare #/Date/Opponent schedule table for the Schedule-Out state — nothing's
@@ -521,19 +585,26 @@ async function getRegularSeasonState(data) {
     if (!lastGame) return null;
     const nextGameDay = nextGame ? formatNextGameDay(nextGame.gameDate) : 'soon';
 
-    if (nyiWon(lastGame)) {
-      if (oppScore(lastGame) === 0) {
-        var opp1 = lastGame.awayTeam.abbrev === 'NYI' ? lastGame.homeTeam : lastGame.awayTeam;
-        var cap1 = await fetchOppLeadingScorer(opp1.abbrev);
-        return { stateName: 'shutout_win', overrides: {
-          headline:      cap1 ? 'Hey ' + cap1 + '...' : 'Hey...',
-          aboveHeadline: getResponseText(config, 'shutout_win_above'),
-        } };
-      }
-      return { stateName: 'win',  overrides: { headline: getResponseText(config, 'between_win',  { nextGameDay: nextGameDay }), image: null } };
-    } else {
-      return { stateName: 'loss', overrides: { headline: getResponseText(config, 'between_loss', { nextGameDay: nextGameDay }), image: null } };
+    if (nyiWon(lastGame) && oppScore(lastGame) === 0) {
+      var opp1 = lastGame.awayTeam.abbrev === 'NYI' ? lastGame.homeTeam : lastGame.awayTeam;
+      var cap1 = await fetchOppLeadingScorer(opp1.abbrev);
+      return { stateName: 'shutout_win', overrides: {
+        headline:      cap1 ? 'Hey ' + cap1 + '...' : 'Hey...',
+        aboveHeadline: getResponseText(config, 'shutout_win_above'),
+      } };
     }
+    // The next game's day links to the folded-away next game card. "soon" (no
+    // next game this month) stays plain text.
+    var betweenKey = nyiWon(lastGame) ? 'between_win' : 'between_loss';
+    var betweenOverrides = {
+      headline: getResponseText(config, betweenKey, { nextGameDay: nextGameDay }),
+      image:    null,
+    };
+    if (nextGame) {
+      betweenOverrides.headlineHTML =
+        getResponseText(config, betweenKey, { nextGameDay: nextGameDayLink(nextGameDay) });
+    }
+    return { stateName: nyiWon(lastGame) ? 'win' : 'loss', overrides: betweenOverrides };
   }
 
   const state = nyiGame.gameState;
@@ -840,7 +911,7 @@ async function applyState(data) {
     }
 
     renderMoodState(fallbackMood);
-    if (clinchMood) { showGameSection('Previous game:'); fetchAndRenderLastGame(); }
+    if (clinchMood) { showGameSection('Previous game:'); fetchAndRenderGameCards(); }
     else            { clearGameSection(); }
     return fallbackMood;
   }
@@ -872,7 +943,7 @@ async function applyState(data) {
   if ((clinchMood || !showsOwnScoreboard) &&
       gameInfo.stateName !== 'live' && gameInfo.stateName !== 'pregame') {
     showGameSection('Previous game:');
-    fetchAndRenderLastGame();
+    fetchAndRenderGameCards();
   } else {
     clearGameSection();
   }
@@ -882,15 +953,29 @@ async function applyState(data) {
 
 // --- State detection (real API or mock data) ---
 
-function fetchAndRenderLastGame() {
+// Fills the game section's cards from the season schedule: the last finished
+// NYI game, and the next one (folded away until the headline's day link is
+// clicked). The next game is the first one whose start time is still ahead —
+// not just the first FUT game, in case the cached schedule is behind — with
+// postponed and cancelled games skipped. No next game (end of season) = no card.
+function fetchAndRenderGameCards() {
   getSeasonSchedule()
     .then(function (games) {
-      var completed = games.filter(function (g) {
-        return isNYIGame(g) && (g.gameState === 'OFF' || g.gameState === 'FINAL');
+      var nyiGames = games.filter(isNYIGame);
+      var now      = new Date();
+
+      var completed = nyiGames.filter(function (g) {
+        return g.gameState === 'OFF' || g.gameState === 'FINAL';
       });
       var lastGame = completed[completed.length - 1] || null;
-      var nyiGameNum = lastGame ? getNYIGameNumber(lastGame.id, games) : null;
-      renderPreviousGameScore(lastGame, nyiGameNum);
+      renderPreviousGameScore(lastGame, lastGame ? getNYIGameNumber(lastGame.id, games) : null);
+
+      var nextGame = nyiGames.find(function (g) {
+        return g.gameState !== 'OFF' && g.gameState !== 'FINAL' &&
+               g.gameScheduleState !== 'PPD' && g.gameScheduleState !== 'CNCL' &&
+               g.startTimeUTC && new Date(g.startTimeUTC) > now;
+      }) || null;
+      renderNextGameCard(nextGame, nextGame ? getNYIGameNumber(nextGame.id, games) : null);
     })
     .catch(function () {});
 }

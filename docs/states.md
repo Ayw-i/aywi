@@ -158,7 +158,15 @@ Source: `GET /v1/standings/now` → `standings[]` → find `teamAbbrev.default =
   The live scoreboard also shows "Puck drop any minute" while it's the 1st period with the clock
   stopped at 20:00 (the NHL marks the game LIVE a couple of minutes before the opening faceoff).
 - **Win / Loss (game finished today)**: mood headline + that game's finalized scoreboard
-- **Between games (no game today)**: mood headline + previous game's finalized scoreboard
+- **Between games (no game today)**: mood headline + "Previous game:" card. The next
+  game's day in the headline ("on **Friday**" / "**tomorrow**") is a link that unfolds a
+  "Next game:" card under it; clicking again folds it back. "soon" (no next game this
+  month) isn't a link.
+- **Next game card** (`renderNextGameCard()` in js/state.js): same size as the previous
+  game card — logos, dashes for scores, and Game N (or Preseason), date and puck drop in
+  the viewer's time zone ("Time TBD" if the NHL hasn't set one) in the middle. Taken from
+  the season schedule: the first NYI game whose start time is still ahead, skipping
+  postponed/cancelled games
 - **Outside In / Off-season / Pre-season**: game section hidden
 - **Playoffs Active (between games / win / loss)**: game section shows previous playoff game scoreboard + series record
 - **Playoffs Active (pregame / live)**: same as regular season pregame/live; game section hidden / replaced by scoreboard

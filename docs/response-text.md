@@ -51,6 +51,11 @@ All strings live in config.json `responses.postgame`.
 `{nextGameDay}`:
 - "tomorrow" if the next NYI game is the following calendar day
 - "on [day of week]" otherwise (e.g. "on Monday")
+- "soon" if there's no upcoming NYI game this month
+
+The day ("tomorrow" / "Monday", not the "on") is a link that shows or hides the
+"Next game:" card under the previous game (`nextGameDayLink()` in js/state.js). "soon"
+stays plain text.
 
 Between games: no mood image shown.
 

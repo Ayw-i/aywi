@@ -179,7 +179,8 @@
 
     .hover-note:hover .hover-note-box { display: block; }
 
-    #game-headline {
+    #game-headline,
+    #next-game-headline {
       font-size: 11pt;
       margin: 12px 0;
       text-align: left;
@@ -391,11 +392,16 @@
     <div id="schedule-out-table" style="margin-top:20px;text-align:left;"></div>
   </div>
 
-  <!-- GAME SECTION — shown in Sorover/Clinched states; empty otherwise -->
+  <!-- GAME SECTION — shown between games and in Sorover/Clinched; empty otherwise -->
   <div id="game-section" class="fade-section">
     <hr>
     <p id="game-headline"></p>
     <div id="prev-game-score"></div>
+    <!-- Hidden until the next game's day in the headline is clicked -->
+    <div id="next-game-reveal" style="display:none;">
+      <p id="next-game-headline" style="display:none;">Next game:</p>
+      <div id="next-game-score"></div>
+    </div>
   </div>
 
   <!-- PERSISTENT SECTION -->
