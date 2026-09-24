@@ -114,7 +114,12 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ## Design Rules
 
 - 90s Geocities aesthetic — lo-fi, old internet, no modern CSS effects
-- No rounded corners, no shadows, no gradients
+- No rounded corners, no shadows
+- Gradients only inside data marks (game cells, chart bars, legend swatches) to
+  show two colors at once — team primary→secondary on playoffs.html, the "W"
+  label on series.html, Hall of Isles "great"/"good" months. Hard-stop gradients
+  for stripes/corners are fine too. No decorative gradients on backgrounds or
+  headers. (Exception: the playoffs.html infohazard buttons.)
 - No Google Fonts, no icon libraries
 - Use `<table>` for all data and side-by-side layouts (period accurate)
 - Navigation: plain text link bar at the top of every page
