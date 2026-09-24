@@ -76,6 +76,13 @@
       color-scheme: dark;   /* dark scrollbar instead of the default white one */
     }
 
+    #gh-filter {
+      display: block;
+      font-size: 10pt;
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
     #gh-key {
       font-size: 9pt;
       color: #aaa;
@@ -107,6 +114,10 @@
   <script src="js/nav.js"></script>
 
   <h2>Hall of Isles Goalies</h2>
+  <label id="gh-filter">
+    <input type="checkbox" id="gh-hide-minor" autocomplete="off">
+    Hide goalies who never played 10 games in a season
+  </label>
 
   <table id="gh-layout">
     <tr>

@@ -19,11 +19,13 @@ var GH_COL_W         = 10;   // width of one month
 var GH_SEASON_GAP    = 5;    // blank space between seasons
 var GH_AXIS_H        = 34;   // month letters + season labels under the bars
 var GH_FIRST_SEASON  = 2010; // the NHL API's data starts with 2010-11
+var GH_MINOR_GAMES   = 10;   // "Hide minor goalies": never played this many in one season
 
 var GH_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                  'August', 'September', 'October', 'November', 'December'];
 
-// playerId -> { first, last, lastDate, months: { 'YYYY-MM': { reg, po } } }
+// playerId -> { first, last, lastDate, months: { 'YYYY-MM': { reg, po } },
+//               seasons: { '20252026': games } }
 var _ghGoalies = {};
 // 'YYYY-MM' -> season id ('20252026') for every month that had an NYI game
 var _ghMonthSeason = {};
@@ -76,6 +78,7 @@ function ghAddSeason(season, results) {
         last:  g.lastName.default,
         lastDate: '',
         months: {},
+        seasons: {},
       };
     }
     res.games.forEach(function (game) {
@@ -86,6 +89,7 @@ function ghAddSeason(season, results) {
       if (res.type === 3) entry.months[month].po++;
       else                entry.months[month].reg++;
       if (game.gameDate > entry.lastDate) entry.lastDate = game.gameDate;
+      entry.seasons[season] = (entry.seasons[season] || 0) + 1;
       _ghMonthSeason[month] = season;
     });
   });
@@ -104,6 +108,18 @@ function ghSortedGoalies() {
   return list;
 }
 
+// Third-stringers and call-ups: never played GH_MINOR_GAMES games for NYI in
+// one season (regular season + playoffs). Anyone who played in the newest
+// season is never minor, so a new backup isn't hidden every October until
+// they reach 10 games.
+function ghIsMinor(g, newestSeason) {
+  if (g.seasons[newestSeason]) return false;
+  for (var s in g.seasons) {
+    if (g.seasons[s] >= GH_MINOR_GAMES) return false;
+  }
+  return true;
+}
+
 // Last names on the axis; first initial too when two goalies share one
 function ghLabels(goalies) {
   var count = {};
@@ -117,8 +133,14 @@ function ghRender() {
   var goalies = ghSortedGoalies();
   if (goalies.length === 0) return;
 
-  // Columns: months with games, newest on the left, a gap between seasons
+  // Columns: months with games, newest on the left, a gap between seasons.
+  // Hidden goalies' months stay, so the time axis doesn't change when toggling.
   var months = Object.keys(_ghMonthSeason).sort().reverse();
+
+  if (document.getElementById('gh-hide-minor').checked) {
+    var newestSeason = _ghMonthSeason[months[0]];
+    goalies = goalies.filter(function (g) { return !ghIsMinor(g, newestSeason); });
+  }
   var colX = {};
   var seasons = [];   // [{ season, x1, x2 }] for the season labels and dividers
   var x = 0;
@@ -258,6 +280,7 @@ async function ghLoadAll() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('gh-hide-minor').addEventListener('change', ghRender);
   ghRenderKey();
   ghSetupTooltip();
   ghLoadAll();
