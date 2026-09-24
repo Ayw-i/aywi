@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hall of Isles Goalies — Are Ya Winning, Isles?</title>
+  <style>
+    body {
+      background-color: #000;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px 60px 20px;
+    }
+
+    nav {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: underline;
+      margin: 0 8px;
+      font-size: 11pt;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 18pt;
+      text-transform: uppercase;
+      margin: 30px 0 6px 0;
+    }
+
+
+    /* Two cells: the names stay put on the left while the graph (about
+       1,200px wide) scrolls sideways in its own box on the right.
+       table-layout: fixed stops the wide graph from stretching the table. */
+    #gh-layout {
+      width: 100%;
+      border: none;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    #gh-layout td {
+      border: none;
+      padding: 0;
+      vertical-align: top;
+    }
+    #gh-names-cell {
+      width: 90px;
+    }
+    .gh-name {
+      height: 22px;         /* = GH_ROW_H in js/goalies.js */
+      line-height: 22px;
+      font-size: 9pt;
+      text-align: right;
+      padding-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #gh-scroll {
+      overflow-x: auto;
+      color-scheme: dark;   /* dark scrollbar instead of the default white one */
+    }
+
+    #gh-key {
+      font-size: 9pt;
+      color: #aaa;
+      margin-top: 12px;
+    }
+
+    #gh-status {
+      font-size: 9pt;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 700px) {
+      #main {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      #gh-names-cell {
+        width: 76px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="main">
+
+  <div id="nav"></div>
+  <script src="js/nav.js"></script>
+
+  <h2>Hall of Isles Goalies</h2>
+
+  <table id="gh-layout">
+    <tr>
+      <td id="gh-names-cell"><div id="gh-names"></div></td>
+      <td><div id="gh-scroll"><div id="gh-graph"></div></div></td>
+    </tr>
+  </table>
+
+  <div id="gh-key"></div>
+  <div id="gh-status">Loading…</div>
+
+</div>
+
+<div id="gh-tt" style="display:none;position:fixed;background:#111;border:1px solid #555;padding:8px 12px;z-index:999;font-family:Helvetica,Arial,sans-serif;font-size:10pt;color:#fff;">
+  <div id="gh-tt-name"  style="font-weight:bold;"></div>
+  <div id="gh-tt-month" style="font-size:9pt;color:#aaa;margin-top:2px;"></div>
+  <div id="gh-tt-games" style="margin-top:4px;"></div>
+</div>
+
+<script src="js/nhl-schedule.js"></script>
+<script src="js/tooltip.js"></script>
+<script src="js/goalies.js"></script>
+
+</body>
+</html>

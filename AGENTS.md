@@ -57,6 +57,8 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── season.html         ← Game-by-game season table, special records, goalie starts
 ├── schedule.html       ← Month calendar of the season's games
 ├── stats.html          ← Extended skater and goalie season stats
+├── goalies.html        ← Hidden: goalie history timeline since 2010-11 (linked only
+│                         from the "Goalies" header on stats.html)
 ├── playoffs.html       ← Today's playoff games + full bracket by conference/round
 ├── series.html         ← Season series vs. every opponent, grouped by division
 ├── game.html           ← Single game box score (?id={gameId})
@@ -92,6 +94,7 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 │   ├── news.js         ← News feed loading
 │   ├── roster.js       ← Front page roster stats tables (sortable)
 │   ├── stats.js        ← stats.html extended stats tables
+│   ├── goalies.js      ← goalies.html timeline: loads one season at a time, newest first
 │   ├── season-page.js  ← season.html table, special records, goalie fatigue
 │   ├── schedule-page.js ← schedule.html month calendar
 │   ├── playoffs.js     ← playoffs.html bracket, series cards, today's game cards
