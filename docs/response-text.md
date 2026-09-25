@@ -34,6 +34,8 @@ Format: "Saturday, April 19th" (full day, full month, ordinal suffix).
 | Win — shutout      | Smaller line above (18pt): "Now that's the difference between first and last place." (`shutout_win_above`), then "Hey {their top goal scorer}..." + `hey-ovi-tell-me-how.jpg` — last name of the opponent's regular-season goals leader (`fetchOppLeadingScorer()`, club-stats). This season first; if it has no leader yet (stats empty until the first regular-season game, or nobody has scored), last season's leader; if neither, just "Hey...". Takes priority over OT/SO | — |
 | Loss — regulation  | "We lost."                  | — |
 | Loss — OT or SO    | "We won... a loser point!"  | — |
+| Win over NYR at home (reg/OT) | "Turns out the Rangers still..." (no image; replaces the whole win screen) | — (Chicken Dance plays) |
+| Win over NYR away (reg/OT)    | "Clap your hands!" (no image; replaces the whole win screen)           | — ("If You're Happy And You Know It" plays) |
 
 OT/SO detected via NHL API `gameOutcome.lastPeriodType` field. The OT scorer is the last
 entry in the game's `goals` list from `/v1/score/now` (`otWinnerLastName()` in js/state.js).

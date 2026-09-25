@@ -158,13 +158,9 @@ function renderMoodState(stateName, overrides) {
   var scheduleOutTable = document.getElementById('schedule-out-table');
   if (scheduleOutTable && stateName !== 'schedule_out') scheduleOutTable.innerHTML = '';
 
-  // Stop YouTube if a review overlay was active
-  if (typeof _ytMode !== 'undefined' && _ytMode) {
-    _ytMode = false;
-    if (typeof _ytPlayer !== 'undefined' && _ytPlayer && _ytReady) _ytPlayer.pauseVideo();
-    var ytWidget = document.getElementById('yt-widget');
-    if (ytWidget) ytWidget.style.display = 'none';
-  }
+  // Stop YouTube (a review overlay, or an earlier state's song) — unless this
+  // state plays the same song, which keeps going instead of starting over
+  if (typeof _ytMode !== 'undefined' && _ytMode && _ytMusicId !== state.youtubeId) ytStop();
   // Line under the headline — or under the image, when the headline sits above
   // it. Starts from mood-sub's own look each time (from index.html), since the
   // goal transition and subHeadlineStyle restyle it.
@@ -236,6 +232,10 @@ function renderMoodState(stateName, overrides) {
     audio.src = '';
     soundWidget.style.display = 'none';
   }
+
+  // Music from a YouTube video instead of an mp3 (the Rangers win songs).
+  // It brings its own ▶/⏸ button, the one the goal review uses.
+  if (state.youtubeId && typeof ytPlayMusic === 'function') ytPlayMusic(state.youtubeId);
 
   if (!state.fades) {
     document.getElementById('site-header').classList.add('visible');
@@ -534,6 +534,30 @@ async function fetchTopGoalScorer(abbrev, season) {
   return null;
 }
 
+// Beating the Rangers (regulation or OT win): the song cue replaces the win
+// screen's GIF, headline and the line under it, and the song plays. Home or
+// away picks which one — the Chicken Dance at home, since that's where it
+// started (and it plays more at UBS Arena), and "If You're Happy And You Know
+// It" on the road. Headlines are in config.json.
+const RANGERS_WIN_SONGS = {
+  home: { headlineKey: 'rangers_win_home', youtubeId: 'Nt81gzIAt18' },  // The Chicken Dance
+  away: { headlineKey: 'rangers_win_away', youtubeId: 'hmEe-YUZ0VA' },  // If You're Happy And You Know It
+};
+
+// Extra overrides for a win over the Rangers; {} for any other opponent.
+function rangersWinOverrides(game, config) {
+  var nyiIsHome = game.homeTeam.abbrev === 'NYI';
+  var opp       = nyiIsHome ? game.awayTeam : game.homeTeam;
+  if (opp.abbrev !== 'NYR') return {};
+  var song = RANGERS_WIN_SONGS[nyiIsHome ? 'home' : 'away'];
+  return {
+    headline:    getResponseText(config, song.headlineKey),
+    image:       null,
+    subHeadline: null,
+    youtubeId:   song.youtubeId,
+  };
+}
+
 function wasOTorSO(game) {
   return game.gameOutcome &&
     (game.gameOutcome.lastPeriodType === 'OT' ||
@@ -586,6 +610,8 @@ function getResponseText(config, situation, params) {
     case 'postgame_shootout_win':     return r.postgame.shootout_win;
     case 'postgame_shootout_win_sub': return r.postgame.shootout_win_sub;
     case 'shutout_win_above':         return r.postgame.shutout_win_above;
+    case 'rangers_win_home':          return r.postgame.rangers_win_home;
+    case 'rangers_win_away':          return r.postgame.rangers_win_away;
     case 'postgame_loss_reg': return r.postgame.loss_regulation;
     case 'postgame_loss_ot':  return r.postgame.loss_ot_so;
     case 'between_win':
@@ -721,17 +747,17 @@ async function getRegularSeasonState(data) {
       if (lastPeriod === 'OT') {
         // The dagger line only shows once the scorer's name is in the data
         var scorer = otWinnerLastName(nyiGame);
-        return { stateName: 'ot_win', gameObj: nyiGame, overrides: {
+        return { stateName: 'ot_win', gameObj: nyiGame, overrides: Object.assign({
           headline:         getResponseText(config, 'postgame_ot_win'),
           subHeadline:      scorer ? getResponseText(config, 'postgame_ot_win_sub', { scorer: scorer.toUpperCase() }) : null,
           subHeadlineStyle: BIG_SUB,
-        } };
+        }, rangersWinOverrides(nyiGame, config)) };
       }
-      return { stateName: 'win', gameObj: nyiGame, overrides: {
+      return { stateName: 'win', gameObj: nyiGame, overrides: Object.assign({
         headline:         getResponseText(config, 'postgame_win'),
         subHeadline:      getResponseText(config, 'postgame_win_sub'),
         subHeadlineStyle: BIG_SUB,
-      } };
+      }, rangersWinOverrides(nyiGame, config)) };
     } else if (wasOTorSO(nyiGame)) {
       return { stateName: 'loss', overrides: { headline: getResponseText(config, 'postgame_loss_ot') },  gameObj: nyiGame };
     } else {

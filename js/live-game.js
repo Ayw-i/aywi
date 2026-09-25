@@ -56,12 +56,7 @@ function applyMoodOverlay(overlay) {
   if (_slideshowTimer) { clearInterval(_slideshowTimer); _slideshowTimer = null; }
 
   // Stop YouTube if we're leaving a YouTube overlay
-  if (_ytMode && !overlay.youtubeId) {
-    _ytMode = false;
-    if (_ytPlayer && _ytReady) _ytPlayer.pauseVideo();
-    var ytWidget = document.getElementById('yt-widget');
-    if (ytWidget) ytWidget.style.display = 'none';
-  }
+  if (_ytMode && !overlay.youtubeId) ytStop();   // main.js
 
   if (overlay.background) document.body.style.backgroundColor = overlay.background;
 
@@ -184,12 +179,7 @@ function applyMoodOverlay(overlay) {
 
   if (overlay.youtubeId) {
     _ytMode = true;
-    var ytWidget = document.getElementById('yt-widget');
-    if (ytWidget) {
-      ytWidget.style.opacity = '0';
-      ytWidget.style.display = 'block';
-      requestAnimationFrame(function () { ytWidget.style.opacity = '1'; });
-    }
+    ytShowWidget();                   // main.js
     ytPlayVideo(overlay.youtubeId);   // main.js — loads the YouTube player the first time
     syncToggle();
   }

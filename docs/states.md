@@ -19,6 +19,8 @@ the entire top section content, background color, and audio. Detection runs on p
 9. Game today, not started (gameState FUT / PRE)            → Pre-game
 10. Game today, final (gameState OFF / FINAL)               → Shutout Win / Shootout Win / OT Win / Win / Loss / Loser Point
     (checked in that order: a 1-0 OT win gets the shutout screen)
+    A regulation or OT win over NYR swaps in a Rangers headline + song
+    (see "Rangers Win" below the state table)
 11. No game today, regular season                           → Persist last Win/Loss state
 12. No NYI games this month AND Stanley Cup Final decided,
     < postFinalsWindowDays (config.json, default 7) since
@@ -83,6 +85,24 @@ of preseason today" etc.) is still `[TODO]`.
 | Shootout Win         | #000000    | None (shootout chart in the scoreboard below) | See response-text.md | TBD | Yes    |
 | Loss                 | #000000    | pov_sasha_daet_tebe_L.png    | See response-text.md                  | TBD                          | Yes    |
 | Off-season           | #000000    | None                         | See response-text.md                  | None                         | Yes    |
+
+### Rangers Win
+
+A regulation or OT win over NYR (game finished today) replaces that screen's GIF,
+headline and the line under it with just the headline below, and plays a song from
+YouTube. The final box score still shows under it. Home or away picks which
+(`rangersWinOverrides()` in js/state.js):
+
+| Game        | Headline                         | Song                                          |
+|-------------|----------------------------------|-----------------------------------------------|
+| NYR @ NYI   | "Turns out the Rangers still..." | The Chicken Dance (Nt81gzIAt18)                |
+| NYI @ NYR   | "Clap your hands!"               | If You're Happy And You Know It (hmEe-YUZ0VA)  |
+
+Shutout and shootout wins over NYR keep their own screens, and Sorover/Clinched still
+replace it like any other win. Between games, a Rangers win is just the usual "Yes..."
+line. The song plays at volume 30 through the goal review's YouTube player and ▶/⏸
+button; if the browser blocks autoplay, the first click, tap or key press anywhere
+starts it (scrolling can't — browsers don't count it).
 
 ---
 

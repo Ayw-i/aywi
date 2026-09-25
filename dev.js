@@ -86,6 +86,31 @@ const DEV_MOCK_SCENARIOS = {
     todayGames: [mockNYIGame('OFF', 4, 2, 'REG')],
     monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
   },
+  // Rangers wins: home = Chicken Dance, away = If You're Happy And You Know It.
+  // Real games (with their ids), so the final box score loads under the
+  // headline like it does after a real game.
+  'Mock: Rangers win (home)': {
+    standings: mockStandings(null),
+    todayGames: [{
+      id: 2025020842,   // Jan 28, 2026: NYR 2 @ NYI 5
+      gameType: 2, gameState: 'OFF',
+      awayTeam: { abbrev: 'NYR', score: 2 },
+      homeTeam: { abbrev: 'NYI', score: 5 },
+      gameOutcome: { lastPeriodType: 'REG' },
+    }],
+    monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
+  },
+  'Mock: Rangers win (away)': {
+    standings: mockStandings(null),
+    todayGames: [{
+      id: 2026010027,   // Sep 22, 2026 (preseason): NYI 4 @ NYR 3
+      gameType: 1, gameState: 'OFF',
+      awayTeam: { abbrev: 'NYI', score: 4 },
+      homeTeam: { abbrev: 'NYR', score: 3 },
+      gameOutcome: { lastPeriodType: 'REG' },
+    }],
+    monthGames: [mockScheduleGame('PHI', 'FUT', 0, 0, 2, true, null)],
+  },
   'Mock: Shutout win': {
     standings: mockStandings(null),
     todayGames: [{
@@ -200,7 +225,7 @@ const DEV_MOCK_SCENARIOS = {
 
 const DEV_MOCK_GROUPS = [
   { label: 'Season',    states: ['Mock: Sorover', 'Mock: Clinched', 'Mock: Outside In', 'Mock: Post-Finals', 'Mock: Offseason', 'Mock: Preseason', 'Mock: Schedule Out'] },
-  { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Shutout win', 'Mock: OT win today', 'Mock: OT win (no scorer)', 'Mock: SO win today', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
+  { label: 'Post-Game', states: ['Mock: Win today', 'Mock: Rangers win (home)', 'Mock: Rangers win (away)', 'Mock: Shutout win', 'Mock: OT win today', 'Mock: OT win (no scorer)', 'Mock: SO win today', 'Mock: Loss today (reg)', 'Mock: Loss today (OT)'] },
   { label: 'Between',   states: ['Mock: Between (last W)', 'Mock: Between (last L)'] },
   { label: 'Pre-Game',  states: ['Mock: Pre-game'] },
   { label: 'Live',      states: ['Mock: Live +1', 'Mock: Live +2', 'Mock: Live +3', 'Mock: Live +4',

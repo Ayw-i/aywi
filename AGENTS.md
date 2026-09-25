@@ -88,7 +88,8 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 │   ├── nav.js          ← Shared nav link bar
 │   ├── tooltip.js      ← Shared game-cell tooltip positioning
 │   ├── state.js        ← State definitions, rendering, detection pipeline
-│   ├── main.js         ← Audio, YouTube widget, fade/observer setup, initialization
+│   ├── main.js         ← Audio, YouTube player/widget (goal review, Rangers win songs),
+│   │                     fade/observer setup, initialization
 │   ├── live-game.js    ← Live game coordinator: shared state + fetch/render loop
 │   ├── live-scoreboard.js ← Scoreboard section HTML builders (incl. skater situation)
 │   ├── live-skaters.js ← Skater panel: GameScore ranking, best/worst tables
@@ -167,6 +168,9 @@ needing to know which state is active. The season rolls over each September via
   the state's `audioCredit` in js/state.js; states without one get no panel
 - Browser autoplay is blocked until first user interaction — the toggle
   button is the intended first interaction. Do not add workarounds.
+  One exception: the Rangers win songs (YouTube, `ytPlayMusic()` in js/main.js)
+  start on the first click, tap or key press anywhere on the page when autoplay
+  is blocked.
 
 ---
 
