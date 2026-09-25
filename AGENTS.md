@@ -57,7 +57,7 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── season.html         ← Game-by-game season table, special records, goalie starts
 ├── schedule.html       ← Month calendar of the season's games
 ├── stats.html          ← Extended skater and goalie season stats
-├── goalies.html        ← Hidden: "Hall of Isles Goalies" timeline since 2010-11 (linked
+├── goalies.html        ← Hidden: "Hall of Goalies" timeline since 2010-11 (linked
 │                         only from the "Goalies" header on stats.html)
 ├── goals.html          ← Hidden: "Hall of Goals" scorers timeline (linked only
 │                         from the "Forwards" header on stats.html)
