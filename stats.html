@@ -142,8 +142,8 @@
   <h2>Stats</h2>
   <div id="season-picker" style="text-align:left;margin-bottom:12px;"></div>
 
-  <!-- Half-hidden link to the goal scorers timeline, same style as Goalies below -->
-  <h3><a href="goals.html" style="color:inherit;text-decoration:underline dotted rgba(255,255,255,0.35);">Forwards</a></h3>
+  <!-- Link to the goal scorers timeline, same style as Goalies below -->
+  <h3><a href="goals.html" class="hall-link" data-tip="To the Hall of Goals..." style="color:inherit;text-decoration:underline;">Forwards</a></h3>
   <div class="table-scroll">
     <table id="forwards-table">
       <thead>
@@ -195,9 +195,9 @@
     </table>
   </div>
 
-  <!-- Half-hidden link to the goalie history graph: a faint dotted underline
-       is the only hint that this header is clickable -->
-  <h3><a href="goalies.html" style="color:inherit;text-decoration:underline dotted rgba(255,255,255,0.35);">Goalies</a></h3>
+  <!-- Link to the goalie history graph: a plain underline like the site's
+       other links, so the header reads as clickable -->
+  <h3><a href="goalies.html" class="hall-link" data-tip="To the Hall of Goalies..." style="color:inherit;text-decoration:underline;">Goalies</a></h3>
   <div class="table-scroll">
     <table id="goalies-table">
       <thead>
@@ -223,8 +223,12 @@
 
 </div>
 
+<!-- Hover box for the Forwards / Goalies header links (same look as series.html's game cells) -->
+<div id="hall-tt" style="display:none;position:fixed;background:#111;border:1px solid #555;padding:8px 12px;z-index:999;font-family:Helvetica,Arial,sans-serif;font-size:10pt;font-weight:bold;color:#fff;"></div>
+
 <script src="js/utils.js"></script>
 <script src="js/nhl-schedule.js"></script>
+<script src="js/tooltip.js"></script>
 <script src="js/stats.js"></script>
 
 </body>

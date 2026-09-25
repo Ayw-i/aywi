@@ -209,4 +209,16 @@ async function loadStatsPage() {
   }
 }
 
+// The Forwards / Goalies headers link to the Hall of Goals / Goalies. Hovering
+// one shows where it goes (the link's data-tip) in a box that follows the
+// mouse, same as the game cells on series.html (js/tooltip.js).
+var _hallTooltip = makeGameTooltip('hall-tt', function () { return null; });
+document.querySelectorAll('.hall-link').forEach(function (link) {
+  link.addEventListener('mousemove', function (e) {
+    document.getElementById('hall-tt').textContent = link.dataset.tip;
+    _hallTooltip.move(e);
+  });
+  link.addEventListener('mouseout', _hallTooltip.hide);
+});
+
 loadStatsPage();
