@@ -59,7 +59,7 @@ Worker source is in nhl-proxy-worker.js (for reference — edited in Cloudflare 
 ├── stats.html          ← Extended skater and goalie season stats
 ├── goalies.html        ← Hidden: "Hall of Isles Goalies" timeline since 2010-11 (linked
 │                         only from the "Goalies" header on stats.html)
-├── goals.html          ← Hidden: "Hall of Isles Goals" scorers timeline (linked only
+├── goals.html          ← Hidden: "Hall of Goals" scorers timeline (linked only
 │                         from the "Forwards" header on stats.html)
 ├── playoffs.html       ← Today's playoff games + full bracket by conference/round
 ├── series.html         ← Season series vs. every opponent, grouped by division

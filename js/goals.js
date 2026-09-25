@@ -1,4 +1,4 @@
-// goals.html — "Hall of Isles Goals": the Islanders' goal scorers since 2010-11
+// goals.html — "Hall of Goals": the Islanders' goal scorers since 2010-11
 // on the same timeline as the goalie page (layout in timeline.js). One row per
 // player: a thin line for every month they played for NYI, thickened by the
 // goals they scored that month (regular season + playoffs; no preseason).
